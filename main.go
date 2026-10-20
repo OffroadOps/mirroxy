@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -21,7 +22,7 @@ import (
 //go:embed web/*
 var frontend embed.FS
 
-var version = "0.7.4"
+var version = "0.8.0"
 
 func main() {
 	exe, _ := os.Executable()
@@ -290,12 +291,37 @@ func main() {
 	a.closeStore()
 }
 
+// panelIndex serves index.html with the running version substituted for the
+// __VERSION__ placeholder. The asset cache key therefore always matches the
+// build instead of drifting behind a hardcoded string.
+func (a *App) panelIndex(w http.ResponseWriter, r *http.Request) {
+	page, err := fs.ReadFile(frontend, "web/index.html")
+	if err != nil {
+		http.Error(w, "panel unavailable", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write([]byte(strings.ReplaceAll(string(page), "__VERSION__", version)))
+}
+
 func (a *App) handler(remote bool) http.Handler {
 	assets, _ := fs.Sub(frontend, "web")
+	files := http.FileServer(http.FS(assets))
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/", a.apiV1)
 	mux.HandleFunc("/api/", a.api)
-	mux.Handle("/", http.FileServer(http.FS(assets)))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+			a.panelIndex(w, r)
+			return
+		}
+		// Embedded assets carry no modification time, so the browser cannot
+		// revalidate them. Refusing to cache keeps the panel in step with the
+		// running build.
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	})
 	return a.accessGuard(mux, remote)
 }
 

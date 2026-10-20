@@ -31,13 +31,15 @@ func TestHealthFailureFallbackAndRecovery(t *testing.T) {
 	}))
 	defer proxy.Close()
 	port := proxy.Listener.Addr().(*net.TCPAddr).Port
-	a := &App{cores: map[string]*Core{"xray": {done: make(chan struct{})}}, shutdown: make(chan struct{}), cfg: Settings{Nodes: []Node{{ID: "one", Engine: "xray", Enabled: true, Port: port, Route: "proxy", Outbound: M{"protocol": "freedom"}}}}}
+	node := Node{ID: "one", Engine: "xray", Enabled: true, Port: port, Route: "proxy", Outbound: M{"protocol": "freedom"}}
+	a := &App{cores: map[string]*Core{node.coreKey(): {done: make(chan struct{})}}, shutdown: make(chan struct{}), cfg: Settings{Nodes: []Node{node}}}
 	targets := []string{"http://primary.invalid/generate_204", "http://secondary.invalid/generate_204"}
 	for _, step := range []struct {
 		mode     int32
 		status   string
 		requests int32
-	}{{0, "online", 2}, {1, "offline", 2}, {2, "online", 1}} {
+		most     int32
+	}{{0, "online", 2, 4}, {1, "offline", 2, 4}, {2, "online", 1, 2}} {
 		mode.Store(step.mode)
 		calls.Store(0)
 		p, err := a.beginHealth("one")
@@ -52,7 +54,9 @@ func TestHealthFailureFallbackAndRecovery(t *testing.T) {
 			t.Fatal("current probe discarded")
 		}
 		a.healthWorkers.Done()
-		if h.Status != step.status || calls.Load() != step.requests {
+		// Every target is tried, and a dropped connection may be repeated
+		// once, so the number of requests is checked as a range.
+		if h.Status != step.status || calls.Load() < step.requests || calls.Load() > step.most {
 			t.Fatalf("mode %d: health %+v, requests %d", step.mode, h, calls.Load())
 		}
 		if h.CheckedAt.IsZero() || a.healthFor(a.cfg.Nodes[0]).Checking {
@@ -72,7 +76,7 @@ func TestHealthFailureFallbackAndRecovery(t *testing.T) {
 		t.Fatal("cancellation overwrote health")
 	}
 	p, _ = a.beginHealth("one")
-	a.cores["xray"] = &Core{done: make(chan struct{})}
+	a.cores[a.cfg.Nodes[0].coreKey()] = &Core{done: make(chan struct{})}
 	if a.finishHealth(p, Health{Status: "offline"}, errors.New("old core")) {
 		t.Fatal("stale core result applied")
 	}
@@ -183,6 +187,7 @@ func TestHealthTemporaryCoresPreserveRunningNodes(t *testing.T) {
 			if e = os.WriteFile(a.corePath(engine), b, 0700); e != nil {
 				t.Fatal(e)
 			}
+			installTestRules(t, a)
 			out := M{"protocol": "freedom"}
 			if engine == "sing-box" {
 				out = M{"type": "direct"}

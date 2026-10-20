@@ -12,7 +12,7 @@ func TestNodePlacementPersistsWithoutRestartingCore(t *testing.T) {
 	a := renameTestApp(t)
 	a.cfg.Nodes[0].Enabled = true
 	core := &Core{}
-	a.cores["xray"] = core
+	a.cores[a.cfg.Nodes[0].coreKey()] = core
 	counters := a.trafficFor("rename-test")
 	counters.Uploaded, counters.Downloaded = 123, 456
 	before := cloneSettings(a.cfg)
@@ -22,14 +22,14 @@ func TestNodePlacementPersistsWithoutRestartingCore(t *testing.T) {
 	before.Nodes[0].ListBottom = true
 	actualJSON, _ := json.Marshal(a.cfg)
 	expectedJSON, _ := json.Marshal(before)
-	if !bytes.Equal(actualJSON, expectedJSON) || a.cores["xray"] != core || !core.alive() || counters.Uploaded != 123 || counters.Downloaded != 456 {
+	if !bytes.Equal(actualJSON, expectedJSON) || a.cores[a.cfg.Nodes[0].coreKey()] != core || !core.alive() || counters.Uploaded != 123 || counters.Downloaded != 456 {
 		t.Fatal("placement changed proxy state, identity, port or traffic")
 	}
 	reloaded := &App{root: a.root}
 	if err := reloaded.load(); err != nil || !reloaded.cfg.Nodes[0].ListBottom {
 		t.Fatal("placement did not survive reload", err)
 	}
-	if err := a.changeNode("rename-test", "auto-order", ""); err != nil || a.cfg.Nodes[0].ListBottom || a.cores["xray"] != core {
+	if err := a.changeNode("rename-test", "auto-order", ""); err != nil || a.cfg.Nodes[0].ListBottom || a.cores[a.cfg.Nodes[0].coreKey()] != core {
 		t.Fatal("restoring automatic order disrupted proxy", err)
 	}
 }

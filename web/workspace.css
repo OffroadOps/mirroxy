@@ -36,3 +36,17 @@ main{padding-top:16px}#view-nodes .stats{margin-top:0;margin-bottom:14px;padding
 .topbar .proxy-controls #routingMode{max-width:200px}.node-table .route-select{width:132px}.node-table th:nth-child(8){width:144px}@media(max-width:1250px){.topbar{height:auto;flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.topbar .proxy-controls{flex-wrap:wrap}.topbar .connection{margin-left:auto}}
 
 .app-update-box{max-width:900px;background:#edf4ee;border:1px solid #dce8dd;border-radius:10px;padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:18px}.app-update-box strong{font-size:14px;color:#20765e}.app-update-box p{margin:8px 0 0;font-size:12px;color:#738878;line-height:1.6}.update-actions{display:flex;gap:8px;flex-shrink:0}@media(max-width:740px){.app-update-box{flex-wrap:wrap;padding:16px}.app-update-box p{font-size:11px}}
+
+/* One takeover switch replaces the proxy-mode form. The node picker and the
+   routing mode apply immediately, so there is nothing left to submit. */
+.proxy-switch{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:#61766b;white-space:nowrap;cursor:pointer}
+.topbar .proxy-controls #proxyNode{max-width:190px}
+.topbar .proxy-controls #clearSystemProxy{color:#8a6a5c}
+
+/* The panel uses a local self-signed certificate, so every visit looks
+   unsafe until the root CA is trusted. Say it on the page. */
+.ca-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 16px;border:1px solid #e7cda6;background:#fdf4e5;border-radius:9px;font-size:12px;color:#7b5c2f}
+.ca-banner-mark{flex:none;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#c98a34;color:#fff;font-weight:700;font-size:12px}
+.ca-banner #caBannerText{flex:1;min-width:200px;line-height:1.7}
+.ca-banner .icon-button{font-size:19px;line-height:1;padding:2px 6px}
+@media(max-width:740px){.ca-banner{font-size:11px}.ca-banner #caBannerText{min-width:140px}}

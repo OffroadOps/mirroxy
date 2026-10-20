@@ -178,6 +178,7 @@ func TestSingboxTrafficIsolation(t *testing.T) {
 	if e = os.WriteFile(path, b, 0700); e != nil {
 		t.Fatal(e)
 	}
+	installTestRules(t, a)
 	defer func() {
 		for _, c := range a.cores {
 			c.stop()
@@ -220,7 +221,7 @@ func TestSingboxTrafficIsolation(t *testing.T) {
 			t.Fatal("sing-box TCP count incorrect")
 		}
 		payload := strings.Repeat("b", 1024*(i+1))
-		io.WriteString(conn, "POST / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\nContent-Length: "+fmtInt(len(payload))+"\r\n\r\n"+payload)
+		io.WriteString(conn, "POST / HTTP/1.1\r\nHost: localhost\r\nContent-Length: "+fmtInt(len(payload))+"\r\n\r\n"+payload)
 		response, e := http.ReadResponse(bufio.NewReader(conn), nil)
 		if e != nil {
 			t.Fatal(e)

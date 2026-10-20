@@ -15,7 +15,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / 'work/release-assets'
-VERSION = '0.7.4'
+VERSION = '0.8.0'
 DIST = ROOT / 'dist' / f'v{VERSION}'
 RELEASE_URL = f'https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/v{VERSION}'
 

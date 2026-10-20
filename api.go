@@ -312,6 +312,37 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			respond(w, M{"ok": true}, a.startNode(body.ID))
 			return
 		}
+	case "/api/proxy":
+		// "set" starts the node first so that switching to a node is one
+		// action and the system proxy never points at a stopped node.
+		if body.Action == "set" {
+			if e := a.startNode(body.ID); e != nil {
+				respond(w, nil, e)
+				return
+			}
+		}
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		switch body.Action {
+		case "restore":
+			a.restoreProxy()
+			a.cfg.SystemProxyMode = "unchanged"
+			a.cfg.SystemProxyNode = ""
+			a.cfg.PausedSystemProxy = nil
+			_ = a.save()
+			respond(w, M{"ok": true}, nil)
+		case "mode":
+			respond(w, M{"ok": true}, a.applySystemProxy(body.Mode, body.ID))
+		case "set":
+			respond(w, M{"ok": true}, a.applySystemProxy("auto", body.ID))
+		default:
+			mode := "auto"
+			if body.Action == "clear" {
+				mode = "clear"
+			}
+			respond(w, M{"ok": true}, a.applySystemProxy(mode, body.ID))
+		}
+		return
 	case "/api/test":
 		result, e := a.testNode(body.ID)
 		respond(w, result, e)
@@ -391,23 +422,6 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, M{"id": s.ID}, nil)
-	case "/api/proxy":
-		if body.Action == "restore" {
-			a.restoreProxy()
-			a.cfg.SystemProxyMode = "unchanged"
-			a.cfg.SystemProxyNode = ""
-			a.cfg.PausedSystemProxy = nil
-			_ = a.save()
-			respond(w, M{"ok": true}, nil)
-		} else if body.Action == "mode" {
-			respond(w, M{"ok": true}, a.applySystemProxy(body.Mode, body.ID))
-		} else {
-			mode := "auto"
-			if body.Action == "clear" {
-				mode = "clear"
-			}
-			respond(w, M{"ok": true}, a.applySystemProxy(mode, body.ID))
-		}
 	case "/api/log":
 		engine, ok := internalEngine(body.Engine)
 		if !ok {

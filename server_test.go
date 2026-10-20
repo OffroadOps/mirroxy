@@ -7,6 +7,7 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func freeTestPort(t *testing.T) int {
@@ -181,9 +183,12 @@ func TestImportAutomaticallyDeploysThroughBundledCore(t *testing.T) {
 	if e = os.WriteFile(a.corePath("xray"), b, 0755); e != nil {
 		t.Fatal(e)
 	}
+	installTestRules(t, a)
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodConnect {
-			w.WriteHeader(405)
+			// A plain request is forwarded to the upstream proxy in absolute
+			// form instead of being tunnelled.
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		conn, rw, err := w.(http.Hijacker).Hijack()
@@ -198,6 +203,10 @@ func TestImportAutomaticallyDeploysThroughBundledCore(t *testing.T) {
 		}
 		rw.WriteString("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
 		rw.Flush()
+		// Drain the tunnel before it is closed. Closing with unread data
+		// makes the peer see a reset instead of the answer.
+		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		io.Copy(io.Discard, conn)
 	}))
 	defer proxy.Close()
 	result, e := a.importAndDeploy(proxy.URL+"#auto-deploy", "", nil)

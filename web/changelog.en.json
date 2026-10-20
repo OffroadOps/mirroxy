@@ -1,4 +1,18 @@
 [
+  {
+    "version": "0.8.0",
+    "date": "2026-10-20",
+    "changes": [
+      "Switching to a node takes one step: double-clicking a node row starts it when needed and hands the system proxy over to it. The node menu now offers \"Start and set as system proxy\" instead of a separate start plus proxy configuration.",
+      "The top bar proxy-mode form with its Apply button becomes a single \"Take over system proxy\" switch. The node picker and the routing mode apply immediately.",
+      "Every node runs in its own core process. Starting or stopping one node no longer restarts the cores of the others, so their running connections survive.",
+      "The tray \"System proxy\" submenu lists every node, including stopped ones. Picking one starts it and hands the proxy over; picking the active node hands the proxy back.",
+      "Starting a node now says plainly that the system proxy is not taken over yet and offers a one-click way to do it.",
+      "The panel version is injected at runtime, so the asset cache key always matches the running build.",
+      "The panel shows a clear notice when the local root certificate is not trusted yet, instead of relying on the browser interstitial alone.",
+      "Availability checks no longer report a node as usable while the LAN bypass lets the probe succeed without the node outbound; probe traffic is forced through the node itself."
+    ]
+  },
   {"version":"0.7.4","date":"2026-10-12","changes":["Desktop download management fits the viewport; large task lists scroll internally with sticky headers.","Up to 30 concurrent downloads; the official aria2 per-server limit remains 16 connections.","Open completed files and reveal tasks in the system file manager using validated local journal paths; incomplete files cannot be launched.","Reconnect stuck downloads while keeping their partial files, resume data, URL and explicit proxy. Bounded connection/idle timeouts and retries report stalls without weakening TLS or falling back to direct access."]},
   {"version":"0.7.3","date":"2026-10-12","changes":["Download task rows and blank space now have context menus with state-aware actions, multiple selection, copy URL/path, keyboard access and viewport clamping.","Removing downloads uses an in-page modal. File removal is unchecked by default; opting in moves known downloaded files and resume data to the destination's .Mirroxy-trash recovery area without recursively deleting directories.","A fixed Windows online installer downloads the latest full program ZIP from the HTTPS catalog, validates size, SHA256, manifest and AMD64 executables before installing, and retains existing cores, data and dashboard port. Release builds no longer compile an installer unless the offline option is requested."]},
   {"version":"0.7.2","date":"2026-10-12","changes":["Download progress uses a native progress element with the real percentage; strict CSP remains unchanged and no inline styles are needed.","Known aria2 failures now show readable TLS, certificate, timeout, network and file errors without storing raw URLs, paths or credentials; certificate validation and explicit proxy selection remain enabled."]},

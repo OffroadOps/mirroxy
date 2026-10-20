@@ -230,7 +230,9 @@ func checkProxyHealth(ctx context.Context, port int, targets []string) (int64, e
 	u, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", port))
 	transport := &http.Transport{Proxy: http.ProxyURL(u), DisableKeepAlives: true}
 	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 6 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	// A slow but working node must not be reported as broken: the timeout
+	// covers the whole request through the node.
+	client := &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	for _, target := range targets {
 		if ctx.Err() != nil {
 			break
@@ -240,11 +242,20 @@ func checkProxyHealth(ctx context.Context, port int, targets []string) (int64, e
 		if err != nil {
 			continue
 		}
-		res, err := client.Do(req)
-		if err == nil {
-			res.Body.Close()
-			if res.StatusCode == http.StatusNoContent {
-				return time.Since(start).Milliseconds(), nil
+		// A dropped connection is not evidence that the node is broken, so a
+		// transport failure is repeated once before the target counts as
+		// failed. A real answer is always taken as it is.
+		for attempt := 0; attempt < 2; attempt++ {
+			res, err := client.Do(req)
+			if err == nil {
+				res.Body.Close()
+				if res.StatusCode == http.StatusNoContent {
+					return time.Since(start).Milliseconds(), nil
+				}
+				break
+			}
+			if ctx.Err() != nil {
+				break
 			}
 		}
 	}
@@ -265,7 +276,11 @@ func (a *App) temporaryHealthCore(ctx context.Context, n Node) (int, func(), err
 	n.Port = l.Addr().(*net.TCPAddr).Port
 	l.Close()
 	n.Enabled, n.Route = true, "proxy"
-	probeApp := &App{root: a.root, cfg: Settings{Nodes: []Node{n}, LogLevel: "error"}}
+	// The LAN bypass stays off for the probe, otherwise a local target could
+	// be reached directly and the node would report success while its own
+	// outbound is broken.
+	bypassLAN := false
+	probeApp := &App{root: a.root, cfg: Settings{Nodes: []Node{n}, LogLevel: "error", BypassLAN: &bypassLAN}}
 	cfg, _ := probeApp.coreConfig(n.coreKey())
 	runtimeDir := a.dataPath("runtime")
 	if err = os.MkdirAll(runtimeDir, 0700); err != nil {

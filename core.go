@@ -99,7 +99,7 @@ func (a *App) coreConfig(key string) (M, []int) {
 		if !n.Enabled || n.Engine != engine {
 			continue
 		}
-		if engine == "sing-box" && key != "sing-box" && n.coreKey() != key {
+		if key != engine && n.coreKey() != key {
 			continue
 		}
 		ports = append(ports, n.Port)
@@ -320,17 +320,21 @@ func (a *App) restartEngine(engine string) error {
 	return a.reconcile()
 }
 
+// coreKeys lists the dedicated core processes: one per node plus any core
+// that is still running after its node was removed.
 func (a *App) coreKeys() []string {
-	keys := []string{"xray"}
-	seen := map[string]bool{"xray": true}
+	keys := []string{}
+	seen := map[string]bool{}
 	for _, n := range a.cfg.Nodes {
-		if !seen[n.coreKey()] {
-			seen[n.coreKey()] = true
-			keys = append(keys, n.coreKey())
+		key := n.coreKey()
+		if !seen[key] {
+			seen[key] = true
+			keys = append(keys, key)
 		}
 	}
 	for k := range a.cores {
 		if !seen[k] {
+			seen[k] = true
 			keys = append(keys, k)
 		}
 	}

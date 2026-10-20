@@ -32,7 +32,7 @@ func TestRenamePreservesRuntimeAndPersists(t *testing.T) {
 	a := renameTestApp(t)
 	a.cfg.Nodes[0].Enabled = true
 	core := &Core{}
-	a.cores["xray"] = core
+	a.cores[a.cfg.Nodes[0].coreKey()] = core
 	stats := a.trafficFor("rename-test")
 	stats.Uploaded, stats.Downloaded = 12345, 67890
 	before, _ := json.Marshal(a.cfg.Nodes[0].Outbound)
@@ -40,7 +40,7 @@ func TestRenamePreservesRuntimeAndPersists(t *testing.T) {
 		t.Fatal(err)
 	}
 	n := a.cfg.Nodes[0]
-	if a.cores["xray"] != core || !n.Enabled || n.Port != 5066 || stats.Downloaded != 67890 || stats.Uploaded != 12345 {
+	if a.cores[a.cfg.Nodes[0].coreKey()] != core || !n.Enabled || n.Port != 5066 || stats.Downloaded != 67890 || stats.Uploaded != 12345 {
 		t.Fatal("rename disrupted runtime or traffic")
 	}
 	after, _ := json.Marshal(n.Outbound)

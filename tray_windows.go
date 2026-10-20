@@ -152,15 +152,35 @@ func showTrayActionError(action string, err error) {
 }
 
 // trayApplyProxy and traySetRoute run tray actions off the UI thread and
-// surface failures in a message box instead of the silent event log.
+// surface failures in a message box instead of the silent event log. Both
+// change saved settings, so they hold App.mu like the panel does.
 func (a *App) trayApplyProxy(mode, id string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if err := a.applySystemProxy(mode, id); err != nil {
 		showTrayActionError("系统代理设置", err)
 	}
 }
 func (a *App) traySetRoute(mode string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	if err := a.setRoutingMode(mode); err != nil {
 		showTrayActionError("路由模式切换", err)
+	}
+}
+
+// traySetProxyNode starts the node when it is not running yet and then hands
+// the system proxy over to it, so the tray offers the same one-step switch as
+// the dashboard.
+func (a *App) traySetProxyNode(id string) {
+	if err := a.startNode(id); err != nil {
+		showTrayActionError("启动节点", err)
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if err := a.applySystemProxy("auto", id); err != nil {
+		showTrayActionError("系统代理设置", err)
 	}
 }
 
@@ -326,11 +346,20 @@ func (a *App) runTray() {
 				route := first(a.cfg.RoutingMode, "bypass-cn")
 				acceleratorPaused := a.cfg.PausedSystemProxy != nil
 				running := []Node{}
+				stopped := []Node{}
 				nodesSnapshot := append([]Node(nil), a.cfg.Nodes...)
 				for _, n := range a.cfg.Nodes {
 					if n.Enabled && a.cores[n.coreKey()].alive() {
 						running = append(running, n)
+					} else {
+						stopped = append(stopped, n)
 					}
+				}
+				// Every node is offered; picking one that is not running yet
+				// starts it and hands the system proxy over in one action.
+				proxyNodes := append(append([]Node(nil), running...), stopped...)
+				if len(proxyNodes) > proxyNodeSlotLimit {
+					proxyNodes = proxyNodes[:proxyNodeSlotLimit]
 				}
 				traffic := a.trafficState()
 				update := a.appUpdate
@@ -363,11 +392,15 @@ func (a *App) runTray() {
 				}
 				proxyMenu, _, _ := trayUser.NewProc("CreatePopupMenu").Call()
 				defer trayUser.NewProc("DestroyMenu").Call(proxyMenu)
-				if len(running) == 0 {
-					AppendMenu(proxyMenu, 0x3, 0, "（无运行中的节点）")
+				if len(proxyNodes) == 0 {
+					AppendMenu(proxyMenu, 0x3, 0, "（没有节点）")
 				} else {
-					for i, n := range running {
-						AppendMenu(proxyMenu, checked(n.ID == activeProxyID), trayProxyNodeBase+uintptr(i), trayTruncate(n.Name, 12))
+					for i, n := range proxyNodes {
+						label := trayTruncate(n.Name, 12)
+						if i >= len(running) {
+							label += " · 未启动"
+						}
+						AppendMenu(proxyMenu, checked(n.ID == activeProxyID), trayProxyNodeBase+uintptr(i), label)
 					}
 				}
 				AppendMenu(menu, 0x10, proxyMenu, "系统代理")
@@ -431,11 +464,12 @@ func (a *App) runTray() {
 				case selected == trayMenuToggleAll:
 					go a.setAllNodesEnabled(!anyRunning)
 				case selected >= trayProxyNodeBase && selected < trayProxyNodeBase+proxyNodeSlotLimit:
-					if index := int(selected - trayProxyNodeBase); index < len(running) {
-						if running[index].ID == activeProxyID {
+					if index := int(selected - trayProxyNodeBase); index < len(proxyNodes) {
+						node := proxyNodes[index]
+						if node.ID == activeProxyID {
 							go a.trayReleaseProxy()
 						} else {
-							go a.trayApplyProxy("auto", running[index].ID)
+							go a.traySetProxyNode(node.ID)
 						}
 					}
 				case selected == trayRouteBypassCN:

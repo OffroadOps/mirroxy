@@ -4,7 +4,7 @@ Mirroxy 是一个多节点本地代理管理器。一个 Go 后台进程提供 W
 固定回环端口，同时支持 HTTP 与 SOCKS5。Windows 不依赖 .NET；Linux 主要面向 Armbian、
 Debian、Ubuntu 的 systemd 环境。
 
-源码工作区为 `E:\Mirroxy`。公开发布仍使用兼容入口：
+源码工作区为 `D:\Mirroxy`。公开发布仍使用兼容入口：
 <https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/index.html>。
 
 ## 使用方式
@@ -12,6 +12,9 @@ Debian、Ubuntu 的 systemd 环境。
 Windows 运行 `Mirroxy-windows-amd64.exe` 安装程序后启动 Mirroxy，打开 <https://127.0.0.1:9527/>（或安装时选择的端口）。导入分享链接、
 订阅或 v2rayN SQLite 节点库，再启动所需节点。首次从 5060 起分配空闲 TCP/UDP 端口，随后
 保持绑定。下载器填写 `127.0.0.1` 和节点端口即可。
+
+切换到某个节点只需一步：**双击节点行**，程序会按需启动该节点并把系统代理接管过去；顶部的
+「接管系统代理」开关可以随时交还或重新接管，节点下拉框和路由模式都即时生效。
 
 Windows 安装向导会检测面板端口占用。端口被占用时，请关闭占用程序后重试，或在向导中选择其他端口；升级默认保留已有面板端口。静默安装可以通过 `/PANELPORT=9528` 指定端口。
 
@@ -87,17 +90,22 @@ AES-GCM 加密存入 SQLite `data/Mirroxy.db`。Windows 的 256 位主密钥再�
 
 ## 系统代理与路由
 
-系统代理有四种模式：
+顶部的「接管系统代理」开关是日常入口：打开后系统代理指向所选节点的本地端口，关闭后把
+接管前的设置原样交还。节点下拉框列出全部节点，未启动的节点标为「未启动」，选中时会先启动
+再接管。另有「清除」用于强制关闭系统代理。默认不接管，因此不会改写 v2rayN 等其它软件
+当前使用的代理设置。
 
-| 模式 | 行为 |
+| 操作 | 行为 |
 |---|---|
-| 不改变系统代理 | 默认；不写 Windows 代理设置。 |
-| 清除系统代理 | 用户应用后清除静态代理和 PAC。 |
-| 自动配置系统代理 | 使用选定运行节点的 HTTP 端口。 |
-| PAC 模式 | 使用选定节点的固定 PAC 地址。 |
+| 不接管 | 默认；不写 Windows 代理设置。 |
+| 接管系统代理 | 使用所选节点的 HTTP 端口；节点未运行时先启动。 |
+| 清除 | 关闭当前静态代理和 PAC。 |
 
 全局路由默认为绕过大陆，也可选择黑名单或全局。每个节点可跟随全局或独立覆盖。节点故障不会
 切换到另一节点；固定端口保持失败，以避免下载或应用在不知情时换线路。
+
+每个节点运行在独立的核心进程中。启动或停止一个节点只重启它自己的核心，其它节点正在进行的
+连接不会中断；只有切换全局路由模式会重建全部节点的核心并短暂重连。
 
 ## Windows 游戏 / 应用代理
 
@@ -183,14 +191,15 @@ python packaging/build-release.py --go <go>
 真实核心隔离测试使用：
 
 ```powershell
-$env:MIRROXY_TEST_XRAY = 'E:\Mirroxy\bin\runtime\Mirroxy_core_A.exe'
-$env:MIRROXY_TEST_SINGBOX = 'E:\Mirroxy\bin\runtime\Mirroxy_core_B.exe'
-$env:MIRROXY_TEST_RULES = 'E:\Mirroxy\bin\resources'
-go test -v ./...
+$env:MIRROXY_TEST_XRAY = 'D:\Mirroxy\bin\runtime\Mirroxy_core_A.exe'
+$env:MIRROXY_TEST_SINGBOX = 'D:\Mirroxy\bin\runtime\Mirroxy_core_B.exe'
+$env:MIRROXY_TEST_RULES = 'D:\Mirroxy\bin\resources'
+go test -v .
 ```
 
-测试使用临时目录和本机模拟上游，不修改真实系统代理、节点或端口。Windows 代理测试使用独立
-注册表路径。macOS 仅交叉编译和包结构校验，没有实机运行证明。
+`MIRROXY_TEST_RULES` 提供分流规则文件，真实核心测试会把它复制到临时运行目录；不设置时
+这些测试会跳过。测试使用临时目录和本机模拟上游，不修改真实系统代理、节点或端口。Windows
+代理测试使用独立注册表路径。macOS 仅交叉编译和包结构校验，没有实机运行证明。
 
 ## 发布
 

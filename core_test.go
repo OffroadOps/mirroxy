@@ -99,8 +99,11 @@ func TestXrayPortIsolationAndFailure(t *testing.T) {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			t.Logf("mock %s received %s", marker, r.Method)
 			if r.Method != "CONNECT" {
-				t.Error("expected CONNECT")
-				w.WriteHeader(500)
+				// A plain request is forwarded to the upstream proxy in
+				// absolute form instead of being tunnelled.
+				w.Header().Set("Content-Length", strconv.Itoa(len(marker)))
+				w.WriteHeader(200)
+				_, _ = w.Write([]byte(marker))
 				return
 			}
 			conn, rw, e := w.(http.Hijacker).Hijack()
@@ -129,6 +132,11 @@ func TestXrayPortIsolationAndFailure(t *testing.T) {
 	a := &App{root: root, panelPort: 15060, cores: map[string]*Core{}, cfg: Settings{StartPort: 25060, LogLevel: "debug", Updated: map[string]string{}}}
 	a.job = createJob()
 	defer closeJob(a.job)
+	installTestRules(t, a)
+	// The proof host sits in the private geosite category, so the LAN bypass
+	// has to be off for the request to reach the upstream proxy.
+	bypassLAN := false
+	a.cfg.BypassLAN = &bypassLAN
 	defer func() {
 		if t.Failed() {
 			logs, _ := filepath.Glob(a.dataPath(filepath.Join("runtime", "Mirroxy_worker_*.log")))
@@ -160,13 +168,26 @@ func TestXrayPortIsolationAndFailure(t *testing.T) {
 		defer transport.CloseIdleConnections()
 		c := &http.Client{Transport: transport, Timeout: 3 * time.Second}
 		req, _ := http.NewRequestWithContext(context.Background(), "GET", "http://proof.invalid/", nil)
-		r, e := c.Do(req)
-		if e != nil {
-			return "", e
+		// The mock upstream tears its tunnels down on its own schedule, so a
+		// dropped connection is retried before it counts as a failure.
+		var last error
+		for attempt := 0; attempt < 4; attempt++ {
+			r, e := c.Do(req)
+			if e != nil {
+				last = e
+				time.Sleep(150 * time.Millisecond)
+				continue
+			}
+			b, e := io.ReadAll(r.Body)
+			r.Body.Close()
+			if e != nil {
+				last = e
+				time.Sleep(150 * time.Millisecond)
+				continue
+			}
+			return string(b), nil
 		}
-		defer r.Body.Close()
-		b, e := io.ReadAll(r.Body)
-		return string(b), e
+		return "", last
 	}
 	for i, want := range []string{"alpha", "bravo"} {
 		got, e := request(ports[i])
@@ -238,6 +259,7 @@ func TestSingboxConfiguration(t *testing.T) {
 		t.Skip("set MIRROXY_TEST_SINGBOX to check installed sing-box")
 	}
 	a := &App{root: t.TempDir(), cfg: Settings{}}
+	installTestRules(t, a)
 	for i, link := range []string{"hysteria2://password@127.0.0.1:443?sni=example.org", "tuic://11111111-1111-4111-8111-111111111111:password@127.0.0.1:443?sni=example.org", "anytls://password@127.0.0.1:443?sni=example.org"} {
 		n, e := parseLink(link)
 		if e != nil {

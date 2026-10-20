@@ -47,7 +47,11 @@ func TestRoutingWithInstalledCores(t *testing.T) {
 	defer direct.Close()
 	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "CONNECT" {
-			t.Error("expected CONNECT")
+			// A plain request is forwarded to the upstream proxy in absolute
+			// form instead of being tunnelled.
+			w.Header().Set("Content-Length", "5")
+			w.WriteHeader(200)
+			fmt.Fprint(w, "PROXY")
 			return
 		}
 		conn, rw, err := w.(http.Hijacker).Hijack()
@@ -63,6 +67,9 @@ func TestRoutingWithInstalledCores(t *testing.T) {
 		}
 		fmt.Fprint(rw, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nPROXY")
 		rw.Flush()
+		// Drain the tunnel before it is closed. Closing with unread data
+		// makes the peer see a reset instead of the answer.
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 		io.Copy(io.Discard, conn)
 	}))
 	defer proxy.Close()
@@ -76,6 +83,10 @@ func TestRoutingWithInstalledCores(t *testing.T) {
 			if err := a.load(); err != nil {
 				t.Fatal(err)
 			}
+			// Global mode must really send every request through the node, so
+			// the LAN bypass is switched off for this proof.
+			bypassLAN := false
+			a.cfg.BypassLAN = &bypassLAN
 			copyFile := func(src, dst string) {
 				t.Helper()
 				data, err := os.ReadFile(src)
@@ -148,14 +159,32 @@ func TestRoutingWithInstalledCores(t *testing.T) {
 				tr := &http.Transport{Proxy: http.ProxyURL(p), DisableKeepAlives: true}
 				defer tr.CloseIdleConnections()
 				c := &http.Client{Transport: tr, Timeout: 8 * time.Second}
-				res, err := c.Get(target)
-				if err != nil {
-					t.Fatal(err)
+				// The mock upstream tears its tunnels down on its own schedule,
+				// so a dropped connection is retried before it counts as a
+				// failure.
+				var body []byte
+				var status int
+				var last error
+				for attempt := 0; attempt < 4; attempt++ {
+					res, err := c.Get(target)
+					if err != nil {
+						last = err
+						time.Sleep(150 * time.Millisecond)
+						continue
+					}
+					body, err = io.ReadAll(res.Body)
+					res.Body.Close()
+					if err != nil {
+						last = err
+						time.Sleep(150 * time.Millisecond)
+						continue
+					}
+					status = res.StatusCode
+					last = nil
+					break
 				}
-				defer res.Body.Close()
-				b, err := io.ReadAll(res.Body)
-				if err != nil || string(b) != want {
-					t.Fatalf("%s %s %s: status %d got %q, %v", engine, a.cfg.RoutingMode, target, res.StatusCode, b, err)
+				if last != nil || string(body) != want {
+					t.Fatalf("%s %s %s: status %d got %q, %v", engine, a.cfg.RoutingMode, target, status, body, last)
 				}
 			}
 			for _, mode := range []string{"bypass-cn", "blacklist", "proxy"} {

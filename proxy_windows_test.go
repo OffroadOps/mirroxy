@@ -21,7 +21,7 @@ func TestWindowsProxyModesUseOwnedBackup(t *testing.T) {
 	k.SetDWordValue("ProxyEnable", 1)
 	k.SetStringValue("ProxyServer", "127.0.0.1:10808")
 	k.SetStringValue("AutoConfigURL", "")
-	a := &App{root: t.TempDir(), panelPort: 15060, cores: map[string]*Core{"xray": {done: make(chan struct{})}}, cfg: Settings{Nodes: []Node{{ID: "n", Name: "test", Engine: "xray", Port: 5060, Enabled: true}, {ID: "other", Name: "other", Engine: "xray", Port: 5061, Enabled: true}}}}
+	a := &App{root: t.TempDir(), panelPort: 15060, cores: map[string]*Core{"xray-n": {done: make(chan struct{})}, "xray-other": {done: make(chan struct{})}}, cfg: Settings{Nodes: []Node{{ID: "n", Name: "test", Engine: "xray", Port: 5060, Enabled: true}, {ID: "other", Name: "other", Engine: "xray", Port: 5061, Enabled: true}}}}
 	assertActive := func(id string, active bool) {
 		t.Helper()
 		for _, raw := range a.state()["nodes"].([]any) {

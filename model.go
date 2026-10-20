@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -331,15 +332,24 @@ func (a *App) importNodes(nodes []Node, source string) int {
 	return count
 }
 
+// coreKey names the dedicated core process of a node. Every node runs in its
+// own process so that starting or stopping one node never restarts the
+// cores of the other nodes and never drops their connections.
 func (n Node) coreKey() string {
-	if n.Engine == "sing-box" {
-		return "sing-box-" + n.ID
+	engine := n.Engine
+	if engine == "" {
+		engine = "xray"
 	}
-	return n.Engine
+	return engine + "-" + n.ID
 }
+// coreEngine maps a core key back to the engine that provides it. Node keys
+// look like "xray-<id>" or "sing-box-<id>".
 func coreEngine(key string) string {
-	if len(key) >= 8 && key[:8] == "sing-box" {
+	if strings.HasPrefix(key, "sing-box") {
 		return "sing-box"
+	}
+	if index := strings.IndexByte(key, '-'); index > 0 {
+		return key[:index]
 	}
 	return key
 }

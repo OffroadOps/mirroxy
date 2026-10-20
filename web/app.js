@@ -5,8 +5,13 @@ const t=(key,params)=>window.MirroxyI18n?.t(key,params)||key;
 let state=null,token='',importMode='v2rayn',pending=0,settingsDirty=false,remoteDirty=false,proxyDirty=false,routingDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
 const latest=new Map();
 function translateEvent(value){const match=String(value).match(/^(\d{2}:\d{2}:\d{2}\s+)(.*)$/);return match?match[1]+t(match[2]):t(value)}
-function toast(message,error=false){clearTimeout(toastTimer);$('toast').textContent=message;$('toast').className='toast'+(error?' error':'');toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),error?9500:4500);}
+function toast(message,error=false,action=null){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.querySelector('.toast-action')?.remove();if(action){const btn=document.createElement('button');btn.className='toast-action';btn.textContent=action.label;btn.onclick=()=>{el.classList.add('hidden');action.onClick()};el.append(btn)}toastTimer=setTimeout(()=>el.classList.add('hidden'),error?9500:action?9000:4500);}
 async function copyText(text){if(navigator.clipboard?.writeText)return navigator.clipboard.writeText(text);const input=document.createElement('textarea');input.value=text;(document.querySelector('dialog[open]')||document.body).append(input);input.select();const ok=document.execCommand('copy');input.remove();if(!ok)throw Error(t('请手动复制：')+text);}
+// Mirroxy owns the system proxy only while the takeover mode is active.
+const proxyManaged=()=>state?.settings?.systemProxyMode==='auto';
+// One action covers the whole daily switch: the node is started when needed
+// and the system proxy is handed over to it.
+async function setNodeAsProxy(id){try{await api('proxy',{action:'set',id});toast(t('系统代理已切换到该节点'))}catch(e){toast(e.message,true)}await refresh()}
 async function api(path,body){const response=await fetch('/api/'+path,{method:'POST',headers:{'Content-Type':'application/json','X-App-Token':token},body:JSON.stringify(body)});let result;try{result=await response.json()}catch{throw new Error(t('后台响应异常，请刷新页面'))};if(!response.ok||result.error)throw new Error(t(result.error||'操作未完成'));return result;}
 async function apiGet(path){const response=await fetch('/api/'+path,{cache:'no-store'});let result;try{result=await response.json()}catch{throw new Error(t('后台响应异常，请刷新页面'))};if(!response.ok||result.error)throw new Error(t(result.error||'操作未完成'));return result;}
 async function act(button,fn){if(button?.disabled)return;pending++;const original=button?.textContent;if(button){button.disabled=true;button.textContent=t('processing')}try{await fn()}catch(e){toast(e.message,true)}finally{pending--;if(button){button.disabled=false;button.textContent=original}await refresh()}}
@@ -23,7 +28,7 @@ function render(){
  $('importDeployHint').textContent=t(state.settings.autoDeploy?'导入后自动选择核心、分配端口并启动':'导入后自行选择要启动的节点');
  const running=state.nodes.filter(n=>n.status==='running').length;
  $('version').textContent=state.version;$('navCount').textContent=state.nodes.length;$('totalCount').textContent=state.nodes.length;$('runningCount').textContent=running;$('listCount').textContent=state.nodes.length;
- renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyDownloads?.onState(state);
+ renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyDownloads?.onState(state);renderCertBanner();
  $('appNavCount').textContent=appRoutingAvailable?((appRoutingDraft?.profiles??state.appRouting?.profiles)??[]).length:0;
  $('subNavCount').textContent=state.subscriptions.length;
  restoreView();
@@ -67,7 +72,7 @@ function renderNodes(){
  const appsAvailable=state.platform?.os==='windows'&&state.localAccess&&state.appRouting?.supported;
  $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);
  $('nodes').innerHTML=nodes.map(n=>{const running=n.status==='running',port=n.port?'127.0.0.1:'+n.port:'',active=n.systemProxy;
- return `<tr data-node-id="${n.id}" class="${running?'running':''}${active?' active-system-node':''}" data-system-active="${active?'proxy':'none'}"><td class="name-cell"><div class="node-name"><h3 title="${escapeHTML(n.name)}">${escapeHTML(n.name)}</h3><button class="rename-node" data-rename-node="${n.id}" aria-label="${t('修改 {name} 的名称',{name:escapeHTML(n.name)})}" title="${t('修改节点名称')}">🖊</button></div><div class="node-meta">${active?`<span class="system-badge" title="${t('Windows 当前正在使用此节点作为系统代理')}"><span aria-hidden="true">◉</span>${t('系统代理')}</span>`:''}<span class="status ${n.status==='error'?'error':''}"><i></i>${t(running?'running':n.status==='error'?'startError':'stopped')}</span><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span><span>${t(n.engine==='A'?'coreA':'coreB').replace(t('网络'),'')}</span><span class="node-health" data-health>${t('pendingCheck')}</span></div></td><td class="port-cell">${port?`<button class="port-copy" data-copy="${port}" title="${t('点击复制地址')}"><code>${port}</code><span>⧉</span></button>`:`<span class="muted">${t('启动后分配')}</span>`}</td><td class="numeric" data-stat="connections">—</td><td class="numeric upload" data-stat="upload">—</td><td class="numeric download" data-stat="download">—</td><td class="numeric" data-stat="uploaded">—</td><td class="numeric" data-stat="downloaded">—</td><td><select class="route-select" data-route="${n.id}" aria-label="${t('{name}出口策略',{name:escapeHTML(n.name)})}"><option value="inherit" ${!n.route||n.route==='inherit'?'selected':''}>${t('跟随全局')} · ${routeLabel(n.effectiveRoute)}</option><option value="blacklist" ${n.route==='blacklist'?'selected':''}>${t('黑名单')}</option><option value="proxy" ${n.route==='proxy'?'selected':''}>${t('全部走此节点')}</option><option value="bypass-cn" ${n.route==='bypass-cn'?'selected':''}>${t('绕过局域网和大陆')}</option></select></td><td class="row-actions"><button class="button small ${running?'':'primary'}" data-action="${n.enabled?'stop':'start'}" data-id="${n.id}">${t(n.enabled?'stop':'start')}</button><button class="text-btn more" data-more="${n.id}" aria-label="${t('{name}更多操作',{name:escapeHTML(n.name)})}">⋯</button><div class="popover hidden" id="more-${n.id}"><button data-share-node="${n.id}">${t('分享链接')}</button><button data-test="${n.id}">${t('立即检测可用性')}</button><button data-system="${n.id}" ${running?'':'disabled'}>${t('设为系统代理')}</button>${appsAvailable?`<button data-node-apps="${n.id}">${t('指定应用')}</button>`:''}<button data-action="reassign" data-id="${n.id}" ${n.enabled?'disabled':''}>${t('重新分配端口')}</button><button data-log="${n.engine}" data-log-node="${n.id}">${t('查看核心日志')}</button><button data-action="delete" data-id="${n.id}">${t('删除节点')}</button></div></td></tr>`;
+ return `<tr data-node-id="${n.id}" class="${running?'running':''}${active?' active-system-node':''}" data-system-active="${active?'proxy':'none'}"><td class="name-cell"><div class="node-name"><h3 title="${escapeHTML(n.name)}">${escapeHTML(n.name)}</h3><button class="rename-node" data-rename-node="${n.id}" aria-label="${t('修改 {name} 的名称',{name:escapeHTML(n.name)})}" title="${t('修改节点名称')}">🖊</button></div><div class="node-meta">${active?`<span class="system-badge" title="${t('Windows 当前正在使用此节点作为系统代理')}"><span aria-hidden="true">◉</span>${t('系统代理')}</span>`:''}<span class="status ${n.status==='error'?'error':''}"><i></i>${t(running?'running':n.status==='error'?'startError':'stopped')}</span><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span><span>${t(n.engine==='A'?'coreA':'coreB').replace(t('网络'),'')}</span><span class="node-health" data-health>${t('pendingCheck')}</span></div></td><td class="port-cell">${port?`<button class="port-copy" data-copy="${port}" title="${t('点击复制地址')}"><code>${port}</code><span>⧉</span></button>`:`<span class="muted">${t('启动后分配')}</span>`}</td><td class="numeric" data-stat="connections">—</td><td class="numeric upload" data-stat="upload">—</td><td class="numeric download" data-stat="download">—</td><td class="numeric" data-stat="uploaded">—</td><td class="numeric" data-stat="downloaded">—</td><td><select class="route-select" data-route="${n.id}" aria-label="${t('{name}出口策略',{name:escapeHTML(n.name)})}"><option value="inherit" ${!n.route||n.route==='inherit'?'selected':''}>${t('跟随全局')} · ${routeLabel(n.effectiveRoute)}</option><option value="blacklist" ${n.route==='blacklist'?'selected':''}>${t('黑名单')}</option><option value="proxy" ${n.route==='proxy'?'selected':''}>${t('全部走此节点')}</option><option value="bypass-cn" ${n.route==='bypass-cn'?'selected':''}>${t('绕过局域网和大陆')}</option></select></td><td class="row-actions"><button class="button small ${running?'':'primary'}" data-action="${n.enabled?'stop':'start'}" data-id="${n.id}">${t(n.enabled?'stop':'start')}</button><button class="text-btn more" data-more="${n.id}" aria-label="${t('{name}更多操作',{name:escapeHTML(n.name)})}">⋯</button><div class="popover hidden" id="more-${n.id}"><button data-share-node="${n.id}">${t('分享链接')}</button><button data-test="${n.id}">${t('立即检测可用性')}</button><button data-system="${n.id}">${t(running?'设为系统代理':'启动并设为系统代理')}</button>${appsAvailable?`<button data-node-apps="${n.id}">${t('指定应用')}</button>`:''}<button data-action="reassign" data-id="${n.id}" ${n.enabled?'disabled':''}>${t('重新分配端口')}</button><button data-log="${n.engine}" data-log-node="${n.id}">${t('查看核心日志')}</button><button data-action="delete" data-id="${n.id}">${t('删除节点')}</button></div></td></tr>`;
  }).join('');
  for(const n of nodes){const row=$('nodes').querySelector('[data-node-id="'+n.id+'"]');if(!row)continue;row.classList.toggle('stopped',!n.enabled&&n.status!=='running');const placement=document.createElement('button');placement.dataset.action=n.listBottom?'auto-order':'move-bottom';placement.dataset.id=n.id;placement.textContent=t(n.listBottom?'恢复自动排序':'置于列表末尾');row.querySelector('.popover').prepend(placement);if(n.listBottom){const marker=document.createElement('span');marker.className='node-placement';marker.textContent=t('已置底');marker.title=t('手动置底，启动后仍保持在列表末尾');row.querySelector('.node-meta').append(marker)}}
  if(!nodes.length&&state.nodes.length)$('nodes').innerHTML=`<tr><td colspan="9" class="no-match">${t('没有匹配的节点')}</td></tr>`;
@@ -77,14 +82,24 @@ function renderNodes(){
 function routeLabel(mode){return t({'bypass-cn':'绕过大陆',blacklist:'黑名单',proxy:'全局'}[mode]||'绕过大陆')}
 function renderProxy(){
  if(!routingDirty)$('routingMode').value=state.settings.routingMode||'bypass-cn';
- $('routingMode').title=t({'bypass-cn':'局域网和大陆直连，其他流量走节点',blacklist:'命中代理名单走节点，其余直连',proxy:'全部流量走对应节点'}[$('routingMode').value])+t('。适用于跟随全局的节点，点击应用生效。');
- if(!proxyDirty){$('proxyMode').value=state.settings.systemProxyMode||'unchanged';$('proxyNode').innerHTML=state.nodes.filter(n=>n.status==='running').map(n=>`<option value="${n.id}">${escapeHTML(n.name)} · ${n.port}</option>`).join('');if(state.settings.systemProxyNode)$('proxyNode').value=state.settings.systemProxyNode;}
- const mode=$('proxyMode').value;$('proxyNode').classList.toggle('hidden',state.platform?.systemProxy===false||mode!=='auto');
- const hint=t({unchanged:'不写入系统设置。当前 v2rayN 等软件的系统代理保持原样；各节点端口可独立使用。',clear:'应用后将关闭当前 Windows 系统代理，包括其他代理软件配置的代理。',auto:'应用后将所选节点设为 Windows 系统代理。请先启动该节点。'}[mode]);
- const current=(state.systemProxyEnabled?t('当前系统代理：')+state.systemProxy:t('当前未启用系统代理'))+(state.settings.acceleratorPaused?t(' · 加速器运行中，已自动暂停'):'');
+ $('routingMode').title=t({'bypass-cn':'局域网和大陆直连，其他流量走节点',blacklist:'命中代理名单走节点，其余直连',proxy:'全部流量走对应节点'}[$('routingMode').value])+t('。切换后立即生效。');
+ const managed=proxyManaged();
+ $('proxyToggle').checked=managed;
+ const running=state.nodes.filter(n=>n.status==='running'),stopped=state.nodes.filter(n=>n.status!=='running');
+ if(!proxyDirty){
+  $('proxyNode').innerHTML=running.concat(stopped).map(n=>`<option value="${n.id}">${escapeHTML(n.name)}${n.status==='running'?' · '+n.port:' · '+t('stopped')}</option>`).join('');
+  const wanted=state.settings.systemProxyNode;
+  const active=state.nodes.find(n=>n.systemProxy);
+  if(wanted&&[...running,...stopped].some(n=>n.id===wanted))$('proxyNode').value=wanted;
+  else if(active)$('proxyNode').value=active.id;
+ }
+ const hidden=state.platform?.systemProxy===false;
+ $('proxyNode').classList.toggle('hidden',hidden);
+ $('clearSystemProxy').classList.toggle('hidden',hidden);
+ const current=(state.systemProxyEnabled?t('当前系统代理：')+state.systemProxy:t('当前未启用系统代理'))+(state.settings.acceleratorPaused?' · '+t('加速器运行中，已自动暂停'):'');
+ $('proxyToggle').title=current;
  $('proxyControls').title=current;
- $('proxyMode').title=current+'\n'+hint;
- $('applyProxyMode').title=t('应用路由及代理方式');
+ $('clearSystemProxy').title=t('清除系统代理')+'\n'+t('会关闭当前 Windows 系统代理，包括其他代理软件配置的代理。');
 }
 function cloneAppRouting(value){return JSON.parse(JSON.stringify(value||{defaultNode:'',compatMode:false,profiles:[]}))}
 function renderAppRouting(){
@@ -164,9 +179,10 @@ $('toggleAppRouting').onclick=()=>act($('toggleAppRouting'),async()=>{if(state.a
 $('probeCapabilities').onclick=()=>act($('probeCapabilities'),async()=>{if(!appRoutingDraft.defaultNode)throw Error(t('请先选择默认应用节点'));const result=await api('node/capabilities',{id:appRoutingDraft.defaultNode});toast(t('能力检测完成：')+` TCP ${result.tcp?'✓':'×'} · UDP ${result.udp?'✓':'×'} · IPv6 ${result.ipv6?'✓':'×'}`)});
 $('importTop').onclick=$('importEmpty').onclick=()=>showImport();$('addSubscription').onclick=()=>showImport('subscription');
 $('search').oninput=()=>state&&renderNodes();
-$('proxyMode').onchange=()=>{proxyDirty=true;renderProxy()};$('proxyNode').onchange=()=>proxyDirty=true;
-$('routingMode').onchange=()=>{routingDirty=true;renderProxy()};
-$('applyProxyMode').onclick=()=>act($('applyProxyMode'),async()=>{if(routingDirty){await api('routing',{mode:$('routingMode').value});routingDirty=false}if(proxyDirty&&state.platform?.systemProxy!==false){await api('proxy',{action:'mode',mode:$('proxyMode').value,id:$('proxyNode').value});proxyDirty=false}toast(t('路由及代理方式已应用'))});
+$('proxyToggle').onchange=()=>act(null,async()=>{if($('proxyToggle').checked){await api('proxy',{action:'set',id:$('proxyNode').value});toast(t('系统代理已接管，支持系统代理的浏览器和应用现在使用所选节点'))}else{await api('proxy',{action:'restore'});toast(t('已交还系统代理设置，恢复接管前的配置'))}});
+$('proxyNode').onchange=()=>{proxyDirty=true;if(!$('proxyToggle').checked)return;act(null,async()=>{await api('proxy',{action:'set',id:$('proxyNode').value});proxyDirty=false;toast(t('系统代理已切换到所选节点'))})};
+$('routingMode').onchange=()=>act(null,async()=>{await api('routing',{mode:$('routingMode').value});routingDirty=false;toast(t('路由模式已切换，相关节点的连接会短暂重连'))});
+$('clearSystemProxy').onclick=()=>act($('clearSystemProxy'),async()=>{await api('proxy',{action:'clear'});toast(t('系统代理已清除'))});
 $('doImport').onclick=()=>act($('doImport'),async()=>{
  let result;if(importMode==='subscription'){if(!$('subUrl').value.trim())throw Error(t('请填写订阅地址'));const added=await api('subscription/add',{name:$('subName').value.trim(),url:$('subUrl').value.trim()});result=await api('subscription/refresh',{id:added.id})}
  else{result=await api('import',importMode==='v2rayn'?{path:$('v2raynPath').value.trim()}:{text:$('nodeLinksInput').value.trim()})}
@@ -182,6 +198,9 @@ function openNodeMenu(id,x,y,toggle=false){
  menu.style.top=Math.max(8,Math.min(y,window.innerHeight-menu.offsetHeight-8))+'px';
 }
 $('nodes').addEventListener('contextmenu',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;e.preventDefault();openNodeMenu(row.dataset.nodeId,e.clientX,e.clientY)});
+// Double-clicking a node row switches to it: the node is started when needed
+// and the system proxy is handed over in the same action.
+$('nodes').addEventListener('dblclick',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;if(e.target.closest('button,select,input,textarea,a'))return;act(null,async()=>{await api('proxy',{action:'set',id:row.dataset.nodeId});toast(t('系统代理已切换到该节点'))})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));if(e.key==='Enter'&&e.target instanceof HTMLInputElement&&e.target.dataset.appExeInput!==undefined){e.preventDefault();addAppExecutable(e.target.dataset.appExeInput)}});
 $('copyNodeExport').onclick=async()=>{try{await copyText($('nodeExportURI').value);toast(t('分享链接已复制'))}catch{$('nodeExportURI').focus();$('nodeExportURI').select();toast(t('请复制已选中的链接'),true)}};
 $('nodeExportDialog').addEventListener('close',()=>{$('nodeExportURI').value='';$('nodeExportName').textContent='';qrNodeID='';$('nodeExportQR').classList.add('hidden');$('toggleNodeQR').textContent=t('显示二维码')});
@@ -198,7 +217,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){
 	if(b.dataset.dirGo){act(b,()=>browseDirAt(b.dataset.dirGo));return;}
 	if(b.dataset.dirName){act(b,()=>browseDirAt(joinDir(b.dataset.dirBase,b.dataset.dirName)));return;}
  if(b.dataset.shareNode){act(b,async()=>{const result=await api('node/share',{id:b.dataset.shareNode});$('nodeExportName').textContent=result.name;$('nodeExportURI').value=result.url;qrNodeID=b.dataset.shareNode;$('nodeExportQR').classList.add('hidden');$('toggleNodeQR').textContent=t('显示二维码');$('nodeExportDialog').showModal()});}
- if(b.dataset.action){if(b.dataset.action==='delete'&&!confirm(t('删除这个节点？它的本地代理端口也会停止。')))return;act(b,async()=>{await api('node',{id:b.dataset.id,action:b.dataset.action});toast(t({'start':'代理已启动，端口固定绑定此节点','move-bottom':'已置于列表末尾','auto-order':'已恢复自动排序'}[b.dataset.action]||'操作已完成'))});}
+ if(b.dataset.action){if(b.dataset.action==='delete'&&!confirm(t('删除这个节点？它的本地代理端口也会停止。')))return;act(b,async()=>{await api('node',{id:b.dataset.id,action:b.dataset.action});const message=t({'start':'代理已启动，端口固定绑定此节点','move-bottom':'已置于列表末尾','auto-order':'已恢复自动排序'}[b.dataset.action]||'操作已完成');if(b.dataset.action==='start'&&!proxyManaged()&&state.platform?.systemProxy!==false)toast(message,false,{label:t('接管系统代理'),onClick:()=>setNodeAsProxy(b.dataset.id)});else toast(message)});}
  if(b.dataset.test){act(b,async()=>{const result=await api('test',{id:b.dataset.test});toast(t('节点可用：')+result.latencyMs+' ms')});}
  
  if(b.dataset.system){act(b,async()=>{await api('proxy',{id:b.dataset.system,action:'set'});proxyDirty=false;toast(t('系统代理已启用，支持系统代理的浏览器和应用现在使用此节点'))});}
@@ -217,6 +236,13 @@ Object.keys(settingFields).forEach(id=>$(id).addEventListener('input',()=>settin
 $('saveSettings').onclick=()=>act($('saveSettings'),async()=>{const data={};for(const [id,key] of Object.entries(settingFields)){const el=$(id);data[key]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value}const previousPort=state.settings.panelPort;await api('settings',data);settingsDirty=false;toast(t('全局设置已保存'));if(data.panelPort&&data.panelPort!==previousPort){toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+data.panelPort+'/'},1800)}});
 $('trustPanelCA').onclick=()=>act($('trustPanelCA'),async()=>{await api('panel/trust-ca',{});toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
 async function loadPanelCertStatus(){try{const s=await apiGet('panel/cert-status');const el=$('panelCertStatus');if(!el)return;if(s.tls){el.textContent=(s.trusted?t('证书已受信任，浏览器显示安全锁'):t('证书已生成，点击「信任根证书」完成安装'))+' · '+escapeHTML(s.fingerprint||'')+' · '+t('有效期至')+' '+escapeHTML(s.notAfter||'')}else{el.textContent=t('面板当前为 HTTP：证书未就绪')}}catch{}}
+// The panel uses a local self-signed certificate. Without the root CA in the
+// trust store every visit raises a browser warning, so say it on the page
+// instead of letting the browser do it.
+let certBannerChecked=false;
+async function renderCertBanner(){const banner=$('caBanner');if(!banner)return;if(!state.settings.panelTLS){banner.classList.add('hidden');return}if(certBannerChecked)return;certBannerChecked=true;try{const s=await apiGet('panel/cert-status');if(s.tls&&!s.trusted){banner.classList.remove('hidden');$('caBannerText').textContent=t('面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。')}else banner.classList.add('hidden')}catch{banner.classList.add('hidden')}}
+$('caBannerTrust').onclick=()=>act($('caBannerTrust'),async()=>{await api('panel/trust-ca',{});certBannerChecked=false;toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
+$('caBannerDismiss').onclick=()=>{$('caBanner').classList.add('hidden')};
 ['remoteScheme','remoteEnabled','remotePort','remoteUser','remotePassword','remoteCert','remoteKey'].forEach(id=>$(id).addEventListener('input',()=>remoteDirty=true));
 $('saveRemote').onclick=()=>act($('saveRemote'),async()=>{await api('remote',{remote:{enabled:$('remoteEnabled').checked,scheme:$('remoteScheme').value,port:Number($('remotePort').value),username:$('remoteUser').value.trim(),certFile:$('remoteCert').value.trim(),keyFile:$('remoteKey').value.trim()},password:$('remotePassword').value});$('remotePassword').value='';remoteDirty=false;toast(t('远程设置已保存'))});
 $('copyAPI').onclick=()=>act($('copyAPI'),async()=>{const base=$('apiAddress').textContent;await copyText(t('请使用 Mirroxy API 管理本机代理。基础地址：')+base+t(state.localAccess?'。本机无需认证。':'。使用面板账号密码（HTTP Basic）认证。')+t('先读取 ')+base+'guide '+t('和 ')+base+'openapi.json'+t('，再 GET nodes 获取节点 id。默认不要修改系统代理。'));toast(t('已复制，可直接发给 AI'))});

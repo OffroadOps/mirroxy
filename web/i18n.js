@@ -259,7 +259,23 @@
     '只删除所选下载记录，保留已下载文件和断点数据。继续吗？':'Remove selected records but keep downloaded files and resume data?',
     '编辑任务前请先暂停。文件名和目录保持不变；更换链接时必须指向相同文件，避免损坏断点数据。保存后继续保持暂停，点击「继续」开始。':'Pause before editing. File name and destination are retained. Replacement URLs must refer to the same file to preserve partial data. Resume after saving.',
     '只显示已启动节点。不会自动启动节点，也不会在代理故障时切换为直连。自定义代理使用 HTTP，可填 http://用户名:密码@主机:端口。':'Only running nodes are offered. Nodes are not started automatically, and proxy failures never fall back to direct access. Custom proxies use HTTP and may include username/password.',
-    '选择已启动的节点':'Choose a running node'
+    '选择已启动的节点':'Choose a running node',
+    '接管系统代理':'Take over system proxy',
+    '清除':'Clear',
+    '启动并设为系统代理':'Start and set as system proxy',
+    '系统代理已接管，支持系统代理的浏览器和应用现在使用所选节点':'System proxy taken over. Browsers and apps that honour the system proxy now use the selected node.',
+    '已交还系统代理设置，恢复接管前的配置':'System proxy handed back. The configuration from before the takeover was restored.',
+    '系统代理已切换到所选节点':'System proxy switched to the selected node',
+    '系统代理已切换到该节点':'System proxy switched to this node',
+    '路由模式已切换':'Routing mode switched',
+    '路由模式已切换，相关节点的连接会短暂重连':'Routing mode switched. Connections of the affected nodes reconnect briefly.',
+    '系统代理已清除':'System proxy cleared',
+    '。切换后立即生效。':'. Takes effect immediately.',
+    '会关闭当前 Windows 系统代理，包括其他代理软件配置的代理。':'Turns off the current Windows system proxy, including proxies configured by other clients.',
+    '面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。':'The panel uses a local self-signed certificate, so browsers keep reporting an insecure connection. Trust the root certificate to get the padlock back.',
+    '关闭提示':'Dismiss notice',
+    '加速器运行中，已自动暂停':'paused while an accelerator is running',
+    '双击任意节点即可切换：未启动的节点会先启动，然后把系统代理接管过去。':'Double-click any node to switch to it. A node that is not running is started first and the system proxy is handed over to it.'
   });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];

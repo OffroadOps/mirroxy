@@ -141,6 +141,7 @@ func geoOverride(t *testing.T, serverURL string) (restore func()) {
 }
 
 func TestGeoUpdateFlow(t *testing.T) {
+	isolateSystemProxy(t)
 	datPayload := strings.Repeat("D", 2<<20)
 	srsPayload := strings.Repeat("S", 4096)
 	sum := sha256.Sum256([]byte(datPayload))
