@@ -1,0 +1,185 @@
+[
+  {"version":"0.7.4","date":"2026-10-12","changes":["Desktop download management fits the viewport; large task lists scroll internally with sticky headers.","Up to 30 concurrent downloads; the official aria2 per-server limit remains 16 connections.","Open completed files and reveal tasks in the system file manager using validated local journal paths; incomplete files cannot be launched.","Reconnect stuck downloads while keeping their partial files, resume data, URL and explicit proxy. Bounded connection/idle timeouts and retries report stalls without weakening TLS or falling back to direct access."]},
+  {"version":"0.7.3","date":"2026-10-12","changes":["Download task rows and blank space now have context menus with state-aware actions, multiple selection, copy URL/path, keyboard access and viewport clamping.","Removing downloads uses an in-page modal. File removal is unchecked by default; opting in moves known downloaded files and resume data to the destination's .Mirroxy-trash recovery area without recursively deleting directories.","A fixed Windows online installer downloads the latest full program ZIP from the HTTPS catalog, validates size, SHA256, manifest and AMD64 executables before installing, and retains existing cores, data and dashboard port. Release builds no longer compile an installer unless the offline option is requested."]},
+  {"version":"0.7.2","date":"2026-10-12","changes":["Download progress uses a native progress element with the real percentage; strict CSP remains unchanged and no inline styles are needed.","Known aria2 failures now show readable TLS, certificate, timeout, network and file errors without storing raw URLs, paths or credentials; certificate validation and explicit proxy selection remain enabled."]},
+  {
+    "version": "0.7.1",
+    "date": "2026-10-12",
+    "changes": ["Background refresh no longer disables the toolbar for selected downloads; resume, pause, edit, retry and remove-record controls remain available."]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-10-12",
+    "changes": [
+      "Added an aria2 download manager with an IDM-style toolbar and task table, without category sidebar. Add, inspect, pause, resume, edit, retry and remove records individually or in bulk; downloaded files are retained.",
+      "Choose 1–16 connections, speed limit, destination, direct access, a running Mirroxy node or a custom HTTP proxy per task. System proxy settings are unchanged; unavailable nodes never silently fall back to direct access.",
+      "Task history is encrypted and restored after normal backend restarts. Private aria2 RPC uses loopback-only listening and a random secret. Windows bundles official aria2 1.37.0; Linux/macOS require installed aria2c. Download management is local-only."
+    ]
+  },
+  {
+    "version": "0.6.3",
+    "date": "2026-10-12",
+    "changes": [
+      "Stopped rows use gray backgrounds and muted information in both themes; start, copy, rename and other buttons retain their normal colors and availability.",
+      "Started nodes appear first by default. Move to bottom overrides automatic sorting, and Restore automatic order clears that choice. Placement survives refreshes, restarts and subscription updates without restarting proxy cores."
+    ]
+  },
+  {
+    "version": "0.6.2",
+    "date": "2026-10-12",
+    "changes": [
+      "Windows Setup checks dashboard port availability and lets users choose another port; silent installs support /PANELPORT=.",
+      "Setup preserves the existing dashboard port on upgrades and saves an explicitly chosen port in encrypted settings while retaining nodes and traffic totals."
+    ]
+  },
+  {
+    "version": "0.6.1",
+    "date": "2026-09-29",
+    "changes": [
+      "New Geo files management page (Settings → Geo files): view status, size, and version of all 14 rule assets — the Xray routing databases and sing-box rule sets — with one-click update for all or individual files; missing files are highlighted and can be restored via Update all.",
+      "Geo rule file updates download the latest data from the rule sources (Loyalsoldier v2ray-rules-dat and MetaCubeX meta-rules-dat), prefer a running node as proxy, verify before replacing, and briefly restart the relevant core afterwards. Nodes and traffic totals are preserved.",
+      "Settings gains an Update Geo rule files daily toggle (off by default); when the rule source has no new version, the automatic update skips without downloading or restarting."
+    ]
+  },
+  {
+    "version": "0.6.0",
+    "date": "2026-09-07",
+    "changes": [
+      "Settings gained a “Core upgrade” section showing the current and official latest version of both cores. The official versions are checked automatically when the page opens, and “Upgrade core” updates in one click (the relevant core restarts briefly; nodes and traffic totals are preserved).",
+      "Installer-based upgrades now create Mirroxy shortcuts on the desktop and in the Start menu by default (the desktop icon previously required an opt-in checkbox).",
+      "The tray menu narrowed further: traffic rows use a compact format (e.g. ↑337.5K/s · 60.4G), the version row shows just v0.6.0, and the exit item became simply “退出”.",
+      "The tray “System proxy” and “Routing” titles are now four plain words with the current state shown as a grayed info line underneath, narrowing the menu further.",
+      "The tray menu was reordered and slimmed: the “System proxy / Routing” submenus sit on top, actions are condensed to “Open dashboard / Restart dashboard / Run elevated / Stop proxies”, and the system-proxy submenu dropped the unchanged/clear entries — clicking the active node releases the system proxy, clicking any other node switches to it.",
+      "PAC mode was removed entirely: proxy modes are now unchanged / clear / use selected node only. Stored PAC choices migrate automatically, leftover registry PAC settings are cleaned at startup, and the UI, tray, and AI API were simplified accordingly.",
+      "App proxy page redesign: the default node moved to the center of the overview with the capability test beside it, the application list became an expandable list with per-line executable management, and redundant copy was removed.",
+      "Fixed the dashboard always returning to the node page on refresh: the dashboard now reopens on the page you left.",
+      "The node share dialog gained “Show QR code”: the link is shown by default, and clicking generates the node QR code offline on this machine for phone import — the link never touches any third-party service.",
+      "The QR code now follows the theme: dark mode renders an inverted code on the dark card colour instead of a glaring white plate; light mode keeps black on white.",
+      "The sidebar now uses a light palette in light mode with adjusted text contrast; the dark sidebar remains in dark mode.",
+      "The Windows tray menu gained “Reload”: the backend saves its state and restarts automatically, keeping nodes, ports, and traffic totals.",
+      "Added accelerator conflict detection: before starting the app proxy, Mirroxy identifies running processes from NetEase UU, Leiguan, Xunyou and similar accelerators, warns about the conflict, and lets you continue or quit the accelerator first.",
+      "Added an “Accelerator compatibility mode” switch: it disables TUN strict routing to reduce mutual blocking with TUN-based accelerators; leak protection becomes weaker as a trade-off.",
+      "Added the accelerator guard (on by default): while NetEase UU, Leiguan, or similar accelerator processes run, the system proxy set by Mirroxy is paused automatically and restored when they exit. Custom per-app proxy targets and other software’s system proxies stay untouched; the guard can be disabled in Settings.",
+      "Added a “Bypass LAN and local addresses” global setting (on by default): LAN and loopback addresses stay direct even in Global mode; previously only Bypass-Mainland and Blacklist modes behaved this way.",
+      "Expanded the tray menu: “Run as administrator” (approves UAC up front so later TUN prompts are skipped), a “System proxy” submenu (unchanged / clear / set proxy or PAC per running node, current choice checked), and a “Routing” submenu — everyday switching no longer requires the dashboard.",
+      "Tray menu refactor: “Reload” became “Restart”; a global “Stop all proxies / Run all proxies” switch was added; the system-proxy submenu lists each node once (click to set as system proxy); the PAC options moved into the “Routing” submenu (PAC·node); traffic and version rows are compact, so the menu is much narrower.",
+      "The dashboard now serves HTTPS: a built-in local CA (the mkcert approach) issues a certificate for 127.0.0.1, a one-click install adds it to the system trust store for the padlock, and the CA can be downloaded for Firefox and phones.",
+      "Fixed Windows root-CA installation falsely reporting success and an already-open tab remaining marked unsafe: Mirroxy now verifies the exact certificate and live HTTPS handshake, then automatically establishes a fresh secure page connection.",
+      "The panel port is now editable in Settings (1024–65000); saving switches over and redirects to the new address. The default port changed to 9527, and the old 15060 address keeps redirecting. PAC URLs follow the port automatically.",
+      "The overview was simplified to two columns (default node + gaming capability test); the application list, folder scan, and assign-apps components now fully support the dark theme.",
+      "The sidebar “Games / App proxy” item now shows a profile count badge, and “Subscriptions” shows a subscription count badge.",
+      "Added “Assign apps” to each node's more menu: bind arbitrary applications directly to a node, and bound apps follow that node's routing policy.",
+      "App profiles gained a folder scan: enter or browse a folder, scan its .exe files (up to three levels deep), with main programs detected and pre-selected on top.",
+      "The authenticated per-node app ingress now follows the node's routing policy (for example bypass Mainland China: mainland and LAN traffic connects directly while the rest uses the node). The route-all mode behaves as before, and loopback and LAN addresses always stay direct.",
+      "Added Windows game and app proxy controls in the web dashboard. Select running processes or executable paths; selected apps route TCP and UDP through their bound node while other apps remain unchanged.",
+      "App routing uses a separate TUN and authenticated per-node loopback ingress. It is off by default and leaves system routes and the system proxy untouched while off.",
+      "Added an end-to-end node gaming capability test for TCP, UDP, IPv6, and UDP mapping stability.",
+      "Added a read-only -probe-server command that reports host TCP, UDP, IPv6, STUN mapping, and both network-core versions as JSON."
+    ]
+  },
+  {
+    "version": "0.5.2",
+    "date": "2026-09-06",
+    "changes": [
+      "Simplified the local desktop sidebar by removing workspace identity, no-sign-in details, and quit controls; Linux server deployments retain authentication and backend management controls.",
+      "Placed language and theme controls on one compact row, labeled the automatic language choice Auto, and replaced theme text with moon and sun vector icons.",
+      "Moved AI API / Remote Access and Changelog under Settings, renamed My nodes to Node list, and removed redundant notes from the node page."
+    ]
+  },
+  {
+    "version": "0.5.1",
+    "date": "2026-09-06",
+    "changes": [
+      "Added the current version to the Windows tray menu. An optional update action appears only when a newer version is available and still asks for confirmation before installing."
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-09-05",
+    "changes": [
+      "Added Simplified Chinese and English UI. First visit follows the browser language; a manual choice is remembered locally.",
+      "Replaced the Windows ZIP with an Inno Setup 7 x64 installer that detects Chinese or English, skips same-version reinstalls, upgrades newer versions in place, and preserves user data.",
+      "Redesigned the public release page as a concise Mirroxy product site with privacy-safe demo data, product highlights, platform downloads, and complete release history.",
+      "Renamed the product to Mirroxy with new web, browser, Windows executable, and tray icons.",
+      "Windows updates now use a separate upgrade.exe that verifies the candidate, waits for the old process, and rolls back when replacement or startup validation fails.",
+      "Core binaries, routing assets, runtime configuration, and logs now use generic Mirroxy filenames.",
+      "Nodes, subscriptions, remote credentials, traffic totals, and proxy recovery state are stored in an AES-GCM encrypted SQLite database; Windows protects the key with DPAPI.",
+      "Moving from 0.4.x to 0.5.0 requires one full installer because the executable, directory, and update protocol changed. In-app updates resume from 0.5.0 onward."
+    ]
+  },
+  {
+    "version": "0.4.4",
+    "date": "2026-09-04",
+    "changes": [
+      "Added the blue-green S brand icon across the web UI, browser, Windows program, and tray.",
+      "Added light and dark themes, defaulting to light and remembering the browser preference.",
+      "Highlighted the active system-proxy node and kept the indicator synchronized after changes."
+    ]
+  },
+  {
+    "version": "0.4.3",
+    "date": "2026-09-04",
+    "changes": [
+      "Added global routing modes: Bypass Mainland China, Blacklist, and Global, with per-node overrides.",
+      "Completed blacklist and Mainland China split-routing rules for both network cores.",
+      "Added verified lightweight in-app updates that preserve nodes, ports, custom names, and traffic totals."
+    ]
+  },
+  {
+    "version": "0.4.2",
+    "date": "2026-09-04",
+    "changes": [
+      "Added an offline changelog view.",
+      "Added persistent custom node names that survive subscription refreshes.",
+      "Name changes take effect without restarting cores and are used by share links and the AI API.",
+      "Added the public static release page with retained version history."
+    ]
+  },
+  {
+    "version": "0.4.1",
+    "date": "2026-09-04",
+    "changes": [
+      "Added share-link export to node menus.",
+      "Added Windows x86_64, Linux ARM64 / AMD64, and macOS ARM64 packages with two bundled network cores.",
+      "Published public downloads and a Linux one-line installer; macOS requires version 26 or newer."
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-09-04",
+    "changes": [
+      "Added deployment for Armbian, Debian, and Ubuntu with systemd startup.",
+      "Installation generates an HTTP management address and credentials; local access remains passwordless.",
+      "Added automatic core selection, missing-core downloads, port allocation, and node startup."
+    ]
+  },
+  {
+    "version": "0.3.1",
+    "changes": [
+      "Compacted the node dashboard summary and moved the table upward.",
+      "Moved system-proxy selection to the top toolbar and import beside the node heading."
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "changes": [
+      "Added availability monitoring for every node with automatic status-color recovery.",
+      "Added aggregate live upload, download, and cumulative traffic totals."
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "changes": [
+      "Changed nodes to a table with connections, live rates, and cumulative traffic.",
+      "Added the Windows tray, settings, AI API, remote authentication, and PAC.",
+      "Added four system-proxy modes while defaulting to no change for v2rayN coexistence."
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "changes": [
+      "Introduced the web dashboard backed by a persistent binary process.",
+      "Added share-link, subscription, and v2rayN imports with stable per-node local ports starting at 5060."
+    ]
+  }
+]

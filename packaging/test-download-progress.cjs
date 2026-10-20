@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const context=vm.createContext({});
+vm.runInContext(fs.readFileSync('web/download-progress.js','utf8'),context);
+const percent=context.MirroxyDownloadProgress.percent;
+for(const [done,total,wanted] of [[6,1000,.6],[57,1000,5.7],[100,100,100],[200,100,100],[-1,100,0],[0,0,0],['57','1000',5.7],['bad',100,0],[1,Infinity,0]])assert.equal(percent(done,total),wanted);
+const script=fs.readFileSync('web/downloads.js','utf8');
+assert.match(script,/<progress class="dl-progress/);
+assert.doesNotMatch(script,/style="--dl-progress/);
+assert.match(fs.readFileSync('remote.go','utf8'),/style-src 'self'/);
+console.log('PASS: bounded percentages and native progress without inline styles; CSP preserved');

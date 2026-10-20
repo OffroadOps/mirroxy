@@ -1,0 +1,9 @@
+/* Mute stopped information, not the row's controls. No row opacity/filter. */
+:root{--stopped-row:#f1f2f4;--stopped-row-hover:#e9ebee;--stopped-ink:#6e757d}
+html[data-theme=dark]{--stopped-row:#22282e;--stopped-row-hover:#2a3037;--stopped-ink:#98a1ac}
+#nodes>tr.stopped>td{background:var(--stopped-row);color:var(--stopped-ink)}
+#nodes>tr.stopped:hover>td{background:var(--stopped-row-hover)}
+#nodes>tr.stopped :is(.node-name h3,.node-meta,.node-meta>span,.status,.protocol,.node-health,.numeric,.muted){color:var(--stopped-ink)}
+#nodes>tr.stopped .status i{background:var(--stopped-ink)}
+#nodes>tr.stopped .protocol{border-color:var(--border)}
+.node-placement{font-size:9px;white-space:nowrap}

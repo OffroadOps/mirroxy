@@ -1,0 +1,8 @@
+Mirroxy is distributed as a binary-only application. Its source code is not part of this release.
+Xray and sing-box are unmodified, independent upstream executables.
+Xray source and release: https://github.com/XTLS/Xray-core/tree/v26.7.28
+sing-box source and release: https://github.com/SagerNet/sing-box/tree/v1.14.0
+Core licenses are included in this directory; their terms remain applicable.
+Routing files are a snapshot of the existing v2rayN-compatible local data files.
+GeoIP/Geosite sources: https://github.com/Loyalsoldier/v2ray-rules-dat ; https://github.com/SagerNet/sing-geoip ; https://github.com/SagerNet/sing-geosite
+CA certificates: https://curl.se/docs/caextract.html (Mozilla CA bundle).

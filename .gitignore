@@ -1,0 +1,30 @@
+/work/
+/dist/
+/data/
+/bin/
+*.exe
+*.log
+*.bak
+*.py[cod]
+__pycache__/
+node_modules/
+
+# Cross-compiled binaries and installer leftovers kept in the source root.
+/mirroxy
+/unins000.dat
+
+# Local scratch trees used by the release and test tooling.
+/android/.gradle/
+/android/.kotlin/
+/android/app/build/
+/android/app/libs/
+/android/releases/
+/android/work/
+/android/local.properties
+
+# Files copied to the package root during release staging. The maintained
+# sources live under packaging/ and are generated again by build-release.py.
+/PLATFORM
+/README.txt
+/SHA256SUMS
+/manifest.json

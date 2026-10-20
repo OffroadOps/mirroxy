@@ -1,0 +1,26 @@
+[Unit]
+Description=Mirroxy local multi-node proxy manager
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mirroxy
+Group=mirroxy
+WorkingDirectory=/opt/mirroxy
+ExecStart=/opt/mirroxy/Mirroxy -dir /opt/mirroxy -no-open
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/mirroxy
+Environment=SSL_CERT_FILE=/opt/mirroxy/bin/resources/Mirroxy_trust.pem
+
+[Install]
+WantedBy=multi-user.target

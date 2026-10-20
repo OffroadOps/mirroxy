@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+app=/opt/mirroxy/Mirroxy
+case "${1:-status}" in
+  info) exec "$app" -dir /opt/mirroxy -access-info ;;
+  status) exec systemctl status mirroxy --no-pager ;;
+  start|stop|restart) exec systemctl "$1" mirroxy ;;
+  logs) exec journalctl -u mirroxy -n 80 --no-pager ;;
+  enable|disable) exec systemctl "$1" mirroxy ;;
+  password)
+    [[ $(id -u) == 0 ]] || { echo '请运行 sudo mirroxyctl password' >&2; exit 1; }
+    systemctl stop mirroxy
+    trap 'chown -R mirroxy:mirroxy /opt/mirroxy/data; systemctl start mirroxy' EXIT
+    "$app" -dir /opt/mirroxy -reset-password
+    ;;
+  *) echo '用法：mirroxyctl {info|status|start|stop|restart|logs|enable|disable|password}' >&2; exit 2 ;;
+esac
