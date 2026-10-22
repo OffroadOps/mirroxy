@@ -55,7 +55,7 @@ Windows x86_64、Linux ARM64、Linux AMD64、macOS ARM64），每次发布附带
 Linux 也可以用一键脚本（systemd 环境，自动识别 ARM64 / AMD64）：
 
 ```bash
-curl -fsSL --retry 3 https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/install.sh | sudo bash
+curl -fsSL --retry 3 https://raw.githubusercontent.com/OffroadOps/mirroxy/master/install.sh | sudo bash
 ```
 
 > 历史版本与旧入口仍保留在 [S3 发布页](https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/index.html)，

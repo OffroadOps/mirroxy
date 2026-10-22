@@ -10,16 +10,43 @@
       "Starting a node now says plainly that the system proxy is not taken over yet and offers a one-click way to do it.",
       "The panel version is injected at runtime, so the asset cache key always matches the running build.",
       "The panel shows a clear notice when the local root certificate is not trusted yet, instead of relying on the browser interstitial alone.",
-      "Availability checks no longer report a node as usable while the LAN bypass lets the probe succeed without the node outbound; probe traffic is forced through the node itself."
+      "Availability checks no longer report a node as usable while the LAN bypass lets the probe succeed without the node outbound; probe traffic is forced through the node itself.",
+      "The install script and install instructions now default to GitHub Releases as the download source (the legacy S3 page stays frozen on old versions); attachment hashes were verified against SHA256SUMS on the release page."
     ]
   },
-  {"version":"0.7.4","date":"2026-10-12","changes":["Desktop download management fits the viewport; large task lists scroll internally with sticky headers.","Up to 30 concurrent downloads; the official aria2 per-server limit remains 16 connections.","Open completed files and reveal tasks in the system file manager using validated local journal paths; incomplete files cannot be launched.","Reconnect stuck downloads while keeping their partial files, resume data, URL and explicit proxy. Bounded connection/idle timeouts and retries report stalls without weakening TLS or falling back to direct access."]},
-  {"version":"0.7.3","date":"2026-10-12","changes":["Download task rows and blank space now have context menus with state-aware actions, multiple selection, copy URL/path, keyboard access and viewport clamping.","Removing downloads uses an in-page modal. File removal is unchecked by default; opting in moves known downloaded files and resume data to the destination's .Mirroxy-trash recovery area without recursively deleting directories.","A fixed Windows online installer downloads the latest full program ZIP from the HTTPS catalog, validates size, SHA256, manifest and AMD64 executables before installing, and retains existing cores, data and dashboard port. Release builds no longer compile an installer unless the offline option is requested."]},
-  {"version":"0.7.2","date":"2026-10-12","changes":["Download progress uses a native progress element with the real percentage; strict CSP remains unchanged and no inline styles are needed.","Known aria2 failures now show readable TLS, certificate, timeout, network and file errors without storing raw URLs, paths or credentials; certificate validation and explicit proxy selection remain enabled."]},
+  {
+    "version": "0.7.4",
+    "date": "2026-10-12",
+    "changes": [
+      "Desktop download management fits the viewport; large task lists scroll internally with sticky headers.",
+      "Up to 30 concurrent downloads; the official aria2 per-server limit remains 16 connections.",
+      "Open completed files and reveal tasks in the system file manager using validated local journal paths; incomplete files cannot be launched.",
+      "Reconnect stuck downloads while keeping their partial files, resume data, URL and explicit proxy. Bounded connection/idle timeouts and retries report stalls without weakening TLS or falling back to direct access."
+    ]
+  },
+  {
+    "version": "0.7.3",
+    "date": "2026-10-12",
+    "changes": [
+      "Download task rows and blank space now have context menus with state-aware actions, multiple selection, copy URL/path, keyboard access and viewport clamping.",
+      "Removing downloads uses an in-page modal. File removal is unchecked by default; opting in moves known downloaded files and resume data to the destination's .Mirroxy-trash recovery area without recursively deleting directories.",
+      "A fixed Windows online installer downloads the latest full program ZIP from the HTTPS catalog, validates size, SHA256, manifest and AMD64 executables before installing, and retains existing cores, data and dashboard port. Release builds no longer compile an installer unless the offline option is requested."
+    ]
+  },
+  {
+    "version": "0.7.2",
+    "date": "2026-10-12",
+    "changes": [
+      "Download progress uses a native progress element with the real percentage; strict CSP remains unchanged and no inline styles are needed.",
+      "Known aria2 failures now show readable TLS, certificate, timeout, network and file errors without storing raw URLs, paths or credentials; certificate validation and explicit proxy selection remain enabled."
+    ]
+  },
   {
     "version": "0.7.1",
     "date": "2026-10-12",
-    "changes": ["Background refresh no longer disables the toolbar for selected downloads; resume, pause, edit, retry and remove-record controls remain available."]
+    "changes": [
+      "Background refresh no longer disables the toolbar for selected downloads; resume, pause, edit, retry and remove-record controls remain available."
+    ]
   },
   {
     "version": "0.7.0",

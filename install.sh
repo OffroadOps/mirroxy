@@ -8,7 +8,7 @@ case "$(uname -m)" in
   x86_64|amd64) arch=amd64; expected=eb4c0a1dc0d8bccc4cc3bdc7c546ccf8aacef9ccdb2e26f08d1dd8db8014d2ce ;;
   *) echo '仅支持 ARM64 / AMD64' >&2; exit 1 ;;
 esac
-base=${MIRROXY_DOWNLOAD_BASE:-https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/v0.8.0}
+base=${MIRROXY_DOWNLOAD_BASE:-https://github.com/OffroadOps/mirroxy/releases/download/v0.8.0}
 temp_dir=$(mktemp -d /tmp/Mirroxy-download.XXXXXX)
 cleanup() { case "$temp_dir" in /tmp/Mirroxy-download.*) rm -rf -- "$temp_dir" ;; esac; }
 trap cleanup EXIT

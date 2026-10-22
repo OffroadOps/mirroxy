@@ -68,7 +68,7 @@ ships a `SHA256SUMS` manifest.
 Linux one-line install (systemd, auto-detects ARM64 / AMD64):
 
 ```bash
-curl -fsSL --retry 3 https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/install.sh | sudo bash
+curl -fsSL --retry 3 https://raw.githubusercontent.com/OffroadOps/mirroxy/master/install.sh | sudo bash
 ```
 
 > Older releases and the legacy entry point stay on the

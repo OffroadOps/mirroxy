@@ -13,6 +13,7 @@
 - 面板版本号改为运行时注入，静态资源缓存键始终与当前版本一致，不再出现前端版本落后于后台的情况
 - 面板未信任本地根证书时在页首显示明确提示，不再只依赖浏览器的拦截页
 - 修复可用性检测在绕过局域网时误判节点可用的问题，检测流量现在强制经过节点自身出口
+- 安装脚本与安装说明改用 GitHub Releases 作为默认下载源（原 S3 页面已冻结在旧版本）；已在发布页校验附件与 SHA256SUMS。
 
 <details><summary>English</summary>
 
@@ -24,6 +25,7 @@
 - The panel version is injected at runtime, so the asset cache key always matches the running build.
 - The panel shows a clear notice when the local root certificate is not trusted yet, instead of relying on the browser interstitial alone.
 - Availability checks no longer report a node as usable while the LAN bypass lets the probe succeed without the node outbound; probe traffic is forced through the node itself.
+- The install script and install instructions now default to GitHub Releases as the download source (the legacy S3 page stays frozen on old versions); attachment hashes were verified against SHA256SUMS on the release page.
 
 </details>
 
