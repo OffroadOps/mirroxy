@@ -21,10 +21,10 @@ func TestScanDirectoryExecutablesRanksMainProgramsFirst(t *testing.T) {
 	}
 	write("Game.exe", 3000)
 	write("Uninstall Game.exe", 500)
-	write("helper\\setup.exe", 100)
-	write("sub\\deep\\tool.exe", 200)
-	write("sub\\a\\b\\too-deep.exe", 100)
-	write("sub\\a\\b\\c\\buried.exe", 100)
+	write(filepath.Join("helper", "setup.exe"), 100)
+	write(filepath.Join("sub", "deep", "tool.exe"), 200)
+	write(filepath.Join("sub", "a", "b", "too-deep.exe"), 100)
+	write(filepath.Join("sub", "a", "b", "c", "buried.exe"), 100)
 	write("notes.txt", 10)
 
 	found, err := scanDirectoryExecutables(root)
