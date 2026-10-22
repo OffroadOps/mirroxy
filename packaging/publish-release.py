@@ -54,17 +54,18 @@ if args.publish:
     # GitHub URL keeps working. The source README is never touched.
     endpoint=f'repos/{repo}/contents/install.sh'
     data=(dist/'install.sh').read_bytes()
+    body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode()}
     try:
         previous=json.loads(subprocess.check_output([args.gh,'api',endpoint],env=env))
-        if base64.b64decode(previous['content'])==data:
-            previous=None
     except subprocess.CalledProcessError:
         previous=None
-    if previous is None:
-        body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode()}
-        subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
+    if previous is not None:
+        if base64.b64decode(previous['content'])==data:
+            print('The stable installer is already up to date')
+        else:
+            body['sha']=previous['sha']
+            subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
     else:
-        body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode(),'sha':previous['sha']}
         subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
     print('Published release: https://github.com/'+repo+'/releases/tag/'+tag)
 else:

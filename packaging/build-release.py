@@ -61,7 +61,11 @@ def aria2_archive(local=None):
     return payload
 
 def build(arch, go, rules, goos='linux', iscc=None):
-    env = {**os.environ, 'GOOS': goos, 'GOARCH': arch, 'CGO_ENABLED': '0', 'GOTOOLCHAIN': 'local'}
+    # GOTOOLCHAIN follows the caller's environment. Pinning it to "local"
+    # would break on machines whose installed Go is older than go.mod asks
+    # for, because the matching toolchain could never be used.
+    env = {**os.environ, 'GOOS': goos, 'GOARCH': arch, 'CGO_ENABLED': '0',
+           'GOTOOLCHAIN': os.environ.get('GOTOOLCHAIN', 'auto')}
     binary = ROOT / 'work' / f'release-Mirroxy-{goos}-{arch}'
     flags = '-s -w' + (' -H=windowsgui' if goos == 'windows' else '')
     subprocess.run([go, 'build', '-trimpath', '-ldflags='+flags, '-o', str(binary), '.'], cwd=ROOT, env=env, check=True)
