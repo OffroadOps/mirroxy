@@ -19,14 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This project ships, but does not modify, independent third-party components.
-Their own terms apply and are reproduced in the "licenses" directory:
-
-  * Xray           — MPL-2.0            (licenses/COMPONENT-A-LICENSE)
-  * sing-box       — MIT                (licenses/COMPONENT-B-LICENSE)
-  * aria2          — GPL-2.0-or-later   (licenses/ARIA2-COPYING)
-
-See licenses/NOTICE.txt for sources, versions and additional attributions.
