@@ -1,8 +1,17 @@
 param(
     [string]$GoExe = 'go',
-    [string]$Iscc = 'D:\DevTools\Inno Setup 7\ISCC.exe'
+    [string]$Iscc = ''
 )
 $ErrorActionPreference = 'Stop'
+if (-not $Iscc) {
+    $taskIsccCandidates = @()
+    if ($env:MIRROXY_ISCC) { $taskIsccCandidates += $env:MIRROXY_ISCC }
+    foreach ($taskBase in @($env:ProgramFiles, $env:ProgramW6432, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA)) {
+        if ($taskBase) { $taskIsccCandidates += (Join-Path $taskBase 'Inno Setup 7\ISCC.exe') }
+    }
+    $Iscc = $taskIsccCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $Iscc) { throw 'Inno Setup 7 compiler not found. Install it, set MIRROXY_ISCC, or pass -Iscc <path to ISCC.exe>.' }
+}
 $taskRoot = Split-Path $PSScriptRoot
 $taskQa = Join-Path $taskRoot ('work\installer-port-test-' + [guid]::NewGuid().ToString('N'))
 $taskStage = Join-Path $taskQa 'stage'

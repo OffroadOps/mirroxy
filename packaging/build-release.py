@@ -47,6 +47,19 @@ def cached_url(name, url):
             path.write_bytes(response.read())
     return path.read_bytes()
 
+ARIA2_RELEASE = 'https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip'
+ARIA2_SHA256 = '67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288'
+
+def aria2_archive(local=None):
+    """Return the pinned official aria2 archive, downloading it when needed."""
+    if local is not None:
+        payload = Path(local).read_bytes()
+    else:
+        payload = cached_url('aria2-1.37.0-win-64bit-build1.zip', ARIA2_RELEASE)
+    if sha(payload) != ARIA2_SHA256:
+        raise ValueError('aria2 1.37.0 official archive differs from the pinned release')
+    return payload
+
 def build(arch, go, rules, goos='linux', iscc=None):
     env = {**os.environ, 'GOOS': goos, 'GOARCH': arch, 'CGO_ENABLED': '0', 'GOTOOLCHAIN': 'local'}
     binary = ROOT / 'work' / f'release-Mirroxy-{goos}-{arch}'
@@ -75,10 +88,7 @@ def build(arch, go, rules, goos='linux', iscc=None):
     if goos == 'windows':
         # Pin the exact unmodified official Windows release downloaded over HTTPS.
         # Upstream's older GitHub release has no asset digest field.
-        aria = args.aria2_zip.read_bytes()
-        expected_aria = '67d015301eef0b612191212d564c5bb0a14b5b9c4796b76454276a4d28d9b288'
-        if sha(aria) != expected_aria:
-            raise ValueError('aria2 1.37.0 official archive differs from the pinned release')
+        aria = aria2_archive(args.aria2_zip)
         add('bin/runtime/Mirroxy_downloader.exe', member(aria, 'aria2c.exe'), 0o755)
         add('licenses/ARIA2-COPYING', member(aria, 'COPYING'))
         add('licenses/ARIA2-OpenSSL-LICENSE', member(aria, 'LICENSE.OpenSSL'))
@@ -234,7 +244,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--go', default='go')
     parser.add_argument('--offline-windows', action='store_true', help='Also compile the optional versioned offline Inno installer (not needed by the fixed online installer)')
-    parser.add_argument('--aria2-zip', type=Path, default=Path(r'D:\DevTools\downloads\aria2-1.37.0-win-64bit-build1.zip'), help='Pinned official aria2 1.37.0 Windows x64 zip')
+    parser.add_argument('--aria2-zip', type=Path, default=None,
+                        help='Official aria2 1.37.0 Windows x64 zip; downloaded from the pinned upstream release when omitted')
     parser.add_argument('--rules', type=Path, default=ROOT/'bin/resources',
                         help='Routing assets; defaults to Mirroxy/bin/resources and also accepts legacy geoip.dat/geosite.dat/srss layout')
     parser.add_argument('--iscc', type=Path, default=None,

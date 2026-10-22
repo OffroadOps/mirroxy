@@ -1,4 +1,9 @@
-"""Upload only built release assets. Uses the existing Git credential manager."""
+"""Publish built release assets as a public GitHub release.
+
+Uses the GitHub CLI or the Git credential manager already present on the
+machine. The repository is public, so the release notes and the assets are the
+only things this script touches; it never rewrites the source README.
+"""
 import argparse
 import base64
 import hashlib
@@ -8,13 +13,14 @@ from pathlib import Path
 import subprocess
 
 root=Path(__file__).resolve().parent.parent
-repo='OffroadOps/scrcpyproxy'
 parser=argparse.ArgumentParser()
 parser.add_argument('--version',required=True)
 parser.add_argument('--gh',default='gh')
+parser.add_argument('--repo',default='OffroadOps/mirroxy',help='GitHub repository in owner/name form')
 parser.add_argument('--publish',action='store_true',help='Publish the already uploaded draft')
 parser.add_argument('--proxy',default='')
 args=parser.parse_args()
+repo=args.repo
 version=args.version
 if not all(part.isdigit() for part in version.split('.')):raise SystemExit('Invalid version')
 tag='v'+version
@@ -36,11 +42,6 @@ allowed=['Mirroxy-linux-arm64.run','Mirroxy-linux-amd64.run',
          'Mirroxy-update-linux-arm64.zip','Mirroxy-update-linux-amd64.zip','Mirroxy-update-macos-arm64.zip']
 allowed += [name for name in ['Mirroxy-windows-amd64.zip','Mirroxy-windows-amd64.exe'] if (dist/name).is_file()]
 if args.publish:
-    report=json.loads((root/'work'/('s3-release-'+tag+'.json')).read_text(encoding='utf-8'))
-    if report.get('version')!=version or not report.get('anonymousDownloadsVerified') or not report.get('pageURL'):
-        raise SystemExit('Publish and verify S3 packages and release page first')
-    repo_meta=json.loads(subprocess.check_output([args.gh,'api',f'repos/{repo}'],env=env))
-    if not repo_meta.get('private'):raise SystemExit('Release repository must remain private')
     releases=json.loads(subprocess.check_output([args.gh,'api',f'repos/{repo}/releases?per_page=100'],env=env))
     release=next((r for r in releases if r['tag_name']==tag),None)
     if release is None:raise SystemExit('Release draft not found')
@@ -49,22 +50,31 @@ if args.publish:
     for name in allowed:
         if assets[name].get('digest')!='sha256:'+hashlib.sha256((dist/name).read_bytes()).hexdigest():raise SystemExit('Uploaded checksum mismatch: '+name)
     gh('release','edit',tag,'--draft=false')
-    for name,data in [('README.md',(root/'packaging/PUBLIC-README.md').read_bytes()),('install.sh',(dist/'install.sh').read_bytes())]:
-        endpoint=f'repos/{repo}/contents/{name}'
+    # Keep the stable one-line installer in the repository so the raw
+    # GitHub URL keeps working. The source README is never touched.
+    endpoint=f'repos/{repo}/contents/install.sh'
+    data=(dist/'install.sh').read_bytes()
+    try:
         previous=json.loads(subprocess.check_output([args.gh,'api',endpoint],env=env))
         if base64.b64decode(previous['content'])==data:
-            continue
-        body={'message':f'Update binary distribution documentation for {tag}', 'content':base64.b64encode(data).decode(), 'sha':previous['sha']}
+            previous=None
+    except subprocess.CalledProcessError:
+        previous=None
+    if previous is None:
+        body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode()}
         subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
-    print('Published verified release: https://github.com/'+repo+'/releases/tag/'+tag)
+    else:
+        body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode(),'sha':previous['sha']}
+        subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
+    print('Published release: https://github.com/'+repo+'/releases/tag/'+tag)
 else:
     for line in (dist/'SHA256SUMS').read_text(encoding='utf-8').splitlines():
         digest,name=line.split('  ',1)
         if name not in allowed:raise SystemExit('Unexpected release file: '+name)
         if hashlib.sha256((dist/name).read_bytes()).hexdigest()!=digest:raise SystemExit('Checksum mismatch: '+name)
     notes=root/f'work/release-notes-{tag}.md'
-    site='https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/index.html'
-    notes.write_text((dist/'README.txt').read_text(encoding='utf-8')+'\n\n公开下载、历史版本与安装命令：['+site+']('+site+')。GitHub 仓库保持私有。\n',encoding='utf-8')
+    site=f'https://github.com/{repo}/releases/tag/{tag}'
+    notes.write_text((dist/'README.txt').read_text(encoding='utf-8')+'\n\n源码与构建说明：['+repo+'](https://github.com/'+repo+')。\n\n本版本下载与校验：['+site+']('+site+')，下载后可用 `SHA256SUMS` 校验。\n',encoding='utf-8')
     existing=subprocess.run([args.gh,'release','view',tag,'--repo',repo,'--json','isDraft'],env=env,capture_output=True)
     if existing.returncode:
         gh('release','create',tag,'--draft','--title',f'Mirroxy {version} - Windows / Linux / macOS','--notes-file',str(notes))

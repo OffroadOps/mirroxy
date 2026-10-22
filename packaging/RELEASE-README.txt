@@ -20,7 +20,14 @@ Windows 使用固定 Mirroxy-online-setup.exe（仅编译一次）拉取服务�
 0.4.x 到 0.5.0 因主程序及更新协议改名，需要使用一次完整包；
 从 0.5.0 起可在面板内更新，升级失败或候选程序未就绪时恢复旧版。更新会短暂重启连接。
 
-公开发布页（保留全部历史版本）：
+本版把日常切换节点改为一步：双击节点行即按需启动并接管系统代理，顶部「接管系统代理」
+开关与路由模式即时生效。同时每个节点使用独立核心进程，起停一个节点不再中断其它节点的
+连接。托盘「系统代理」子菜单列出全部节点，点选即启动并接管。
+
+本版起项目源码公开，采用 MIT 许可证，仓库地址：
+https://github.com/OffroadOps/mirroxy
+
+历史版本与旧入口仍保留在公开发布页：
 https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/index.html
 
 完整包：
@@ -41,5 +48,5 @@ https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/index.html
 下载地址和许可证保留在包内 licenses/NOTICE.txt 与 manifest.json，以满足来源和许可证要求。
 macOS ARM64 包要求 macOS 26+，未公证且尚未实机验证。Linux 面向 systemd 环境。
 
-默认不改变 Windows 系统代理，可继续与 v2rayN 同时使用。发布物不包含应用源码、用户节点、
+默认不改变 Windows 系统代理，可继续与 v2rayN 同时使用。发布物不包含用户节点、
 数据库、密钥、日志或发布存储凭据。使用 SHA256SUMS 校验下载文件。

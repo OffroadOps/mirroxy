@@ -1,0 +1,64 @@
+name: Bug 报告 / Bug report
+description: 报告一个可复现的问题。/ Report a reproducible problem.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请不要在本表单中填写节点、订阅地址、密码、密钥或真实 IP。
+        Never include nodes, subscription URLs, passwords, keys or real IP addresses here.
+  - type: input
+    id: version
+    attributes:
+      label: Mirroxy 版本 / Mirroxy version
+      placeholder: 0.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台 / Platform
+      options:
+        - Windows x86_64
+        - Linux ARM64
+        - Linux AMD64
+        - macOS ARM64
+        - 其他 / Other
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 问题区域 / Area
+      options:
+        - 节点与导入 / Nodes and import
+        - 系统代理与路由 / System proxy and routing
+        - 游戏 / 应用代理 / Application proxy
+        - 下载管理 / Downloads
+        - 订阅 / Subscriptions
+        - 面板与界面 / Dashboard UI
+        - 在线更新 / Online update
+        - 其它 / Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么 / What happened
+      description: 期望结果与实际结果的差异。/ How the actual result differs from the expected one.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      placeholder: |
+        1. 导入一个节点
+        2. 双击节点行
+        3. 观察到……
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / Relevant logs
+      description: 面板「运行记录」或 data/Mirroxy.log 的片段，提交前请先脱敏。
+        Paste the dashboard activity log or a fragment of data/Mirroxy.log, redacted.
+      render: text

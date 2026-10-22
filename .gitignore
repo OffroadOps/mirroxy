@@ -9,6 +9,13 @@
 __pycache__/
 node_modules/
 
+# Local agent scratch plans.
+.zcode/
+
+# Scratch copies of upstream sources kept for reference. The leading
+# underscore keeps the Go tool from picking them up as part of the module.
+/android/_reference/
+
 # Cross-compiled binaries and installer leftovers kept in the source root.
 /mirroxy
 /unins000.dat

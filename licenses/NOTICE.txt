@@ -1,8 +1,36 @@
-Mirroxy is distributed as a binary-only application. Its source code is not part of this release.
-Xray and sing-box are unmodified, independent upstream executables.
-Xray source and release: https://github.com/XTLS/Xray-core/tree/v26.7.28
-sing-box source and release: https://github.com/SagerNet/sing-box/tree/v1.14.0
-Core licenses are included in this directory; their terms remain applicable.
-Routing files are a snapshot of the existing v2rayN-compatible local data files.
-GeoIP/Geosite sources: https://github.com/Loyalsoldier/v2ray-rules-dat ; https://github.com/SagerNet/sing-geoip ; https://github.com/SagerNet/sing-geosite
-CA certificates: https://curl.se/docs/caextract.html (Mozilla CA bundle).
+Mirroxy is open source under the MIT License; see LICENSE in the source tree.
+
+Mirroxy does not modify the third-party components it ships. They are
+independent upstream executables, downloaded from their official releases,
+verified by checksum, and redistributed unmodified.
+
+Xray (network core A)
+  Version:   v26.7.28
+  Source:    https://github.com/XTLS/Xray-core/tree/v26.7.28
+  License:   MPL-2.0 (licenses/COMPONENT-A-LICENSE)
+
+sing-box (network core B)
+  Version:   v1.14.0
+  Source:    https://github.com/SagerNet/sing-box/tree/v1.14.0
+  License:   MIT (licenses/COMPONENT-B-LICENSE)
+
+aria2 (download engine)
+  Version:   1.37.0
+  Source:    https://github.com/aria2/aria2/releases/tag/release-1.37.0
+  License:   GPL-2.0-or-later (licenses/ARIA2-COPYING)
+  Notice:    licenses/ARIA2-NOTICE.txt
+  OpenSSL:   licenses/ARIA2-OpenSSL-LICENSE
+
+Routing data files
+  The bundled geoip/geosite databases and rule sets are snapshots of the
+  public v2rayN-compatible data files.
+  Sources:    https://github.com/Loyalsoldier/v2ray-rules-dat
+              https://github.com/MetaCubeX/meta-rules-dat
+              https://github.com/SagerNet/sing-geoip
+              https://github.com/SagerNet/sing-geosite
+
+CA certificates
+  The bundled root CA bundle originates from the Mozilla CA certificate list.
+  Source:    https://curl.se/docs/caextract.html
+
+Go module dependencies keep their own licenses; see go.mod and go.sum.

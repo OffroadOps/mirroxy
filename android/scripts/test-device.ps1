@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$Serial, [switch]$Vpn)
 $ErrorActionPreference = 'Stop'
-$adb = 'D:\DevTools\Android\Sdk\platform-tools\adb.exe'
+# adb is taken from ANDROID_SDK when set, otherwise from PATH.
+$adb = if ($env:ANDROID_SDK) { Join-Path $env:ANDROID_SDK 'platform-tools\adb.exe' } else { 'adb' }
 $root = Split-Path $PSScriptRoot
 & $adb -s $Serial install -r (Join-Path $root 'app\build\outputs\apk\debug\app-debug.apk')
 if ($LASTEXITCODE -ne 0) { throw 'App installation failed' }

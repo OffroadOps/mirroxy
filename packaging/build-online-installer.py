@@ -6,11 +6,15 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+from inno_setup import require_iscc
+
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--go',default='go')
-parser.add_argument('--iscc',type=Path,default=Path(r'D:\DevTools\Inno Setup 7\ISCC.exe'))
+parser.add_argument('--iscc',type=Path,default=None,
+                    help='Path to ISCC.exe; auto-detected from the usual Inno Setup 7 locations when omitted')
 args=parser.parse_args()
+args.iscc=require_iscc(args.iscc)
 output=ROOT/'dist/bootstrap'
 output.mkdir(parents=True,exist_ok=True)
 destination=output/'Mirroxy-online-setup.exe'

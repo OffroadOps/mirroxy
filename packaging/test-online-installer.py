@@ -12,12 +12,16 @@ import uuid
 import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from inno_setup import require_iscc
+
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--go',default='go')
-parser.add_argument('--iscc',default=r'D:\DevTools\Inno Setup 7\ISCC.exe')
-parser.add_argument('--version',default='0.7.3')
+parser.add_argument('--iscc',default=None,
+                    help='Path to ISCC.exe; auto-detected from the usual Inno Setup 7 locations when omitted')
+parser.add_argument('--version',default='0.8.0')
 args=parser.parse_args()
+args.iscc=require_iscc(args.iscc)
 qa=ROOT/'work'/('online-installer-test-'+uuid.uuid4().hex)
 qa.mkdir(parents=True)
 installed=qa/'installed'
