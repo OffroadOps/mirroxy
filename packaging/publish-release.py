@@ -6,6 +6,7 @@ only things this script touches; it never rewrites the source README.
 """
 import argparse
 import base64
+import datetime
 import hashlib
 import json
 import os
@@ -35,6 +36,29 @@ if not env.get('GH_TOKEN'):
 if args.proxy:env['HTTPS_PROXY']=args.proxy
 def gh(*parts):
     subprocess.run([args.gh,*parts,'--repo',repo],env=env,check=True)
+
+def catalog_bytes(tag, version, names, repo):
+    """Build the releases.json catalog the application and the online
+    installer read to discover new versions."""
+    changes=[]
+    try:
+        for entry in json.loads((root/'web'/'changelog.json').read_text(encoding='utf-8')):
+            if entry.get('version')==version:
+                changes=entry.get('changes',[])
+                break
+    except (OSError,ValueError):
+        changes=[]
+    files=[]
+    for name in names:
+        payload=(dist/name).read_bytes()
+        files.append({'name':name,'size':len(payload),
+                      'sha256':hashlib.sha256(payload).hexdigest(),
+                      'url':f'https://github.com/{repo}/releases/download/{tag}/{name}'})
+    catalog={'latest':version,
+             'installerURL':f'https://github.com/{repo}/releases/download/{tag}/Mirroxy-online-setup.exe',
+             'releases':[{'version':version,'date':datetime.date.today().isoformat(),
+                          'changes':changes,'files':files}]}
+    return (json.dumps(catalog,ensure_ascii=False,indent=2)+'\n').encode('utf-8')
 allowed=['Mirroxy-linux-arm64.run','Mirroxy-linux-amd64.run',
          'Mirroxy-linux-arm64.tar.gz','Mirroxy-linux-amd64.tar.gz',
          'Mirroxy-macos-arm64.zip',
@@ -50,22 +74,22 @@ if args.publish:
     for name in allowed:
         if assets[name].get('digest')!='sha256:'+hashlib.sha256((dist/name).read_bytes()).hexdigest():raise SystemExit('Uploaded checksum mismatch: '+name)
     gh('release','edit',tag,'--draft=false')
-    # Keep the stable one-line installer in the repository so the raw
-    # GitHub URL keeps working. The source README is never touched.
-    endpoint=f'repos/{repo}/contents/install.sh'
-    data=(dist/'install.sh').read_bytes()
-    body={'message':f'Update the stable Linux installer for {tag}','content':base64.b64encode(data).decode()}
-    try:
-        previous=json.loads(subprocess.check_output([args.gh,'api',endpoint],env=env))
-    except subprocess.CalledProcessError:
-        previous=None
-    if previous is not None:
-        if base64.b64decode(previous['content'])==data:
-            print('The stable installer is already up to date')
-        else:
+    # Keep the stable one-line installer and the release catalog in the
+    # repository so the raw GitHub URLs keep working. The source README is
+    # never touched.
+    for name, data in (('install.sh', (dist/'install.sh').read_bytes()),
+                        ('releases.json', catalog_bytes(tag, version, allowed, repo))):
+        endpoint=f'repos/{repo}/contents/{name}'
+        body={'message':f'Update the binary distribution files for {tag}','content':base64.b64encode(data).decode()}
+        try:
+            previous=json.loads(subprocess.check_output([args.gh,'api',endpoint],env=env))
+        except subprocess.CalledProcessError:
+            previous=None
+        if previous is not None:
+            if base64.b64decode(previous['content'])==data:
+                print(name+' is already up to date')
+                continue
             body['sha']=previous['sha']
-            subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
-    else:
         subprocess.run([args.gh,'api','-X','PUT',endpoint,'--input','-'],input=json.dumps(body).encode(),env=env,check=True,stdout=subprocess.DEVNULL)
     print('Published release: https://github.com/'+repo+'/releases/tag/'+tag)
 else:

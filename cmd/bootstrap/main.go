@@ -21,9 +21,13 @@ import (
 	"time"
 )
 
-var feedBase = "https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/"
+// The catalog lives next to the sources in the public repository; the
+// packages themselves are GitHub release assets. The base can be overridden
+// at build time with -ldflags "-X main.feedBase=...".
+var feedBase = "https://raw.githubusercontent.com/OffroadOps/mirroxy/master/"
 var testBuild = "false" // Only isolated test helpers are compiled with this true.
 const payloadName = "Mirroxy-windows-amd64.zip"
+const releaseRepo = "OffroadOps/mirroxy"
 
 var versionPattern = regexp.MustCompile(`^\d{1,5}\.\d{1,5}\.\d{1,5}$`)
 
@@ -105,6 +109,15 @@ func (f *fetcher) get(address string) (*http.Response, error) {
 	}
 	return nil, errors.New("无法连接发布服务，请检查网络或代理")
 }
+// releaseFileURL accepts the two published layouts: a version directory below
+// the release base, or the matching asset of the GitHub release. Both pin the
+// expected version and file name.
+func releaseFileURL(base, version, name, candidate string) bool {
+	if candidate == base+"v"+version+"/"+name {
+		return true
+	}
+	return candidate == "https://github.com/"+releaseRepo+"/releases/download/v"+version+"/"+name
+}
 func (f *fetcher) latest() (offer, error) {
 	var selected offer
 	res, err := f.get(f.base + "releases.json?t=" + fmt.Sprint(time.Now().UnixNano()))
@@ -131,7 +144,7 @@ func (f *fetcher) latest() (offer, error) {
 				continue
 			}
 			hash, e := hex.DecodeString(file.SHA256)
-			if e != nil || len(hash) != 32 || file.Size <= 0 || file.Size > 256<<20 || file.URL != f.base+"v"+release.Version+"/"+payloadName {
+			if e != nil || len(hash) != 32 || file.Size <= 0 || file.Size > 256<<20 || !releaseFileURL(f.base, release.Version, file.Name, file.URL) {
 				return selected, errors.New("Windows 包来源、大小或 SHA256 无效")
 			}
 			return offer{release.Version, file}, nil

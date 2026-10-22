@@ -13,6 +13,8 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--go',default='go')
 parser.add_argument('--iscc',type=Path,default=None,
                     help='Path to ISCC.exe; auto-detected from the usual Inno Setup 7 locations when omitted')
+parser.add_argument('--feed-base',default='https://raw.githubusercontent.com/OffroadOps/mirroxy/master/',
+                    help='Catalog the installer reads to find the newest full package')
 args=parser.parse_args()
 args.iscc=require_iscc(args.iscc)
 output=ROOT/'dist/bootstrap'
@@ -23,7 +25,7 @@ if destination.exists():
 env={**os.environ,'GOOS':'windows','GOARCH':'amd64','CGO_ENABLED':'0','GOTOOLCHAIN':'local'}
 with tempfile.TemporaryDirectory(prefix='online-installer-',dir=ROOT/'work') as temporary:
     stage=Path(temporary)
-    subprocess.run([args.go,'build','-trimpath','-ldflags=-s -w','-o',str(stage/'Mirroxy-bootstrap.exe'),'./cmd/bootstrap'],cwd=ROOT,env=env,check=True)
+    subprocess.run([args.go,'build','-trimpath','-ldflags=-s -w -X main.feedBase='+args.feed_base,'-o',str(stage/'Mirroxy-bootstrap.exe'),'./cmd/bootstrap'],cwd=ROOT,env=env,check=True)
     subprocess.run([str(args.iscc),'--quiet-progress','--define=OnlineBootstrap=1','--define=MyAppVersion=1.0.0',f'--define=SourceDir={stage}',f'--define=OutputDir={output}','--define=OutputName=Mirroxy-online-setup',str(ROOT/'packaging/Mirroxy.iss')],cwd=ROOT,check=True)
 digest=hashlib.sha256(destination.read_bytes()).hexdigest()
 (output/'SHA256SUMS').write_text(digest+'  '+destination.name+'\n',encoding='ascii')

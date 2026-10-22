@@ -18,11 +18,17 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
 
-const publicReleaseBase = "https://ny-1s.enzonix.com/bucket-1776-2431/scrcpyproxy/"
+// The release catalog is published next to the sources in the public
+// repository; the binaries themselves live in the GitHub releases.
+const (
+	publicReleaseBase = "https://raw.githubusercontent.com/OffroadOps/mirroxy/master/"
+	publicReleaseRepo = "OffroadOps/mirroxy"
+)
 
 var releaseVersionPattern = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 
@@ -69,12 +75,23 @@ func appUpdateName() string {
 	return "Mirroxy-update-" + platform + "-" + runtime.GOARCH + ".zip"
 }
 func digestBytes(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
+
+// releaseFileURL accepts the two published layouts: a version directory below
+// the release base, or the matching asset of the GitHub release. Both pin the
+// expected version and file name, so a tampered catalog cannot redirect the
+// download somewhere else.
+func releaseFileURL(base, version, name, candidate string) bool {
+	if candidate == base+"v"+version+"/"+name {
+		return true
+	}
+	return candidate == "https://github.com/"+publicReleaseRepo+"/releases/download/v"+version+"/"+name
+}
 func (a *App) findAppUpdate() (*appUpdateOffer, error) {
 	base, err := releaseBase()
 	if err != nil {
 		return nil, err
 	}
-	b, err := a.fetch(base+"releases.json", 4<<20, 20*time.Second)
+	b, err := a.fetch(base+"releases.json?t="+strconv.FormatInt(time.Now().UnixNano(), 10), 4<<20, 20*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +117,7 @@ func (a *App) findAppUpdate() (*appUpdateOffer, error) {
 				continue
 			}
 			hash, err := hex.DecodeString(file.SHA256)
-			if err != nil || len(hash) != 32 || file.Size <= 0 || file.Size > 64<<20 || file.URL != base+"v"+release.Version+"/"+file.Name {
+			if err != nil || len(hash) != 32 || file.Size <= 0 || file.Size > 64<<20 || !releaseFileURL(base, release.Version, file.Name, file.URL) {
 				return nil, errors.New("更新包来源或校验信息无效")
 			}
 			return &appUpdateOffer{Version: release.Version, File: file}, nil
