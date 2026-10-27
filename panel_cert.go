@@ -304,6 +304,9 @@ func (a *App) serveLegacyRedirect(port int) {
 		return
 	}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.legacyBrowserConnector(w, r) {
+			return
+		}
 		a.mu.Lock()
 		target := a.panelURL() + r.URL.Path
 		a.mu.Unlock()

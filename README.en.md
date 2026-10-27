@@ -142,13 +142,14 @@ keep the existing engine. Linux and macOS use the system `aria2c` (for example
 `sudo apt install aria2` or `brew install aria2`); no other platform is claimed to be
 verified on real hardware.
 
-**Browser download relay**: the Downloads page hands out a Chrome / Edge extension ZIP. When the
-browser starts a download, the extension offers the URL to Mirroxy first and cancels the browser copy
-only after Mirroxy accepts the task. Failures (backend stopped, not configured, engine error) leave
-the browser download untouched. The link context menu also offers "Download with Mirroxy". The
-extension reads only download URLs and file names, never cookies or passwords; cookie-protected
-sites can be excluded per host. Setup steps live in
-[`browser-extension/README.md`](browser-extension/README.md).
+**Browser download relay**: the Downloads page hands out a Chrome / Edge extension ZIP. No token
+copying is needed: the extension discovers Mirroxy through the local 15060 port and pairs
+automatically. When the browser starts a download, the extension offers the URL to Mirroxy first and
+cancels the browser copy only after Mirroxy accepts the task. Failures (backend stopped, engine
+error) leave the browser download untouched. The link context menu also offers "Download with
+Mirroxy". The extension forwards the page Referer, cookies and User-Agent to the local Mirroxy only,
+so signed-in and anti-hotlink downloads keep working; nothing is sent to an external server. Setup
+steps live in [`browser-extension/README.md`](browser-extension/README.md).
 
 ### Windows game / application proxy
 

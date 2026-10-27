@@ -1,100 +1,100 @@
 {
-  "latest": "0.8.3",
-  "installerURL": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-online-setup.exe",
+  "latest": "0.8.4",
+  "installerURL": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-online-setup.exe",
   "releases": [
     {
-      "version": "0.8.3",
+      "version": "0.8.4",
       "date": "2026-10-27",
       "changes": [
-        "新增浏览器下载接力：Chrome / Edge 扩展在浏览器发起下载时先把链接交给 Mirroxy，接单成功后才取消浏览器下载；Mirroxy 未运行、未配置或引擎异常时保留浏览器下载，不丢文件",
-        "下载管理页新增「浏览器接力」：一键下载扩展 ZIP、复制扩展配置、查看扩展连接状态与安装说明；扩展支持自动接管、右键「使用 Mirroxy 下载」、按网站排除",
-        "浏览器接力使用独立本机令牌，仅允许本机浏览器扩展来源调用；不读取或转发 Cookie、密码，面板状态不暴露该令牌",
-        "修复全新安装首次启动时浏览器接力令牌未生成的问题，令牌在后续启动与升级后保持不变"
+        "浏览器接力改为零配置：扩展通过本机 15060 端口自动发现 Mirroxy 并完成配对，安装扩展后即可使用，不再需要复制或粘贴令牌",
+        "浏览器接力下载自动携带当前页面的 Referer、Cookie 和 User-Agent，兼容需要登录态或防盗链的下载站（如 123 盘等 CDN 直链）",
+        "修复手动导入扩展配置后仍沿用旧地址、测试连接提示 Failed to fetch 的体验问题；面板端口变化后扩展会自动重新配对",
+        "扩展增加自动重试与「重新自动连接」，自动配对失败时才回退到手动配置；浏览器 Cookie 仅发送给本机 Mirroxy，不写入面板显示或日志"
       ],
       "files": [
         {
           "name": "Mirroxy-linux-arm64.run",
-          "size": 55458084,
-          "sha256": "1913a835a688af9f94914416ad940d21c3dc20a28765b0c332b379305729fe9f",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-linux-arm64.run"
+          "size": 55460993,
+          "sha256": "0f8140c9966a0f2d168a0d45f489c4da8c3fbec6a740ad216ad99f72fa2d7add",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-linux-arm64.run"
         },
         {
           "name": "Mirroxy-linux-amd64.run",
-          "size": 60180095,
-          "sha256": "1bb97e3e8543c9a769f4c46c97c1a10f2e54cf51d5bbe3f4725ee5250d1e06c2",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-linux-amd64.run"
+          "size": 60183635,
+          "sha256": "36a8130c3340deae690af50867104063e1b0b5e5f3c685ff35dda4d785635120",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-linux-amd64.run"
         },
         {
           "name": "Mirroxy-linux-arm64.tar.gz",
-          "size": 55457367,
-          "sha256": "e7ba5e473c41754c3a5f5f58ea88c8418ddb602da72ea69a94e164f7479ab64c",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-linux-arm64.tar.gz"
+          "size": 55460276,
+          "sha256": "fd43ae6bb02b124835e5b0a89ad55981bab9aaa6de21f9cd12b799815923f0c6",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-linux-arm64.tar.gz"
         },
         {
           "name": "Mirroxy-linux-amd64.tar.gz",
-          "size": 60179378,
-          "sha256": "43b6c36b4d05760687b292f323e623eeac4fab45e0e4a7820937beec4bd30f50",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-linux-amd64.tar.gz"
+          "size": 60182918,
+          "sha256": "b765c942416d0d26456930495874bfd9610eae4360004bf4e05aae91ca0ec90a",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-linux-amd64.tar.gz"
         },
         {
           "name": "Mirroxy-macos-arm64.zip",
-          "size": 55143250,
-          "sha256": "c9569dfa97a7195ce5d4f058d2f5a6dcb77070523bb747114485411073fbf47a",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-macos-arm64.zip"
+          "size": 55151854,
+          "sha256": "359663dff6e12e1023a82b90118c565be90010f7ecfaf8cd0f3c6efacd14ac88",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-macos-arm64.zip"
         },
         {
           "name": "install.sh",
           "size": 1358,
-          "sha256": "f9f867d7ac634bc023557060efb54dd5620ed90af53c806928db49d70a5cf033",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/install.sh"
+          "sha256": "215f5de06eaf03c6554918c05dbd5bb6904a1e66ccef6d526796b4582c34b28a",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/install.sh"
         },
         {
           "name": "README.txt",
           "size": 3485,
           "sha256": "63f7e71fc0e4b121cd38c972f50daaa4a1395270d2781b0a2cdd53faba7c7c65",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/README.txt"
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/README.txt"
         },
         {
           "name": "SHA256SUMS",
           "size": 1184,
-          "sha256": "7ea610906917631f0e8d510380acb90f83cd0fdcee6fe3dadfbf3f84b8aa61bf",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/SHA256SUMS"
+          "sha256": "a19f1417ce02cb0b230245486bb038d3c9308b0453d09067c11f25e6695ae9d8",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/SHA256SUMS"
         },
         {
           "name": "Mirroxy-update-windows-amd64.zip",
-          "size": 9263553,
-          "sha256": "8bf1b9e3649cce7556bbc49e94782a3edd1f4a031369229f126662757ee77bb1",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-update-windows-amd64.zip"
+          "size": 9270184,
+          "sha256": "077808f144d23c832b36a858b9ef9fecc442a1c99935be74e2a6b47bea3f868b",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-update-windows-amd64.zip"
         },
         {
           "name": "Mirroxy-update-linux-arm64.zip",
-          "size": 5724375,
-          "sha256": "f9e52e314b0ccab23b537658b2e7d33ccd5999314dee5f6625965524bd566ce7",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-update-linux-arm64.zip"
+          "size": 5729818,
+          "sha256": "00d249ff868ba4d35205b9e656bec50fe9ca4897c8dfa09ef284137a994b4544",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-update-linux-arm64.zip"
         },
         {
           "name": "Mirroxy-update-linux-amd64.zip",
-          "size": 6190274,
-          "sha256": "56649346a8589b981dfc02a95f419ec0a26707b8f4769ed8474702573fb8081f",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-update-linux-amd64.zip"
+          "size": 6199111,
+          "sha256": "9b7a794408335389f4511ac09ce76564acfbb8d8ed46d5130d61a82dbc77f26f",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-update-linux-amd64.zip"
         },
         {
           "name": "Mirroxy-update-macos-arm64.zip",
-          "size": 5899463,
-          "sha256": "0cf6e7036b1870d6f07c5c6628390e244cd349aad731059ada6828366665dacb",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-update-macos-arm64.zip"
+          "size": 5908071,
+          "sha256": "0c3886dff31f0d0d8817571df8797a447fb3244159f15e88e2cb4f177f133fcc",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-update-macos-arm64.zip"
         },
         {
           "name": "Mirroxy-windows-amd64.zip",
-          "size": 60500385,
-          "sha256": "50b006f3b0aa54b7fff15443368bd70f0df80b4f5791b60a132a8fcad0f63bad",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-windows-amd64.zip"
+          "size": 60507014,
+          "sha256": "f04d212b852997b26297cf77b383b4e19974745c73b4fffb6b06e04990902c4a",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-windows-amd64.zip"
         },
         {
           "name": "Mirroxy-windows-amd64.exe",
-          "size": 44295707,
-          "sha256": "de0796f13c2c04077f44b40e1242cc399fba6d553afb090e3ed8e19b1c5d41e9",
-          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.3/Mirroxy-windows-amd64.exe"
+          "size": 44305889,
+          "sha256": "897b385d1c67b9361cdfc256210a4a641d803e9e74644750a20eaf80746165e8",
+          "url": "https://github.com/OffroadOps/mirroxy/releases/download/v0.8.4/Mirroxy-windows-amd64.exe"
         }
       ]
     }

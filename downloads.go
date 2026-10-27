@@ -33,6 +33,11 @@ type DownloadSpec struct {
 	ProxyURL    string `json:"proxyUrl"`
 	Connections int    `json:"connections"`
 	LimitKiB    int    `json:"limitKiB"`
+	// Headers carry the browser context for extension-relayed downloads.
+	// They stay in the encrypted journal and are stripped from panel snapshots.
+	Referer   string `json:"referer,omitempty"`
+	UserAgent string `json:"userAgent,omitempty"`
+	Cookie    string `json:"cookie,omitempty"`
 }
 type DownloadTask struct {
 	ID string `json:"id"`
@@ -244,6 +249,18 @@ func (d *DownloadManager) validate(spec DownloadSpec) (DownloadSpec, error) {
 	if len(spec.URL) > 8192 || strings.ContainsAny(spec.URL, "\r\n\x00") {
 		return spec, errors.New("下载链接过长或包含无效字符")
 	}
+	for _, header := range []struct {
+		value string
+		limit int
+		name  string
+	}{{spec.Referer, 4096, "Referer"}, {spec.UserAgent, 1024, "User-Agent"}, {spec.Cookie, 16384, "Cookie"}} {
+		if strings.ContainsAny(header.value, "\r\n\x00") {
+			return spec, fmt.Errorf("%s 包含无效字符", header.name)
+		}
+		if len(header.value) > header.limit {
+			return spec, fmt.Errorf("%s 过长", header.name)
+		}
+	}
 	spec.Name = strings.TrimSpace(spec.Name)
 	if spec.Name != "" && (!filepath.IsLocal(spec.Name) || spec.Name == "." || spec.Name == ".." || strings.ContainsAny(spec.Name, "/\\:*?\"<>|\x00\r\n") || len(spec.Name) > 240 || strings.HasSuffix(spec.Name, ".") || strings.HasSuffix(spec.Name, " ")) {
 		return spec, errors.New("文件名必须是不含路径的普通文件名")
@@ -306,7 +323,7 @@ func resolveDownloadDirectory(path string) string {
 	}
 	return filepath.Join(resolveDownloadDirectory(parent), filepath.Base(path))
 }
-func (d *DownloadManager) options(task *DownloadTask) (map[string]string, error) {
+func (d *DownloadManager) options(task *DownloadTask) (map[string]any, error) {
 	proxy := ""
 	if task.ProxyMode == "custom" {
 		proxy = task.ProxyURL
@@ -321,7 +338,16 @@ func (d *DownloadManager) options(task *DownloadTask) (map[string]string, error)
 		proxy = fmt.Sprintf("http://127.0.0.1:%d", node.Port)
 		d.a.mu.Unlock()
 	}
-	opts := map[string]string{"dir": task.Dir, "split": strconv.Itoa(task.Connections), "max-connection-per-server": strconv.Itoa(task.Connections), "min-split-size": "1M", "max-download-limit": strconv.Itoa(task.LimitKiB) + "K", "all-proxy": proxy, "http-proxy": proxy, "https-proxy": proxy, "ftp-proxy": proxy, "no-proxy": "", "continue": "true", "allow-overwrite": "false", "auto-file-renaming": "true", "check-certificate": "true", "pause": "true"}
+	opts := map[string]any{"dir": task.Dir, "split": strconv.Itoa(task.Connections), "max-connection-per-server": strconv.Itoa(task.Connections), "min-split-size": "1M", "max-download-limit": strconv.Itoa(task.LimitKiB) + "K", "all-proxy": proxy, "http-proxy": proxy, "https-proxy": proxy, "ftp-proxy": proxy, "no-proxy": "", "continue": "true", "allow-overwrite": "false", "auto-file-renaming": "true", "check-certificate": "true", "pause": "true"}
+	if task.Referer != "" {
+		opts["referer"] = task.Referer
+	}
+	if task.UserAgent != "" {
+		opts["user-agent"] = task.UserAgent
+	}
+	if task.Cookie != "" {
+		opts["header"] = []any{"Cookie: " + task.Cookie}
+	}
 	opts["connect-timeout"] = "15"
 	opts["timeout"] = "30"
 	opts["max-tries"] = "5"
@@ -529,6 +555,8 @@ func (d *DownloadManager) snapshot() (M, error) {
 	tasks := []*DownloadTask{}
 	for _, task := range d.journal.Tasks {
 		copy := *task
+		// Browser context is only for the engine; never show cookies in the UI.
+		copy.Cookie, copy.Referer, copy.UserAgent = "", "", ""
 		tasks = append(tasks, &copy)
 	}
 	sort.SliceStable(tasks, func(i, j int) bool { return tasks[i].Created > tasks[j].Created })
@@ -681,6 +709,8 @@ func (d *DownloadManager) action(id, action string, spec DownloadSpec, deleteFil
 		if validated.Dir != task.Dir || validated.Name != task.Name {
 			return errors.New("编辑时保留原保存目录与文件名，以避免破坏断点数据")
 		}
+		// The panel does not edit browser headers; keep the relayed context.
+		validated.Referer, validated.UserAgent, validated.Cookie = task.Referer, task.UserAgent, task.Cookie
 		candidate := *task
 		candidate.DownloadSpec = validated
 		candidate.Wanted = false

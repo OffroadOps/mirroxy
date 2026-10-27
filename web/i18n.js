@@ -288,6 +288,13 @@
     '加速器运行中，已自动暂停':'paused while an accelerator is running',
     '双击任意节点即可切换：未启动的节点会先启动，然后把系统代理接管过去。':'Double-click any node to switch to it. A node that is not running is started first and the system proxy is handed over to it.',
     '浏览器接力':'Browser download relay',
+    '安装扩展后自动连接 Mirroxy，无需复制令牌。浏览器点击下载时自动交给 Mirroxy；成功接单后才取消浏览器下载，失败会保留浏览器下载。':'After installing the extension it connects to Mirroxy automatically — no token to copy. Browser downloads are handed to Mirroxy and the browser copy is cancelled only after Mirroxy accepts it; failures keep the browser download.',
+    '复制扩展配置（备用）':'Copy extension config (fallback)',
+    '保持 Mirroxy 后台运行即可，扩展会自动连接，不需要复制令牌；若未连接，点扩展设置里的「重新自动连接」。':'Keep Mirroxy running; the extension connects automatically without copying a token. If it shows disconnected, click Reconnect in the extension options.',
+    '如果自动连接失败且提示证书错误，可点击本页「复制扩展配置（备用）」在扩展设置中手动导入。':'If automatic pairing fails with a certificate error, use Copy extension config (fallback) here and import it manually in the extension options.',
+    '扩展会携带当前页面的 Referer、Cookie 和 User-Agent（只发给本机 Mirroxy），以兼容需要登录或防盗链的下载站。仍无法继续的网站可在扩展设置中排除。':'The extension forwards the page Referer, cookies and User-Agent to the local Mirroxy only, so signed-in and anti-hotlink downloads keep working. Sites that still fail can be excluded in the extension options.',
+    '扩展配置已复制；通常不需要手动粘贴，扩展会自动连接':'Extension config copied. Manual pasting is usually unnecessary because the extension pairs automatically.',
+
     '在 Chrome / Edge 里点击下载时，自动交给 Mirroxy 下载管理器。Mirroxy 成功接单后才取消浏览器下载；接单失败会保留浏览器下载。':'Downloads started in Chrome / Edge are handed to the Mirroxy download manager. The browser copy is cancelled only after Mirroxy accepts the task; failures keep the browser download.',
     '等待扩展连接':'Waiting for extension',
     '扩展已连接':'Extension connected',

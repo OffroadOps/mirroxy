@@ -30,9 +30,9 @@
     <div id="dlDetails" class="dl-details hidden"></div>
     <p class="field-hint dl-note">默认只删除任务记录；勾选删除文件时移入可恢复的回收区。多连接需要服务器支持 Range；节点代理遵循该节点的出口策略。</p>
     <div class="settings-card dl-connector-card">
-      <div class="dl-connector-head"><div><h2>浏览器接力</h2><p>在 Chrome / Edge 里点击下载时，自动交给 Mirroxy 下载管理器。Mirroxy 成功接单后才取消浏览器下载；接单失败会保留浏览器下载。</p></div><span id="dlConnectorStatus" class="dl-connector-status">等待扩展连接</span></div>
-      <div class="buttons"><a class="button small" id="dlConnectorZip" href="/api/downloads/connector/extension.zip" download="Mirroxy-browser-extension.zip">下载扩展 ZIP</a><button type="button" class="button small primary" id="dlConnectorConfig">复制扩展配置</button><button type="button" class="button small ghost" id="dlConnectorHelp">安装说明</button></div>
-      <div id="dlConnectorHelpBox" class="hidden"><ol class="dl-connector-steps"><li>解压下载的 ZIP，Chrome 打开 <code>chrome://extensions</code>（Edge 为 <code>edge://extensions</code>），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。</li><li>点击「复制扩展配置」，在扩展设置中导入并保存，再点「测试连接」。</li><li>若提示证书错误，请先在面板页首点击「信任根证书」，然后重新测试。</li></ol><p class="field-hint">扩展只读取下载链接与文件名，不读取 Cookie 或密码。需要登录的下载可能无法由 Mirroxy 继续，可在扩展设置中排除该网站。</p></div>
+      <div class="dl-connector-head"><div><h2>浏览器接力</h2><p>安装扩展后自动连接 Mirroxy，无需复制令牌。浏览器点击下载时自动交给 Mirroxy；成功接单后才取消浏览器下载，失败会保留浏览器下载。</p></div><span id="dlConnectorStatus" class="dl-connector-status">等待扩展连接</span></div>
+      <div class="buttons"><a class="button small" id="dlConnectorZip" href="/api/downloads/connector/extension.zip" download="Mirroxy-browser-extension.zip">下载扩展 ZIP</a><button type="button" class="button small primary" id="dlConnectorConfig">复制扩展配置（备用）</button><button type="button" class="button small ghost" id="dlConnectorHelp">安装说明</button></div>
+      <div id="dlConnectorHelpBox" class="hidden"><ol class="dl-connector-steps"><li>解压下载的 ZIP，Chrome 打开 <code>chrome://extensions</code>（Edge 为 <code>edge://extensions</code>），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。</li><li>保持 Mirroxy 后台运行即可，扩展会自动连接，不需要复制令牌；若未连接，点扩展设置里的「重新自动连接」。</li><li>如果自动连接失败且提示证书错误，可点击本页「复制扩展配置（备用）」在扩展设置中手动导入。</li></ol><p class="field-hint">扩展会携带当前页面的 Referer、Cookie 和 User-Agent（只发给本机 Mirroxy），以兼容需要登录或防盗链的下载站。仍无法继续的网站可在扩展设置中排除。</p></div>
     </div>
   </section>`);
   document.body.insertAdjacentHTML('beforeend',`<dialog id="dlDialog" aria-labelledby="dlTitle"><form id="dlForm">
@@ -118,8 +118,8 @@
   }
   dl('dlConnectorConfig').onclick=()=>act(dl('dlConnectorConfig'),async()=>{
     if(!connectorInfo)connectorInfo=await apiGet('downloads/connector');
-    await copyText(JSON.stringify({url:connectorInfo.url,token:connectorInfo.token}));
-    toast(text('扩展配置已复制，粘贴到扩展设置后保存并测试连接'));
+    await copyText(JSON.stringify({url:connectorInfo.url,connector:connectorInfo.connector,token:connectorInfo.token}));
+    toast(text('扩展配置已复制；通常不需要手动粘贴，扩展会自动连接'));
     refreshConnector();
   });
   dl('dlConnectorHelp').onclick=()=>dl('dlConnectorHelpBox').classList.toggle('hidden');

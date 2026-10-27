@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.4",
+    "date": "2026-10-27",
+    "changes": [
+      "Browser relay is now zero-configuration: the extension discovers Mirroxy through the local 15060 port and pairs automatically, so no token has to be copied or pasted.",
+      "Relayed downloads now carry the page Referer, cookies and User-Agent, so signed-in and anti-hotlink CDNs (including 123pan direct links) keep working.",
+      "Fixed the confusing flow where an imported manual config kept the old address and the connection test showed \"Failed to fetch\"; the extension re-pairs automatically when the panel port changes.",
+      "The extension now retries pairing automatically and exposes Reconnect; manual configuration is only a fallback. Browser cookies go only to the local Mirroxy and never appear in the panel or logs."
+    ]
+  },
+  {
     "version": "0.8.3",
     "date": "2026-10-27",
     "changes": [

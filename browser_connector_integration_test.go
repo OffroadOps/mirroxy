@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -43,10 +44,14 @@ func TestBrowserConnectorRelayIntegration(t *testing.T) {
 	defer a.stopDownloads()
 	content := bytes.Repeat([]byte("browser relay integration\n"), 200000)
 	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Referer") != "https://browser.example/page" || !strings.Contains(r.Header.Get("Cookie"), "session=relay-cookie") {
+			http.Error(w, "missing browser context", http.StatusForbidden)
+			return
+		}
 		http.ServeContent(w, r, "sample.bin", time.Unix(1700000000, 0), bytes.NewReader(content))
 	}))
 	defer origin.Close()
-	body, _ := json.Marshal(M{"url": origin.URL + "/sample.bin", "name": "sample.bin"})
+	body, _ := json.Marshal(M{"url": origin.URL + "/sample.bin", "name": "sample.bin", "headers": M{"referer": "https://browser.example/page", "userAgent": "Relay Test UA", "cookie": "session=relay-cookie"}})
 	r := httptest.NewRequest("POST", "http://127.0.0.1:9950/api/downloads/connector/add", bytes.NewReader(body))
 	r.RemoteAddr = "127.0.0.1:40000"
 	r.Header.Set("Content-Type", "application/json")
@@ -85,5 +90,14 @@ func TestBrowserConnectorRelayIntegration(t *testing.T) {
 	got, err := os.ReadFile(task.Path)
 	if err != nil || !bytes.Equal(got, content) {
 		t.Fatalf("relayed file mismatch: %v", err)
+	}
+	var stored *DownloadTask
+	for _, candidate := range d.journal.Tasks {
+		if candidate.ID == added.ID {
+			stored = candidate
+		}
+	}
+	if stored == nil || stored.Cookie != "session=relay-cookie" || stored.UserAgent != "Relay Test UA" {
+		t.Fatal("browser headers were not stored for the engine")
 	}
 }

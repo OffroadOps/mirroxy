@@ -3,6 +3,22 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.8.4 (2026-10-27)
+
+- 浏览器接力改为零配置：扩展通过本机 15060 端口自动发现 Mirroxy 并完成配对，安装扩展后即可使用，不再需要复制或粘贴令牌
+- 浏览器接力下载自动携带当前页面的 Referer、Cookie 和 User-Agent，兼容需要登录态或防盗链的下载站（如 123 盘等 CDN 直链）
+- 修复手动导入扩展配置后仍沿用旧地址、测试连接提示 Failed to fetch 的体验问题；面板端口变化后扩展会自动重新配对
+- 扩展增加自动重试与「重新自动连接」，自动配对失败时才回退到手动配置；浏览器 Cookie 仅发送给本机 Mirroxy，不写入面板显示或日志
+
+<details><summary>English</summary>
+
+- Browser relay is now zero-configuration: the extension discovers Mirroxy through the local 15060 port and pairs automatically, so no token has to be copied or pasted.
+- Relayed downloads now carry the page Referer, cookies and User-Agent, so signed-in and anti-hotlink CDNs (including 123pan direct links) keep working.
+- Fixed the confusing flow where an imported manual config kept the old address and the connection test showed "Failed to fetch"; the extension re-pairs automatically when the panel port changes.
+- The extension now retries pairing automatically and exposes Reconnect; manual configuration is only a fallback. Browser cookies go only to the local Mirroxy and never appear in the panel or logs.
+
+</details>
+
 ## 0.8.3 (2026-10-27)
 
 - 新增浏览器下载接力：Chrome / Edge 扩展在浏览器发起下载时先把链接交给 Mirroxy，接单成功后才取消浏览器下载；Mirroxy 未运行、未配置或引擎异常时保留浏览器下载，不丢文件

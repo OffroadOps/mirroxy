@@ -22,7 +22,7 @@ import (
 //go:embed web/*
 var frontend embed.FS
 
-var version = "0.8.3"
+var version = "0.8.4"
 
 func main() {
 	exe, _ := os.Executable()

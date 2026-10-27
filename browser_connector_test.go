@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -160,5 +161,80 @@ func TestFreshInstallBrowserTokenPersists(t *testing.T) {
 	}
 	if reloaded.cfg.BrowserDownloadToken != a.cfg.BrowserDownloadToken {
 		t.Fatal("connector token was regenerated on reload")
+	}
+}
+
+func TestLegacyConnectorAutoPairing(t *testing.T) {
+	a := connectorTestApp(t)
+	a.panelPort = 10086
+	r := httptest.NewRequest("GET", "http://127.0.0.1:15060/api/downloads/connector/auto", nil)
+	r.RemoteAddr = "127.0.0.1:41000"
+	rec := httptest.NewRecorder()
+	if !a.legacyBrowserConnector(rec, r) || rec.Code != 200 {
+		t.Fatalf("auto pairing failed: %d %s", rec.Code, rec.Body.String())
+	}
+	var info M
+	if err := json.Unmarshal(rec.Body.Bytes(), &info); err != nil {
+		t.Fatal(err)
+	}
+	if info["token"] != "connector-token" || info["connector"] != "http://127.0.0.1:15060" || info["url"] != "https://127.0.0.1:10086" {
+		t.Fatalf("auto pairing payload wrong: %v", info)
+	}
+	// Download POSTs still require an extension origin and the token.
+	r = httptest.NewRequest("POST", "http://127.0.0.1:15060/api/downloads/connector/ping", strings.NewReader(`{}`))
+	r.RemoteAddr = "127.0.0.1:41000"
+	r.Header.Set("Origin", "chrome-extension://abcdefghijklmnop")
+	r.Header.Set("X-Mirroxy-Download-Token", "connector-token")
+	r.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	if !a.legacyBrowserConnector(rec, r) || rec.Code != 200 {
+		t.Fatalf("legacy ping failed: %d %s", rec.Code, rec.Body.String())
+	}
+	r = httptest.NewRequest("POST", "http://127.0.0.1:15060/api/downloads/connector/ping", strings.NewReader(`{}`))
+	r.RemoteAddr = "127.0.0.1:41000"
+	r.Header.Set("Origin", "https://evil.invalid")
+	rec = httptest.NewRecorder()
+	if !a.legacyBrowserConnector(rec, r) || rec.Code != 403 {
+		t.Fatalf("web origin reached legacy connector: %d", rec.Code)
+	}
+}
+
+func TestDownloadBrowserHeadersAreAppliedAndScrubbed(t *testing.T) {
+	a := downloadTestApp(t)
+	d, err := a.downloads()
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := &DownloadTask{DownloadSpec: DownloadSpec{URL: "https://example.invalid/file.iso", Dir: filepath.Join(a.root, "downloads"), Connections: 4, ProxyMode: "direct", Referer: "https://pan.example/page", UserAgent: "Browser UA", Cookie: "session=private-cookie"}}
+	options, err := d.options(task)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options["referer"] != "https://pan.example/page" || options["user-agent"] != "Browser UA" {
+		t.Fatalf("browser headers missing from options: %v", options)
+	}
+	headers, ok := options["header"].([]any)
+	if !ok || len(headers) != 1 || headers[0] != "Cookie: session=private-cookie" {
+		t.Fatalf("cookie header missing: %v", options["header"])
+	}
+	d.journal.Tasks = []*DownloadTask{task}
+	snapshot, err := d.snapshot()
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(snapshot)
+	if strings.Contains(string(encoded), "private-cookie") || strings.Contains(string(encoded), "Browser UA") {
+		t.Fatalf("panel snapshot leaked browser credentials: %s", encoded)
+	}
+	base := task.DownloadSpec
+	for _, mutate := range []func(*DownloadSpec){
+		func(s *DownloadSpec) { s.Cookie = "a=b\r\nInjected: yes" },
+		func(s *DownloadSpec) { s.Referer = "x\nInjected: yes" },
+	} {
+		bad := base
+		mutate(&bad)
+		if _, err := d.validate(bad); err == nil {
+			t.Fatal("accepted a header with CRLF injection")
+		}
 	}
 }

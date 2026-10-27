@@ -10,14 +10,35 @@
 <main>
 <header>
   <img src="icons/icon128.png" width="56" height="56" alt="">
-  <div><h1>Mirroxy 下载接力</h1><p>把浏览器下载交给本机 Mirroxy 的 aria2 下载管理器。</p></div>
+  <div><h1>Mirroxy 下载接力</h1><p>安装后自动连接本机 Mirroxy，无需复制令牌。</p></div>
 </header>
 
 <section class="card">
-  <h2>连接 Mirroxy</h2>
-  <p class="muted">在 Mirroxy 面板打开「下载管理」，点击「复制扩展配置」，粘贴到下面。只接受本机 127.0.0.1 / localhost 地址。</p>
-  <label class="field">粘贴配置 JSON（可选）
-    <textarea id="configJson" rows="3" spellcheck="false" placeholder='{"url":"https://127.0.0.1:9950","token":"…"}'></textarea>
+  <h2>自动连接</h2>
+  <p class="muted">扩展会自动发现正在运行的 Mirroxy。若刚安装或修改过面板端口，点一次「重新自动连接」即可。</p>
+  <div class="buttons">
+    <button id="connect" class="button primary">重新自动连接</button>
+    <span id="status" class="status">正在连接…</span>
+  </div>
+  <p id="panelInfo" class="muted"></p>
+</section>
+
+<section class="card">
+  <h2>下载行为</h2>
+  <label class="row"><span><strong>启用下载接力</strong><small>关闭后不会改动浏览器下载。</small></span><input id="enabled" type="checkbox" class="switch"></label>
+  <label class="row"><span><strong>自动接管新下载</strong><small>新下载先交给 Mirroxy，成功接单后才取消浏览器下载。</small></span><input id="autoIntercept" type="checkbox" class="switch"></label>
+  <label class="field">不接管的网站（每行一个域名）
+    <textarea id="skipHosts" rows="3" spellcheck="false" placeholder="example.com&#10;pan.baidu.com"></textarea>
+  </label>
+  <p class="hint">下载时会自动携带当前页面的 Referer、浏览器 Cookie 和 User-Agent，以兼容需要登录或防盗链的下载站；这些信息只发送给本机 Mirroxy。</p>
+  <div class="buttons"><button id="save" class="button primary">保存设置</button><span id="saveStatus" class="status"></span></div>
+</section>
+
+<details class="card">
+  <summary><strong>手动配置（一般不需要）</strong></summary>
+  <p class="muted">仅当自动连接失败、或 Mirroxy 的 15060 端口被其他程序占用时使用。在 Mirroxy 面板「下载管理 → 浏览器接力」点击「复制扩展配置」，粘贴到下面。</p>
+  <label class="field">粘贴配置 JSON
+    <textarea id="configJson" rows="3" spellcheck="false" placeholder='{"url":"https://127.0.0.1:9950","connector":"http://127.0.0.1:15060","token":"…"}'></textarea>
   </label>
   <button id="importConfig" class="button">导入配置</button>
   <div class="grid">
@@ -25,27 +46,16 @@
       <input id="url" autocomplete="off" spellcheck="false" placeholder="https://127.0.0.1:9950">
     </label>
     <label class="field">连接令牌
-      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="从 Mirroxy 下载页复制">
+      <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="自动连接时无需填写">
     </label>
   </div>
-  <label class="row"><span><strong>启用下载接力</strong><small>总开关；关闭后不会改动浏览器下载。</small></span><input id="enabled" type="checkbox" class="switch"></label>
-  <label class="row"><span><strong>自动接管新下载</strong><small>新下载先交给 Mirroxy，成功接单后才取消浏览器下载。</small></span><input id="autoIntercept" type="checkbox" class="switch"></label>
-  <label class="field">不接管的网站（每行一个域名）
-    <textarea id="skipHosts" rows="3" spellcheck="false" placeholder="example.com&#10;pan.baidu.com"></textarea>
-  </label>
-  <p class="hint">需要登录或依赖浏览器 Cookie 的下载可能无法由 Mirroxy 继续；遇到这类网站请加入「不接管的网站」，或在自动接管失败后保留的浏览器下载中继续。</p>
-  <p class="hint">如果提示证书错误：请先打开 Mirroxy 面板，点击页首「信任根证书」，再回来测试连接。</p>
-  <div class="buttons">
-    <button id="save" class="button primary">保存</button>
-    <button id="test" class="button">测试连接</button>
-    <span id="status" class="status"></span>
-  </div>
-</section>
+  <div class="buttons"><button id="test" class="button">测试连接</button><span id="manualStatus" class="status"></span></div>
+</details>
 
 <section class="card">
   <h2>使用方法</h2>
   <ol>
-    <li>保持 Mirroxy 后台运行，下载管理器会使用它的 aria2 引擎。</li>
+    <li>保持 Mirroxy 后台运行。</li>
     <li>浏览器里点击下载后，Mirroxy 接单成功会自动取消浏览器下载，任务出现在 Mirroxy「下载管理」。</li>
     <li>也可以在链接上右键，选择「使用 Mirroxy 下载此链接」。</li>
   </ol>
