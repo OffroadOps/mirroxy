@@ -33,7 +33,11 @@ jobs:
       - name: Frontend syntax
         shell: bash
         run: |
-          for file in web/*.js; do node --check "$file"; done
+          for file in web/*.js browser-extension/*.js; do node --check "$file"; done
+      - name: Frontend unit tests
+        shell: bash
+        run: |
+          for file in packaging/test-*.cjs; do node "$file"; done
 
   cross-compile:
     name: Cross compile

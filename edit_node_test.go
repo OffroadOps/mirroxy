@@ -116,6 +116,78 @@ func TestEditNodeSubscriptionSurvivesRefresh(t *testing.T) {
 	}
 }
 
+// HTTP and SOCKS nodes authenticate with a username and a password. The editor
+// must expose both, and saving a new password must reach the outbound.
+func TestEditNodeUpdatesHTTPAndSocksCredentials(t *testing.T) {
+	for _, tc := range []struct{ name, link string }{
+		{"http", "http://alice:secret@proxy.example.invalid:8080#Provider"},
+		{"socks", "socks://alice:secret@proxy.example.invalid:1080#Provider"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := &App{root: t.TempDir(), panelPort: 15060, token: "ui-token", cores: map[string]*Core{}}
+			if err := a.load(); err != nil {
+				t.Fatal(err)
+			}
+			a.cfg.SystemProxyMode = "unchanged"
+			n, err := parseLink(tc.link)
+			if err != nil {
+				t.Fatal(err)
+			}
+			n.ID, n.Port, n.Route = "edit-test", 5066, "proxy"
+			a.cfg.Nodes = []Node{n}
+
+			// The stored form must carry both credential fields.
+			form, err := a.nodeEditableSpec("edit-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if form["username"] != "alice" || form["password"] != "secret" {
+				t.Fatalf("credentials missing from the edit form: %v", form)
+			}
+
+			// Rotating the password must reach the outbound.
+			if err = a.editNode("edit-test", M{"username": "bob", "password": "rotated"}); err != nil {
+				t.Fatal(err)
+			}
+			o, _ := json.Marshal(a.cfg.Nodes[0].Outbound)
+			out := string(o)
+			if !strings.Contains(out, "bob") || !strings.Contains(out, "rotated") {
+				t.Fatalf("the new credentials did not reach the outbound: %s", out)
+			}
+			if strings.Contains(out, "secret") {
+				t.Fatalf("the old password survived the edit: %s", out)
+			}
+		})
+	}
+}
+
+// A SOCKS password without a username would be dropped silently, so the edit
+// must be refused instead of losing the credential.
+func TestEditNodeRejectsPasswordWithoutUsername(t *testing.T) {
+	a := &App{root: t.TempDir(), panelPort: 15060, token: "ui-token", cores: map[string]*Core{}}
+	if err := a.load(); err != nil {
+		t.Fatal(err)
+	}
+	a.cfg.SystemProxyMode = "unchanged"
+	n, err := parseLink("socks://alice:secret@proxy.example.invalid:1080#Provider")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n.ID, n.Port, n.Route = "edit-test", 5066, "proxy"
+	a.cfg.Nodes = []Node{n}
+	if err = a.editNode("edit-test", M{"username": "", "password": "rotated"}); err == nil {
+		t.Fatal("a password without a username was accepted")
+	}
+}
+
+// A protocol that carries no password at all must still refuse an empty one.
+func TestEditNodeKeepsPasswordRequirementForOtherProtocols(t *testing.T) {
+	a := editTestApp(t)
+	if err := a.editNode("edit-test", M{"password": ""}); err == nil {
+		t.Fatal("an empty password was accepted for a VLESS node")
+	}
+}
+
 func TestEditNodeAPI(t *testing.T) {
 	a := editTestApp(t)
 	for _, tc := range []struct {

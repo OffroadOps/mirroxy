@@ -23,11 +23,16 @@
 ## 限制
 
 - 仅支持 Chrome / Edge 等 Chromium 浏览器（MV3）。
+- 扩展需要访问你下载的站点，才能读取该站点的 Cookie 用于登录态下载；浏览器首次加载扩展时会询问权限，请允许。
 - 登录态由浏览器 Cookie 自动转发；极少数需要额外鉴权头或 DRM 的站点仍可能失败，可加入「不接管的网站」。
 - 浏览器自身会在事件触发后短暂开始下载再被取消，通常不会留下完整文件；极小的文件可能已经完成，此时不会重复转交。
 - 会为当前下载域转发浏览器 Cookie、Referer 与 User-Agent 给本机 Mirroxy，用于登录/防盗链下载；不会发送到任何外部服务器。
 - 扩展通过本机回环地址与 Mirroxy 通信；自动配对使用本机 15060 端口，无需信任本地证书。
+- 如果浏览器提示没有权限，扩展会通知「未读取到浏览器 Cookie」，此时需要登录的下载会失败。
 
 ## English
 
 Install the unpacked extension; it finds Mirroxy automatically through the local 15060 port, with no token copying and no certificate setup. New downloads are relayed to Mirroxy and the browser copy is cancelled only after Mirroxy accepts the task. Failures leave the browser download untouched. Referer, cookies and User-Agent are forwarded to the local Mirroxy for signed-in downloads.
+
+The extension asks for access to all sites so it can read the cookies of the page you download from; Chrome refuses to return cookies for sites the extension has no permission for. Allow the permission when the browser asks, otherwise signed-in downloads fall back to an anonymous request and the extension reports that it could not read the cookies.
+

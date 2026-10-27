@@ -31,6 +31,47 @@ func connectorRequest(a *App, method, path, origin, token, body string, remote b
 	return r
 }
 
+// The extension reads cookies for the download site, and Chrome only returns
+// cookies for URLs covered by a host permission. Without one the cookies call
+// fails and the relayed download loses its sign-in state, so the manifest must
+// ask for the sites the user actually downloads from.
+func TestBrowserExtensionManifestGrantsCookieHostAccess(t *testing.T) {
+	data, err := browserExtensionFS.ReadFile("browser-extension/manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		Permissions     []string `json:"permissions"`
+		HostPermissions []string `json:"host_permissions"`
+	}
+	if err = json.Unmarshal(data, &manifest); err != nil {
+		t.Fatalf("invalid manifest: %s", data)
+	}
+	hasPermission := false
+	for _, permission := range manifest.Permissions {
+		if permission == "cookies" {
+			hasPermission = true
+		}
+	}
+	if !hasPermission {
+		t.Fatalf("the cookies permission is missing: %v", manifest.Permissions)
+	}
+	covers := func(pattern string) bool {
+		for _, host := range manifest.HostPermissions {
+			if host == "<all_urls>" || host == pattern {
+				return true
+			}
+		}
+		return false
+	}
+	for _, pattern := range []string{"*://*/*", "https://*/*", "http://*/*"} {
+		if covers(pattern) {
+			return
+		}
+	}
+	t.Fatalf("no host permission covers the download sites: %v", manifest.HostPermissions)
+}
+
 func TestBrowserConnectorAcceptExtensionOriginOnly(t *testing.T) {
 	a := connectorTestApp(t)
 	cases := []struct {

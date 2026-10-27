@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Mirroxy 下载接力 / Download Relay",
   "description": "零配置把 Chrome / Edge 下载交给本机 Mirroxy 下载管理器：自动发现本机服务，接单成功后才取消浏览器下载。",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "minimum_chrome_version": "110",
   "permissions": [
     "downloads",
@@ -12,10 +12,7 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://127.0.0.1/*",
-    "https://localhost/*",
-    "http://127.0.0.1/*",
-    "http://localhost/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"

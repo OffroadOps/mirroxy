@@ -3,6 +3,22 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.8.5 (2026-10-28)
+
+- 修复浏览器接力读不到外部网站 Cookie 的问题：扩展的站点权限只覆盖 localhost，Chrome 因此拒绝返回下载站点的 Cookie，「兼容登录态下载」实际不成立；现在扩展对全部站点申请权限，需要登录或防盗链的下载站可以正常带上 Cookie
+- 扩展在读不到 Cookie 时会明确提示，不再静默降级，让「登录态失效」和「权限不足」可以区分
+- 修复 HTTP / SOCKS 节点无法编辑密码的问题：这两类节点用用户名加密码认证，但编辑窗口把密码框藏了起来；现在用户名和密码都可编辑，并按协议显示对应标签
+- SOCKS / HTTP 节点保存时若只填了密码而没有用户名，会明确报错，不再静默丢弃密码
+
+<details><summary>English</summary>
+
+- Fixed the browser relay not being able to read cookies from download sites: the extension only held host permissions for localhost, so Chrome refused to return the cookies of the download site and the promised signed-in downloads did not work. The extension now asks for access to all sites, so downloads that need a sign-in or an anti-hotlink header carry the browser cookies again.
+- The extension now says so when it cannot read cookies instead of degrading silently, so a broken sign-in can be told apart from a missing permission.
+- Fixed HTTP and SOCKS nodes not being editable: these authenticate with a username and a password, but the editor hid the password box. Both fields are editable now and are labelled for the protocol.
+- Saving a SOCKS or HTTP node with a password but no username is refused with a clear message instead of dropping the password silently.
+
+</details>
+
 ## 0.8.4 (2026-10-27)
 
 - 浏览器接力改为零配置：扩展通过本机 15060 端口自动发现 Mirroxy 并完成配对，安装扩展后即可使用，不再需要复制或粘贴令牌

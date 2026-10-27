@@ -115,7 +115,8 @@ Windows 完整包预置官方 aria2 1.37.0 独立进程及许可证；更新包�
 本机 15060 端口自动发现 Mirroxy 并配对。扩展在浏览器发起下载时先把链接交给 Mirroxy，Mirroxy
 接单成功后才取消浏览器下载；接单失败（未运行、引擎异常）会保留浏览器下载。也可在链接右键菜单
 选择「使用 Mirroxy 下载此链接」。扩展会把当前页面的 Referer、Cookie 和 User-Agent 一并交给
-本机 Mirroxy，以兼容需要登录或防盗链的下载站；这些信息不会发送到外部服务器。安装步骤见
+本机 Mirroxy，以兼容需要登录或防盗链的下载站；这些信息不会发送到外部服务器。扩展需要访问你
+下载的站点才能读取该站点的 Cookie，浏览器询问权限时请允许；读不到时扩展会明确提示。安装步骤见
 [`browser-extension/README.md`](browser-extension/README.md)。
 
 ### Windows 游戏 / 应用代理

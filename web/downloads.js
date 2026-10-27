@@ -32,7 +32,7 @@
     <div class="settings-card dl-connector-card">
       <div class="dl-connector-head"><div><h2>浏览器接力</h2><p>安装扩展后自动连接 Mirroxy，无需复制令牌。浏览器点击下载时自动交给 Mirroxy；成功接单后才取消浏览器下载，失败会保留浏览器下载。</p></div><span id="dlConnectorStatus" class="dl-connector-status">等待扩展连接</span></div>
       <div class="buttons"><a class="button small" id="dlConnectorZip" href="/api/downloads/connector/extension.zip" download="Mirroxy-browser-extension.zip">下载扩展 ZIP</a><button type="button" class="button small primary" id="dlConnectorConfig">复制扩展配置（备用）</button><button type="button" class="button small ghost" id="dlConnectorHelp">安装说明</button></div>
-      <div id="dlConnectorHelpBox" class="hidden"><ol class="dl-connector-steps"><li>解压下载的 ZIP，Chrome 打开 <code>chrome://extensions</code>（Edge 为 <code>edge://extensions</code>），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。</li><li>保持 Mirroxy 后台运行即可，扩展会自动连接，不需要复制令牌；若未连接，点扩展设置里的「重新自动连接」。</li><li>如果自动连接失败且提示证书错误，可点击本页「复制扩展配置（备用）」在扩展设置中手动导入。</li></ol><p class="field-hint">扩展会携带当前页面的 Referer、Cookie 和 User-Agent（只发给本机 Mirroxy），以兼容需要登录或防盗链的下载站。仍无法继续的网站可在扩展设置中排除。</p></div>
+      <div id="dlConnectorHelpBox" class="hidden"><ol class="dl-connector-steps"><li>解压下载的 ZIP，Chrome 打开 <code>chrome://extensions</code>（Edge 为 <code>edge://extensions</code>），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。</li><li>保持 Mirroxy 后台运行即可，扩展会自动连接，不需要复制令牌；若未连接，点扩展设置里的「重新自动连接」。</li><li>如果自动连接失败且提示证书错误，可点击本页「复制扩展配置（备用）」在扩展设置中手动导入。</li></ol><p class="field-hint">扩展会携带当前页面的 Referer、Cookie 和 User-Agent（只发给本机 Mirroxy），以兼容需要登录或防盗链的下载站。仍无法继续的网站可在扩展设置中排除。</p><p class="field-hint">扩展需要访问下载站点才能读取该站点的 Cookie；浏览器询问权限时请允许，否则需要登录的下载会失败。</p></div>
     </div>
   </section>`);
   document.body.insertAdjacentHTML('beforeend',`<dialog id="dlDialog" aria-labelledby="dlTitle"><form id="dlForm">

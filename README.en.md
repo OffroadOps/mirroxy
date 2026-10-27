@@ -148,7 +148,9 @@ automatically. When the browser starts a download, the extension offers the URL 
 cancels the browser copy only after Mirroxy accepts the task. Failures (backend stopped, engine
 error) leave the browser download untouched. The link context menu also offers "Download with
 Mirroxy". The extension forwards the page Referer, cookies and User-Agent to the local Mirroxy only,
-so signed-in and anti-hotlink downloads keep working; nothing is sent to an external server. Setup
+so signed-in and anti-hotlink downloads keep working; nothing is sent to an external server. It needs
+access to the sites you download from to read their cookies, so allow the permission the browser
+asks for; when it cannot read them it says so instead of failing silently. Setup
 steps live in [`browser-extension/README.md`](browser-extension/README.md).
 
 ### Windows game / application proxy

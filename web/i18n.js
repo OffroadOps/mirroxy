@@ -95,6 +95,7 @@
     '编辑节点': 'Edit node',
     '编辑节点 · {name}': 'Edit node · {name}',
     '别名': 'Alias', '地址 (Address)': 'Address', '端口 (Port)': 'Port', '用户 ID / 密码 (UUID / Password)': 'User ID / Password', '用户名 (Username)': 'Username', '加密方式 (Encryption / Method)': 'Encryption / Method', '流控 (Flow)': 'Flow',
+    '密码 (Password)': 'Password', 'UUID': 'UUID', '与用户名配套的密码': 'Password used with the username',
     '传输协议 (Network)': 'Transport', '路径 (Path)': 'Path', 'Host': 'Host', 'serviceName (gRPC)': 'serviceName (gRPC)', 'TLS / REALITY': 'TLS / REALITY', 'SNI': 'SNI', 'Fingerprint': 'Fingerprint',
     'PublicKey (REALITY)': 'PublicKey (REALITY)', 'ShortId (REALITY)': 'ShortId (REALITY)', 'ALPN': 'ALPN', 'AlterID (VMess)': 'AlterID (VMess)', '跳过证书验证 (allowInsecure)': 'Skip certificate verification',
     '仅自签证书的自建节点使用，有被中间人风险。': 'Only for self-signed servers; exposed to man-in-the-middle attacks.',
@@ -305,7 +306,9 @@
     '解压下载的 ZIP，Chrome 打开 chrome://extensions（Edge 为 edge://extensions），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。':'Unzip the downloaded file, open chrome://extensions (edge://extensions in Edge), enable Developer mode, then click Load unpacked and choose that folder.',
     '点击「复制扩展配置」，在扩展设置中导入并保存，再点「测试连接」。':'Click Copy extension config, import and save it in the extension options, then click Test connection.',
     '若提示证书错误，请先在面板页首点击「信任根证书」，然后重新测试。':'If the certificate is rejected, trust the root certificate from the banner at the top of the panel first, then test again.',
-    '扩展只读取下载链接与文件名，不读取 Cookie 或密码。需要登录的下载可能无法由 Mirroxy 继续，可在扩展设置中排除该网站。':'The extension reads only download URLs and file names, never cookies or passwords. Downloads that require sign-in may not continue in Mirroxy; exclude that site in the extension options.'
+    '扩展只读取下载链接与文件名，不读取 Cookie 或密码。需要登录的下载可能无法由 Mirroxy 继续，可在扩展设置中排除该网站。':'The extension reads only download URLs and file names, never cookies or passwords. Downloads that require sign-in may not continue in Mirroxy; exclude that site in the extension options.',
+    '扩展会携带当前页面的 Referer、Cookie 和 User-Agent（只发给本机 Mirroxy），以兼容需要登录或防盗链的下载站。仍无法继续的网站可在扩展设置中排除。':'The extension forwards the page Referer, cookies and User-Agent to the local Mirroxy only, so signed-in and anti-hotlink downloads keep working. Sites that still fail can be excluded in the extension options.',
+    '扩展需要访问下载站点才能读取该站点的 Cookie；浏览器询问权限时请允许，否则需要登录的下载会失败。':'The extension needs access to the download site to read its cookies; allow the permission when the browser asks, otherwise signed-in downloads fail.'
   });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];

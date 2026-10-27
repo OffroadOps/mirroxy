@@ -119,13 +119,19 @@ function isPanelURL(url, panelURL) {
 
 // Hand the browser cookie jar, user agent and referrer to the local engine so
 // signed URLs and anti-hotlink CDNs behave like they do in the browser.
+//
+// The cookies API only returns cookies for URLs the extension holds a host
+// permission for, so the manifest asks for <all_urls>; without it the call
+// fails with a permission error and the download loses its sign-in state.
 async function browserHeaders(url, referer) {
-  const headers = { referer: referer || '', userAgent: navigator.userAgent, cookie: '' };
+  const headers = { referer: referer || '', userAgent: navigator.userAgent, cookie: '', cookieError: '' };
   if (!/^https?:/i.test(url)) return headers;
   try {
     const cookies = await chrome.cookies.getAll({ url });
     headers.cookie = cookies.map(cookie => cookie.name + '=' + cookie.value).join('; ');
-  } catch {}
+  } catch (error) {
+    headers.cookieError = error && error.message ? error.message : String(error);
+  }
   return headers;
 }
 
@@ -136,7 +142,13 @@ async function relay(url, name, referer) {
     error.code = 'unconfigured';
     throw error;
   }
-  const body = { url, name: name || '', headers: await browserHeaders(url, referer) };
+  const headers = await browserHeaders(url, referer);
+  if (headers.cookieError) {
+    // A silent empty cookie jar looks like a sign-in failure on the download
+    // site, so say plainly that the browser context was incomplete.
+    notifyThrottled('cookies', '未读取到浏览器 Cookie', '无法读取该站点的 Cookie（' + headers.cookieError + '），需要登录的下载可能失败。');
+  }
+  const body = { url, name: name || '', headers: { referer: headers.referer, userAgent: headers.userAgent, cookie: headers.cookie } };
   try {
     return await request(cfg, 'add', body);
   } catch (error) {

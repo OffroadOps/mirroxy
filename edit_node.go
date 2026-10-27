@@ -75,6 +75,11 @@ func (a *App) editNode(id string, form M) error {
 	for _, key := range []string{"password", "username", "method", "flow", "encryption", "network", "security", "sni", "fingerprint", "publicKey", "shortId", "path", "host", "serviceName", "alpn"} {
 		trim(key)
 	}
+	// SOCKS and HTTP carry a username with a password. A password without a
+	// username would be dropped silently, so say so instead of losing it.
+	if (s.Protocol == "socks" || s.Protocol == "http") && s.Password != "" && s.Username == "" {
+		return errors.New("SOCKS / HTTP 节点的用户名不能为空")
+	}
 	if v, ok := form["alterId"].(float64); ok {
 		s.AlterID = int(v)
 	}

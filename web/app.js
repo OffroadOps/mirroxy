@@ -174,16 +174,22 @@ async function openEditNode(id){
  $('editNodeSourceNote').textContent=note;
  const proto=(form.protocol||n.protocol).toLowerCase();
  // Field visibility per protocol, v2rayN-style.
- const show={password:!['http','socks'].includes(proto),username:['http','socks','tuic'].includes(proto),
-  method:proto==='vmess'||proto==='shadowsocks',flow:proto==='vless',
+ // HTTP and SOCKS authenticate with a username and a password, so both fields
+ // stay visible for them; the password box is only hidden for protocols that
+ // carry no password at all.
+ const edit=MirroxyNodeEdit.fields(proto);
+ const show={password:edit.password,username:edit.username,method:edit.method,flow:edit.flow,
   service:network==='grpc',path:network!=='raw'&&network!=='grpc',
   host:network!=='raw',fp:security==='tls'||security==='reality',
   pbk:security==='reality',sid:security==='reality',
-  alpn:security==='tls'||security==='reality',alter:proto==='vmess'};
+  alpn:security==='tls'||security==='reality',alter:edit.alter};
  for(const [id,on] of Object.entries({editUserField:show.password,editUsernameField:show.username,editMethodField:show.method,
   editFlowField:show.flow,editServiceField:show.service,editPbkField:show.pbk,editSidField:show.sid,
   editAlpnField:show.alpn,editAlterField:show.alter}))
   $(id).classList.toggle('hidden',!on);
+ $('editPasswordLabel').textContent=t(edit.passwordLabel);
+ $('editUsernameLabel').textContent=t(edit.usernameLabel);
+ $('editPassword').placeholder=t(edit.passwordPlaceholder);
  // Hide options that don't apply to the current protocol family.
  const tlsSupported=!['shadowsocks'].includes(proto);
  if(!tlsSupported){$('editSecurity').value='';$('editSecurity').disabled=true}else $('editSecurity').disabled=false;
