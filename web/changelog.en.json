@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.8.1",
+    "date": "2026-10-27",
+    "changes": [
+      "Node editing: open the editor from the right-click or \"⋯\" menu to change the alias, address, port, credentials, flow, transport and TLS / REALITY parameters, styled after the v2rayN editor.",
+      "Editing affects only that node: the local port, running state, traffic stats and other nodes' connections stay untouched; a running node applies new settings after a short restart of its own core.",
+      "Subscription nodes keep your edits across refreshes; provider-side renames or rotated credentials no longer lose the edit or create duplicates.",
+      "Fixed Leigod (LeiGod accelerator) detection: added the real process name leigod (the previous keyword leiguan never matched), so the auto pause/restore of the system proxy around the accelerator works again.",
+      "Share-link export now shares one extraction path (nodeSpec) with the node editor, so the form and the link always agree on the node's settings."
+    ]
+  },
+  {
     "version": "0.8.0",
     "date": "2026-10-20",
     "changes": [

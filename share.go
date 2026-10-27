@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -11,17 +10,16 @@ import (
 	"strings"
 )
 
-// Reconstruct from the persisted outbound so nodes imported before sharing was
-// added work too. Node.Port is the local listener, never the remote endpoint.
-func shareLink(n Node) (string, error) {
-	fail := errors.New("此节点含有无法完整导出的配置，暂不能生成分享链接")
+// nodeSpec reconstructs the flat Spec form from the persisted outbound. It is
+// the single extraction path shared by the share link and the node editor.
+func nodeSpec(n Node) (Spec, error) {
 	b, err := json.Marshal(n.Outbound)
 	if err != nil {
-		return "", fail
+		return Spec{}, err
 	}
 	var o M
 	if json.Unmarshal(b, &o) != nil {
-		return "", fail
+		return Spec{}, errors.New("节点配置无法解析")
 	}
 	obj := func(v any) M { m, _ := v.(map[string]any); return m }
 	firstObject := func(v any) M {
@@ -80,13 +78,23 @@ func shareLink(n Node) (string, error) {
 		s.ALPN = list(security["alpn"])
 		s.Insecure, _ = security["allowInsecure"].(bool)
 	}
+	return s, nil
+}
+
+// Reconstruct from the persisted outbound so nodes imported before sharing was
+// added work too. Node.Port is the local listener, never the remote endpoint.
+func shareLink(n Node) (string, error) {
+	fail := errors.New("此节点含有无法完整导出的配置，暂不能生成分享链接")
+	s, err := nodeSpec(n)
+	if err != nil {
+		return "", fail
+	}
 	// Reject lossy exports (including manually added future core options).
 	check, err := makeNode(s)
 	if err != nil {
 		return "", fail
 	}
-	rebuilt, err := json.Marshal(check.Outbound)
-	if err != nil || !bytes.Equal(b, rebuilt) {
+	if !outboundEqual(n.Outbound, check.Outbound) {
 		return "", fail
 	}
 	var link string
@@ -160,9 +168,16 @@ func shareLink(n Node) (string, error) {
 	if err != nil {
 		return "", fail
 	}
-	encoded, _ := json.Marshal(roundTrip.Outbound)
-	if !bytes.Equal(b, encoded) || roundTrip.Name != n.Name {
+	if !outboundEqual(n.Outbound, roundTrip.Outbound) || roundTrip.Name != n.Name {
 		return "", fail
 	}
 	return link, nil
+}
+
+// outboundEqual compares two outbounds by their JSON form: persisted maps hold
+// numbers as float64 while freshly built ones use int, so DeepEqual is wrong here.
+func outboundEqual(a, b M) bool {
+	ja, e1 := json.Marshal(a)
+	jb, e2 := json.Marshal(b)
+	return e1 == nil && e2 == nil && string(ja) == string(jb)
 }

@@ -68,7 +68,7 @@ func TestScanDirectoryExecutablesRanksMainProgramsFirst(t *testing.T) {
 func TestDetectAcceleratorConflicts(t *testing.T) {
 	hits := detectAcceleratorConflicts([]applicationProcess{
 		{PID: 1, Name: "uu.exe", Path: `C:\UU\uu.exe`},
-		{PID: 2, Name: "Leiguan.exe", Path: `C:\Leiguan\Leiguan.exe`},
+		{PID: 2, Name: "leigod.exe", Path: `C:\Program Files (x86)\LeiGod_Acc\leigod.exe`},
 		{PID: 3, Name: "chrome.exe"},
 		{PID: 4, Name: "uu_service.exe"},
 	})

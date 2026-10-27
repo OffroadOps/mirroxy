@@ -72,7 +72,7 @@ function renderNodes(){
  const appsAvailable=state.platform?.os==='windows'&&state.localAccess&&state.appRouting?.supported;
  $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);
  $('nodes').innerHTML=nodes.map(n=>{const running=n.status==='running',port=n.port?'127.0.0.1:'+n.port:'',active=n.systemProxy;
- return `<tr data-node-id="${n.id}" class="${running?'running':''}${active?' active-system-node':''}" data-system-active="${active?'proxy':'none'}"><td class="name-cell"><div class="node-name"><h3 title="${escapeHTML(n.name)}">${escapeHTML(n.name)}</h3><button class="rename-node" data-rename-node="${n.id}" aria-label="${t('修改 {name} 的名称',{name:escapeHTML(n.name)})}" title="${t('修改节点名称')}">🖊</button></div><div class="node-meta">${active?`<span class="system-badge" title="${t('Windows 当前正在使用此节点作为系统代理')}"><span aria-hidden="true">◉</span>${t('系统代理')}</span>`:''}<span class="status ${n.status==='error'?'error':''}"><i></i>${t(running?'running':n.status==='error'?'startError':'stopped')}</span><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span><span>${t(n.engine==='A'?'coreA':'coreB').replace(t('网络'),'')}</span><span class="node-health" data-health>${t('pendingCheck')}</span></div></td><td class="port-cell">${port?`<button class="port-copy" data-copy="${port}" title="${t('点击复制地址')}"><code>${port}</code><span>⧉</span></button>`:`<span class="muted">${t('启动后分配')}</span>`}</td><td class="numeric" data-stat="connections">—</td><td class="numeric upload" data-stat="upload">—</td><td class="numeric download" data-stat="download">—</td><td class="numeric" data-stat="uploaded">—</td><td class="numeric" data-stat="downloaded">—</td><td><select class="route-select" data-route="${n.id}" aria-label="${t('{name}出口策略',{name:escapeHTML(n.name)})}"><option value="inherit" ${!n.route||n.route==='inherit'?'selected':''}>${t('跟随全局')} · ${routeLabel(n.effectiveRoute)}</option><option value="blacklist" ${n.route==='blacklist'?'selected':''}>${t('黑名单')}</option><option value="proxy" ${n.route==='proxy'?'selected':''}>${t('全部走此节点')}</option><option value="bypass-cn" ${n.route==='bypass-cn'?'selected':''}>${t('绕过局域网和大陆')}</option></select></td><td class="row-actions"><button class="button small ${running?'':'primary'}" data-action="${n.enabled?'stop':'start'}" data-id="${n.id}">${t(n.enabled?'stop':'start')}</button><button class="text-btn more" data-more="${n.id}" aria-label="${t('{name}更多操作',{name:escapeHTML(n.name)})}">⋯</button><div class="popover hidden" id="more-${n.id}"><button data-share-node="${n.id}">${t('分享链接')}</button><button data-test="${n.id}">${t('立即检测可用性')}</button><button data-system="${n.id}">${t(running?'设为系统代理':'启动并设为系统代理')}</button>${appsAvailable?`<button data-node-apps="${n.id}">${t('指定应用')}</button>`:''}<button data-action="reassign" data-id="${n.id}" ${n.enabled?'disabled':''}>${t('重新分配端口')}</button><button data-log="${n.engine}" data-log-node="${n.id}">${t('查看核心日志')}</button><button data-action="delete" data-id="${n.id}">${t('删除节点')}</button></div></td></tr>`;
+ return `<tr data-node-id="${n.id}" class="${running?'running':''}${active?' active-system-node':''}" data-system-active="${active?'proxy':'none'}"><td class="name-cell"><div class="node-name"><h3 title="${escapeHTML(n.name)}">${escapeHTML(n.name)}</h3><button class="rename-node" data-rename-node="${n.id}" aria-label="${t('修改 {name} 的名称',{name:escapeHTML(n.name)})}" title="${t('修改节点名称')}">🖊</button></div><div class="node-meta">${active?`<span class="system-badge" title="${t('Windows 当前正在使用此节点作为系统代理')}"><span aria-hidden="true">◉</span>${t('系统代理')}</span>`:''}<span class="status ${n.status==='error'?'error':''}"><i></i>${t(running?'running':n.status==='error'?'startError':'stopped')}</span><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span><span>${t(n.engine==='A'?'coreA':'coreB').replace(t('网络'),'')}</span><span class="node-health" data-health>${t('pendingCheck')}</span></div></td><td class="port-cell">${port?`<button class="port-copy" data-copy="${port}" title="${t('点击复制地址')}"><code>${port}</code><span>⧉</span></button>`:`<span class="muted">${t('启动后分配')}</span>`}</td><td class="numeric" data-stat="connections">—</td><td class="numeric upload" data-stat="upload">—</td><td class="numeric download" data-stat="download">—</td><td class="numeric" data-stat="uploaded">—</td><td class="numeric" data-stat="downloaded">—</td><td><select class="route-select" data-route="${n.id}" aria-label="${t('{name}出口策略',{name:escapeHTML(n.name)})}"><option value="inherit" ${!n.route||n.route==='inherit'?'selected':''}>${t('跟随全局')} · ${routeLabel(n.effectiveRoute)}</option><option value="blacklist" ${n.route==='blacklist'?'selected':''}>${t('黑名单')}</option><option value="proxy" ${n.route==='proxy'?'selected':''}>${t('全部走此节点')}</option><option value="bypass-cn" ${n.route==='bypass-cn'?'selected':''}>${t('绕过局域网和大陆')}</option></select></td><td class="row-actions"><button class="button small ${running?'':'primary'}" data-action="${n.enabled?'stop':'start'}" data-id="${n.id}">${t(n.enabled?'stop':'start')}</button><button class="text-btn more" data-more="${n.id}" aria-label="${t('{name}更多操作',{name:escapeHTML(n.name)})}">⋯</button><div class="popover hidden" id="more-${n.id}"><button data-edit-node="${n.id}">${t('编辑节点')}</button><button data-share-node="${n.id}">${t('分享链接')}</button><button data-test="${n.id}">${t('立即检测可用性')}</button><button data-system="${n.id}">${t(running?'设为系统代理':'启动并设为系统代理')}</button>${appsAvailable?`<button data-node-apps="${n.id}">${t('指定应用')}</button>`:''}<button data-action="reassign" data-id="${n.id}" ${n.enabled?'disabled':''}>${t('重新分配端口')}</button><button data-log="${n.engine}" data-log-node="${n.id}">${t('查看核心日志')}</button><button data-action="delete" data-id="${n.id}">${t('删除节点')}</button></div></td></tr>`;
  }).join('');
  for(const n of nodes){const row=$('nodes').querySelector('[data-node-id="'+n.id+'"]');if(!row)continue;row.classList.toggle('stopped',!n.enabled&&n.status!=='running');const placement=document.createElement('button');placement.dataset.action=n.listBottom?'auto-order':'move-bottom';placement.dataset.id=n.id;placement.textContent=t(n.listBottom?'恢复自动排序':'置于列表末尾');row.querySelector('.popover').prepend(placement);if(n.listBottom){const marker=document.createElement('span');marker.className='node-placement';marker.textContent=t('已置底');marker.title=t('手动置底，启动后仍保持在列表末尾');row.querySelector('.node-meta').append(marker)}}
  if(!nodes.length&&state.nodes.length)$('nodes').innerHTML=`<tr><td colspan="9" class="no-match">${t('没有匹配的节点')}</td></tr>`;
@@ -147,11 +147,72 @@ function autoCheckGeo(){if(geoAutoChecked||!state)return;geoAutoChecked=true;api
 function renderAppUpdate(){const u=state.appUpdate||{};const busy=['checking','downloading','validating','restarting'].includes(u.phase);$('appUpdateVersion').textContent=t('当前 v')+state.version+(u.available?t(' · 可更新至 v')+u.latest:'');$('appUpdateStatus').textContent=t(u.message||'检查程序更新，保留节点和流量记录。');$('checkAppUpdate').disabled=busy;$('applyAppUpdate').disabled=busy;$('applyAppUpdate').classList.toggle('hidden',!u.available||busy);}
 $('checkAppUpdate').onclick=()=>act($('checkAppUpdate'),async()=>{const u=await api('app-update/check',{});state.appUpdate=u;renderAppUpdate();toast(u.message)});
 $('applyAppUpdate').onclick=()=>act($('applyAppUpdate'),async()=>{await api('app-update/apply',{});toast(t('更新已开始，下载期间代理继续运行；后台重启后页面自动恢复。'))});
-let renameNodeID='',changelogEntries=null,qrNodeID='';
+let renameNodeID='',changelogEntries=null,qrNodeID='',editingNodeID='';
 $('toggleNodeQR').onclick=()=>{const box=$('nodeExportQR'),show=box.classList.contains('hidden');if(show){if(!qrNodeID)return;const dark=document.documentElement.dataset.theme==='dark';$('nodeExportQRImage').src='/api/node/qr?id='+encodeURIComponent(qrNodeID)+(dark?'&theme=dark':'')+'&_='+Date.now()}box.classList.toggle('hidden',!show);$('toggleNodeQR').textContent=t(show?'只看链接':'显示二维码')};
 $('cancelRename').onclick=()=>$('renameDialog').close();
 $('renameDialog').addEventListener('close',()=>{renameNodeID='';$('renameName').value=''});
 $('renameForm').onsubmit=e=>{e.preventDefault();const id=renameNodeID,name=$('renameName').value.trim();act($('saveRename'),async()=>{if(!name)throw Error(t('请填写节点名称'));await api('node/rename',{id,name});$('renameDialog').close();toast(t('节点名称已保存'))})};
+// Node editor: fetch the stored connection settings as a flat form, let the
+// user change them, then let the backend rebuild and validate the outbound.
+const EDIT_FIELDS=['name','server','port','password','username','method','flow','network','security','sni','fingerprint','publicKey','shortId','path','host','serviceName','alpn'];
+const EDIT_SELECTS={flow:'editFlow',network:'editNetwork',security:'editSecurity',fingerprint:'editFingerprint'};
+async function openEditNode(id){
+ const n=state.nodes.find(n=>n.id===id);if(!n)return;
+ editingNodeID=id;
+ $('editNodeTitle').textContent=t('编辑节点')+' · '+n.name;
+ $('editNodeWarning').classList.add('hidden');
+ const form=await api('node/spec',{id});
+ const map={sni:'editSni',shortId:'editShortId',publicKey:'editPublicKey'};
+ for(const key of EDIT_FIELDS){
+  const input=$(EDIT_SELECTS[key]||map[key]||'edit'+key[0].toUpperCase()+key.slice(1));
+  if(input)input.value=form[key]??'';
+ }
+ const network=form.network||'raw',security=form.security||'';
+ $('editAlterId').value=form.alterId??0;
+ $('editInsecure').checked=!!form.insecure;
+ const note=form.subscription?t('来自订阅：{name}，编辑后刷新订阅不会覆盖修改',{name:form.subscription}):'';
+ $('editNodeSourceNote').textContent=note;
+ const proto=(form.protocol||n.protocol).toLowerCase();
+ // Field visibility per protocol, v2rayN-style.
+ const show={password:!['http','socks'].includes(proto),username:['http','socks','tuic'].includes(proto),
+  method:proto==='vmess'||proto==='shadowsocks',flow:proto==='vless',
+  service:network==='grpc',path:network!=='raw'&&network!=='grpc',
+  host:network!=='raw',fp:security==='tls'||security==='reality',
+  pbk:security==='reality',sid:security==='reality',
+  alpn:security==='tls'||security==='reality',alter:proto==='vmess'};
+ for(const [id,on] of Object.entries({editUserField:show.password,editUsernameField:show.username,editMethodField:show.method,
+  editFlowField:show.flow,editServiceField:show.service,editPbkField:show.pbk,editSidField:show.sid,
+  editAlpnField:show.alpn,editAlterField:show.alter}))
+  $(id).classList.toggle('hidden',!on);
+ // Hide options that don't apply to the current protocol family.
+ const tlsSupported=!['shadowsocks'].includes(proto);
+ if(!tlsSupported){$('editSecurity').value='';$('editSecurity').disabled=true}else $('editSecurity').disabled=false;
+ $('editNodeDialog').showModal();
+ $('editName').focus();
+}
+$('cancelEditNode').onclick=()=>$('editNodeDialog').close();
+$('editNodeForm').onsubmit=e=>{e.preventDefault();act($('saveEditNode'),async()=>{
+ const form={};
+ for(const key of EDIT_FIELDS){const map={sni:'editSni',shortId:'editShortId',publicKey:'editPublicKey'};const el=$(EDIT_SELECTS[key]||map[key]||'edit'+key[0].toUpperCase()+key.slice(1));if(!el)continue;form[key]=el.value.trim();}
+ form.port=Number($('editPort').value);
+ form.alterId=Number($('editAlterId').value||0);
+ form.insecure=$('editInsecure').checked;
+ if(!form.name)throw Error(t('请填写节点名称'));
+ if(!form.server)throw Error(t('请填写服务器地址'));
+ if(!(form.port>=1&&form.port<=65535))throw Error(t('端口需为 1–65535'));
+ try{await api('node/edit',{id:editingNodeID,form});}catch(e){$('editNodeWarning').textContent=e.message;$('editNodeWarning').classList.remove('hidden');throw e}
+ $('editNodeDialog').close();
+ toast(t('节点已保存，本地端口与流量统计保持不变'));
+})};
+$('editNetwork').onchange=()=>{const network=$('editNetwork').value;
+ $('editServiceField').classList.toggle('hidden',network!=='grpc');
+ $('editPath').closest('.field').classList.toggle('hidden',network==='raw'||network==='grpc');
+ $('editHost').closest('.field').classList.toggle('hidden',network==='raw');
+};
+$('editSecurity').onchange=()=>{const security=$('editSecurity').value;
+ for(const [id,on] of Object.entries({editFpField:security==='tls'||security==='reality',editPbkField:security==='reality',editSidField:security==='reality',editAlpnField:security==='tls'||security==='reality'}))
+  $(id).classList.toggle('hidden',!on);
+};
 async function renderChangelog(){
  try{
  if(!changelogEntries){$('changelog').textContent=t('正在读取更新日志…');const file=(window.MirroxyI18n?.locale==='en'?'/changelog.en.json':'/changelog.json')+'?v='+encodeURIComponent(state?.version||'0.6.3');const response=await fetch(file);if(!response.ok)throw Error();changelogEntries=await response.json();}
@@ -208,6 +269,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){
  if(b.dataset.copy){copyText(b.dataset.copy).then(()=>toast(t('已复制 ')+b.dataset.copy)).catch(()=>toast(t('请手动复制：')+b.dataset.copy));}
  if(b.dataset.more){const rect=b.getBoundingClientRect();openNodeMenu(b.dataset.more,rect.right-175,rect.bottom+4,true);return;}
  if(b.dataset.renameNode){const n=state.nodes.find(n=>n.id===b.dataset.renameNode);if(n){renameNodeID=n.id;$('renameName').value=n.name;$('renameDialog').showModal();$('renameName').focus();$('renameName').select();}}
+ if(b.dataset.editNode){act(b,async()=>{await openEditNode(b.dataset.editNode)});}
 	if(b.dataset.appDetail){const id=b.dataset.appDetail;openAppDetails.has(id)?openAppDetails.delete(id):openAppDetails.add(id);renderAppRouting();return;}
 	if(b.dataset.appExeRemove){const p=appRoutingDraft.profiles.find(p=>p.id===b.dataset.appExeRemove);if(p){p.executables=p.executables.filter(v=>v!==b.dataset.exeValue);appRoutingDirty=true;renderAppRouting();refreshNodeAppsDialog()}return;}
 	if(b.dataset.appExeAdd){addAppExecutable(b.dataset.appExeAdd);return;}

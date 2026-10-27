@@ -3,6 +3,24 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.8.1 (2026-10-27)
+
+- 新增节点编辑：右键或「⋯」菜单打开编辑窗口，可修改别名、地址、端口、认证信息、流控、传输层与 TLS / REALITY 参数，样式参考 v2rayN 的编辑表单
+- 编辑只影响该节点：本地端口、启动状态、流量统计和其它节点的连接都保持不变；运行中的节点保存后由自己的核心短暂重启并应用新参数
+- 订阅来源的节点编辑后，刷新订阅不再覆盖你的修改；供应商端改名或换密码也不会让编辑丢失或产生重复节点
+- 修复雷神加速器检测失效：进程名匹配加入 leigod（原关键字 leiguan 与实际进程名不符），检测到后自动暂停系统代理、退出后自动恢复的联动恢复生效
+- 分享链接导出重构为统一的参数提取逻辑（nodeSpec），编辑表单与分享链接共用同一份数据源，避免两边各自解析产生偏差
+
+<details><summary>English</summary>
+
+- Node editing: open the editor from the right-click or "⋯" menu to change the alias, address, port, credentials, flow, transport and TLS / REALITY parameters, styled after the v2rayN editor.
+- Editing affects only that node: the local port, running state, traffic stats and other nodes' connections stay untouched; a running node applies new settings after a short restart of its own core.
+- Subscription nodes keep your edits across refreshes; provider-side renames or rotated credentials no longer lose the edit or create duplicates.
+- Fixed Leigod (LeiGod accelerator) detection: added the real process name leigod (the previous keyword leiguan never matched), so the auto pause/restore of the system proxy around the accelerator works again.
+- Share-link export now shares one extraction path (nodeSpec) with the node editor, so the form and the link always agree on the node's settings.
+
+</details>
+
 ## 0.8.0 (2026-10-20)
 
 - 切换节点改为一步：双击节点行即按需启动并接管系统代理，节点菜单改为「启动并设为系统代理」，不再需要先启动再另外配置代理

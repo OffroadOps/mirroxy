@@ -30,6 +30,7 @@ type Node struct {
 	Enabled      bool   `json:"enabled"`
 	Route        string `json:"route"`
 	Source       string `json:"source"`
+	EditSpec     *Spec  `json:"editSpec,omitempty"` // User-edited settings kept across subscription refreshes.
 	Outbound     M      `json:"outbound"`
 }
 type AppRouteProfile struct {

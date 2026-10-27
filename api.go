@@ -228,6 +228,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		Password   string
 		Deploy     *bool    `json:"deploy"`
 		Files      []string `json:"files"`
+		Form       M        `json:"form"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)
 	defer r.Body.Close()
@@ -393,6 +394,12 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		respond(w, M{"ok": true}, a.setRoutingMode(body.Mode))
 	case "/api/node/rename":
 		respond(w, M{"ok": true}, a.renameNode(body.ID, body.Name))
+	case "/api/node/spec":
+		respond(w, func() M { form, _ := a.nodeEditableSpec(body.ID); return form }(), a.nodeEditableSpecError(body.ID))
+		return
+	case "/api/node/edit":
+		respond(w, M{"ok": true}, a.editNode(body.ID, body.Form))
+		return
 	case "/api/node/share":
 		n := a.node(body.ID)
 		if n == nil {
@@ -512,6 +519,34 @@ func (a *App) refreshSubscriptionStored(id string) (int, error) {
 	for i := range a.cfg.Nodes {
 		old := &a.cfg.Nodes[i]
 		if old.Source != id {
+			continue
+		}
+		if old.EditSpec != nil {
+			// The user edited this node's connection settings; the edit wins
+			// over the provider's values until the edit is cleared.
+			// Consume the provider copy first: after the overwrite below the
+			// old server value is gone, so match by protocol and name only.
+			providerName := first(old.OriginalName, old.Name)
+			for j, n := range nodes {
+				if !matched[j] && n.Protocol == old.Protocol && n.Name == providerName {
+					matched[j] = true
+					break
+				}
+			}
+			fresh, err := makeNode(*old.EditSpec)
+			if err == nil {
+				fresh.ID = old.ID
+				fresh.Port = old.Port
+				fresh.ListBottom = old.ListBottom
+				fresh.AppPort = old.AppPort
+				fresh.Enabled = old.Enabled
+				fresh.Source = id
+				fresh.Route = old.Route
+				fresh.EditSpec = old.EditSpec
+				fresh.OriginalName, fresh.Name = old.OriginalName, old.Name
+				*old = fresh
+			}
+			count++
 			continue
 		}
 		match := -1

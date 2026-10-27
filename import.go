@@ -15,10 +15,28 @@ import (
 )
 
 type Spec struct {
-	Name, Protocol, Server, Password, Username, Method, Flow, Network, Security, SNI, Fingerprint, PublicKey, ShortID, Path, Host, ServiceName, ALPN, Encryption string
-	Port, AlterID                                                                                                                                                int
-	Insecure                                                                                                                                                     bool
-	Extra                                                                                                                                                        M
+	Name        string `json:"name"`
+	Protocol    string `json:"protocol"`
+	Server      string `json:"server"`
+	Password    string `json:"password"`
+	Username    string `json:"username"`
+	Method      string `json:"method"`
+	Flow        string `json:"flow"`
+	Network     string `json:"network"`
+	Security    string `json:"security"`
+	SNI         string `json:"sni"`
+	Fingerprint string `json:"fingerprint"`
+	PublicKey   string `json:"publicKey"`
+	ShortID     string `json:"shortId"`
+	Path        string `json:"path"`
+	Host        string `json:"host"`
+	ServiceName string `json:"serviceName"`
+	ALPN        string `json:"alpn"`
+	Encryption  string `json:"encryption"`
+	Port        int    `json:"port"`
+	AlterID     int    `json:"alterId"`
+	Insecure    bool   `json:"insecure"`
+	Extra       M      `json:"extra,omitempty"`
 }
 
 func stringVal(v any) string {

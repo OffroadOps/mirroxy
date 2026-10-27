@@ -130,7 +130,7 @@ func listWindowsDrives() []string {
 // conservative: generic fragments like "uu" alone would cause false positives.
 var acceleratorProcessKeywords = []struct{ keyword, product string }{
 	{"uu.exe", "网易 UU 加速器"}, {"uubooster", "网易 UU 加速器"}, {"uu_service", "网易 UU 加速器"},
-	{"leiguan", "雷神加速器"}, {"xunyou", "迅游加速器"}, {"qiyou", "奇游加速器"},
+	{"leigod", "雷神加速器"}, {"leiguan", "雷神加速器"}, {"xunyou", "迅游加速器"}, {"qiyou", "奇游加速器"},
 	{"biubiu", "Biubiu 加速器"}, {"ourplay", "OurPlay 加速器"},
 }
 
