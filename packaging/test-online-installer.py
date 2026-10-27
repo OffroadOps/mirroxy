@@ -19,7 +19,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--go',default='go')
 parser.add_argument('--iscc',default=None,
                     help='Path to ISCC.exe; auto-detected from the usual Inno Setup 7 locations when omitted')
-parser.add_argument('--version',default='0.8.0')
+parser.add_argument('--version',default='0.8.2')
 args=parser.parse_args()
 args.iscc=require_iscc(args.iscc)
 qa=ROOT/'work'/('online-installer-test-'+uuid.uuid4().hex)
@@ -44,7 +44,7 @@ class Feed(BaseHTTPRequestHandler):
 server=ThreadingHTTPServer(('127.0.0.1',0),Feed)
 base=f'http://127.0.0.1:{server.server_port}/scrcpyproxy/'
 threading.Thread(target=server.serve_forever,daemon=True).start()
-env={**os.environ,'GOTOOLCHAIN':'local','CGO_ENABLED':'0','GOFLAGS':'-buildvcs=false'}
+env={**os.environ,'GOTOOLCHAIN':os.environ.get('GOTOOLCHAIN', 'auto'),'CGO_ENABLED':'0','GOFLAGS':'-buildvcs=false'}
 
 def execute(command,**kw):return subprocess.run(command,cwd=ROOT,env=env,creationflags=subprocess.CREATE_NO_WINDOW,**kw)
 def setup(label,port=None):

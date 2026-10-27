@@ -72,7 +72,7 @@ func validateInstallerPanelPort(cfg Settings, port int) error {
 }
 
 func installerPanelPort(root, operation string, port int) error {
-	if operation != "read" && operation != "check" && operation != "check-upgrade" && operation != "stop" && operation != "write" {
+	if operation != "read" && operation != "check" && operation != "check-upgrade" && operation != "stop" && operation != "write" && operation != "suggest" {
 		return errors.New("无效安装器端口操作")
 	}
 	cfg, exists, err := installerConfiguration(root)
@@ -93,6 +93,31 @@ func installerPanelPort(root, operation string, port int) error {
 			}
 		}
 		return nil
+	}
+	if operation == "suggest" {
+		if port < 1024 || port > 65000 {
+			return errors.New("面板端口必须在 1024–65000")
+		}
+		// Find the first usable port at or above the requested one so the
+		// installer can advance 9950 -> 9951 -> ... without user input.
+		for candidate := port; candidate <= 65000; candidate++ {
+			if err = validateInstallerPanelPort(cfg, candidate); err != nil {
+				continue
+			}
+			listener, e := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", candidate))
+			if e != nil {
+				if candidate == a.configuredPanelPort() && installerOwnsPanelPort(root, candidate) {
+					// This exact installation will exit before files are copied.
+					fmt.Println(candidate)
+					return nil
+				}
+				continue
+			}
+			_ = listener.Close()
+			fmt.Println(candidate)
+			return nil
+		}
+		return errors.New("没有可用的面板端口，请手动指定")
 	}
 	if err = validateInstallerPanelPort(cfg, port); err != nil {
 		return err

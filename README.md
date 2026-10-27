@@ -63,7 +63,7 @@ curl -fsSL --retry 3 https://raw.githubusercontent.com/OffroadOps/mirroxy/master
 
 ## 使用方式
 
-Windows 解压或安装后启动 Mirroxy，打开 <https://127.0.0.1:9527/>（安装时可选端口）。导入分享
+Windows 解压或安装后启动 Mirroxy，打开 <https://127.0.0.1:9950/>（安装时可选端口）。导入分享
 链接、订阅或 v2rayN SQLite 节点库，再启动所需节点。首次从 5060 起分配空闲 TCP/UDP 端口，
 随后保持绑定。下载器填写 `127.0.0.1` 和节点端口即可。
 

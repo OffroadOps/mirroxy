@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.8.2",
+    "date": "2026-10-27",
+    "changes": [
+      "The default local dashboard port is now 9950. For new installations without a saved port, an occupied port is advanced automatically (9951, 9952, ...) so setup does not fail.",
+      "Setup still accepts a manually specified port; upgrades keep the existing port and preserve nodes, credentials and traffic data."
+    ]
+  },
+  {
     "version": "0.8.1",
     "date": "2026-10-27",
     "changes": [

@@ -195,7 +195,7 @@
     '绕过局域网和本机地址': 'Bypass LAN and local addresses',
     '局域网与 127.0.0.1 等本机地址始终直连、不经过节点，全局模式下同样生效；关闭后局域网地址也会通过节点代理。默认开启。': 'LAN and loopback addresses such as 127.0.0.1 stay direct — even in Global mode. When off, LAN traffic also goes through the node. Enabled by default.',
     '面板端口': 'Panel port', 'HTTPS 证书': 'HTTPS certificate', '信任根证书': 'Trust root CA', '下载 CA': 'Download CA',
-    '本机面板监听端口，默认 9527。保存后自动切换，页面会跳转到新地址。': 'Local dashboard port, 9527 by default. Saving switches over automatically; the page then redirects to the new address.',
+    '本机面板监听端口，默认 9950。保存后自动切换，页面会跳转到新地址。': 'Local dashboard port, 9950 by default. Saving switches over automatically; the page then redirects to the new address.',
     '面板默认使用内置本地 CA 签发的证书（等同于 mkcert 方案）。点击「信任根证书」后，请在 Windows 根证书安全警告中核对名称为 Mirroxy Local CA，再选择「是」；程序会在导入后立即校验。Firefox 使用独立证书库时，请用「下载 CA」手动导入。': 'The panel uses a certificate issued by its built-in local CA (the mkcert approach). After choosing “Trust root CA”, confirm that the Windows trusted-root warning names “Mirroxy Local CA”, then choose Yes; Mirroxy verifies the live HTTPS endpoint after import. Firefox may use a separate store, so import the downloaded CA there if needed.',
     '证书已受信任，浏览器显示安全锁': 'Certificate trusted; browsers show the padlock', '证书已生成，点击「信任根证书」完成安装': 'Certificate issued. Click “Trust root CA” to finish installing it',
     '面板当前为 HTTP：证书未就绪': 'Panel is on HTTP: certificate not ready', '有效期至': 'Valid until',

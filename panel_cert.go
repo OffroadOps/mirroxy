@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	defaultPanelPort = 9527
+	defaultPanelPort = 9950
 	legacyPanelPort  = 15060
 )
 

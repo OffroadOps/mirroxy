@@ -80,7 +80,7 @@ type Settings struct {
 	PausedSystemProxy             *PausedSystemProxy `json:"pausedSystemProxy,omitempty"`
 	BypassLAN                     *bool              `json:"bypassLAN,omitempty"` // nil means enabled: LAN and loopback stay direct.
 	GeoAutoUpdate                 bool               `json:"geoAutoUpdate"`
-	PanelPort                     int                `json:"panelPort,omitempty"` // Local dashboard port; 0 keeps the 9527 default.
+	PanelPort                     int                `json:"panelPort,omitempty"` // Local dashboard port; 0 keeps the 9950 default.
 	AppRouting                    AppRoutingSettings `json:"appRouting"`
 }
 type App struct {

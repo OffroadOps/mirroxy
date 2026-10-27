@@ -18,7 +18,7 @@ $taskStage = Join-Path $taskQa 'stage'
 $taskInstall = Join-Path $taskQa 'installed'
 $taskAppIdSuffix = '-pt-' + [guid]::NewGuid().ToString('N').Substring(0, 12)
 New-Item -ItemType Directory -Path $taskStage, $taskInstall | Out-Null
-$env:GOTOOLCHAIN = 'local'
+$env:GOTOOLCHAIN = 'auto'
 $env:GOFLAGS = '-buildvcs=false'
 $env:CGO_ENABLED = '0'
 Push-Location -LiteralPath $taskRoot
@@ -49,10 +49,17 @@ try {
         return [int](Get-Content -LiteralPath $taskStdout -Raw).Trim()
     }
 
-    if (Get-NetTCPConnection -State Listen -LocalPort 9527 -ErrorAction SilentlyContinue) {
-        $taskExit = Invoke-TestSetup '0.6.1' 'default-9527-occupied' @()
-        if ($taskExit -eq 0 -or (Test-Path -LiteralPath (Join-Path $taskInstall 'Mirroxy.exe'))) { throw 'Occupied default 9527 was not rejected' }
-        Write-Host 'PASS: actual occupied default port 9527 is rejected'
+    if (Get-NetTCPConnection -State Listen -LocalPort 9950 -ErrorAction SilentlyContinue) {
+        $taskExit = Invoke-TestSetup '0.6.1' 'default-9950-occupied' @()
+        if ($taskExit -ne 0) { throw 'Occupied default port blocked automatic port selection' }
+        if ((Read-TestPanelPort) -le 9950) { throw 'Installer did not advance past occupied default port' }
+        Write-Host 'PASS: occupied default port automatically advances'
+        $taskUninstall = Join-Path $taskInstall 'unins000.exe'
+        if (Test-Path -LiteralPath $taskUninstall) {
+            $taskCleanup = Start-Process -FilePath $taskUninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -WindowStyle Hidden -PassThru -Wait
+            if ($taskCleanup.ExitCode -ne 0) { throw 'Could not reset automatic-port test installation' }
+        }
+        Remove-Item -LiteralPath (Join-Path $taskInstall '*') -Recurse -Force
     }
     $taskExit = Invoke-TestSetup '0.6.1' 'invalid-port' @('/PANELPORT=0')
     if ($taskExit -eq 0 -or (Test-Path -LiteralPath (Join-Path $taskInstall 'Mirroxy.exe'))) { throw 'Invalid port was not rejected' }
@@ -71,6 +78,28 @@ try {
         }
         Write-Host 'PASS: occupied port blocks installation without writing application/data'
     } finally { $taskOccupied.Stop() }
+
+    $taskAdvanceListener = $null
+    $taskAdvanceListener2 = $null
+    try {
+        if (Get-NetTCPConnection -State Listen -LocalPort 9950,9951 -ErrorAction SilentlyContinue) { throw 'Cannot test consecutive defaults while 9950/9951 are occupied; stop only your test listeners and rerun' }
+        $taskAdvanceListener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 9950)
+        $taskAdvanceListener.Start()
+        $taskAdvanceListener2 = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 9951)
+        $taskAdvanceListener2.Start()
+        $taskExit = Invoke-TestSetup '0.6.1' 'auto-advance' @()
+        if ($taskExit -ne 0 -or (Read-TestPanelPort) -ne 9952) { throw 'Installer did not skip occupied default ports automatically' }
+        Write-Host 'PASS: consecutive occupied defaults advance by two automatically'
+        $taskUninstall = Join-Path $taskInstall 'unins000.exe'
+        if (Test-Path -LiteralPath $taskUninstall) {
+            $taskCleanup = Start-Process -FilePath $taskUninstall -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -WindowStyle Hidden -PassThru -Wait
+            if ($taskCleanup.ExitCode -ne 0) { throw 'Could not reset consecutive-port test installation' }
+        }
+        Remove-Item -LiteralPath (Join-Path $taskInstall '*') -Recurse -Force
+    } finally {
+        if ($taskAdvanceListener) { $taskAdvanceListener.Stop() }
+        if ($taskAdvanceListener2) { $taskAdvanceListener2.Stop() }
+    }
 
     $taskExit = Invoke-TestSetup '0.6.1' 'free-port' @("/PANELPORT=$taskPort")
     if ($taskExit -ne 0 -or (Read-TestPanelPort) -ne $taskPort) { throw 'Free-port installation or persistence failed' }

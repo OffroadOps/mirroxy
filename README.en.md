@@ -77,7 +77,7 @@ curl -fsSL --retry 3 https://raw.githubusercontent.com/OffroadOps/mirroxy/master
 
 ## Usage
 
-On Windows, unpack or install Mirroxy, start it and open <https://127.0.0.1:9527/> (the port
+On Windows, unpack or install Mirroxy, start it and open <https://127.0.0.1:9950/> (the port
 is selectable during installation). Import share links, a subscription or a v2rayN SQLite
 node library, then start the nodes you need. Ports are allocated from 5060 upwards and stay
 bound. Downloaders should use `127.0.0.1` and the port shown for the node.

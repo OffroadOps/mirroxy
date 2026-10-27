@@ -22,7 +22,7 @@ import (
 //go:embed web/*
 var frontend embed.FS
 
-var version = "0.8.1"
+var version = "0.8.2"
 
 func main() {
 	exe, _ := os.Executable()
@@ -146,7 +146,17 @@ func main() {
 	if *port == legacyPanelPort {
 		a.panelPort = a.configuredPanelPort()
 	}
+	// Reserve the selected panel socket before resolving the default. Only an
+	// unconfigured fresh installation advances from 9950; upgrades retain their
+	// saved port and an explicit -panel flag always wins.
+	if *port == legacyPanelPort && a.cfg.PanelPort == 0 {
+		a.panelPort = defaultPanelPort
+	}
 	listener, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", a.panelPort))
+	for err != nil && *port == legacyPanelPort && a.cfg.PanelPort == 0 && a.panelPort < 65000 {
+		a.panelPort++
+		listener, err = net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", a.panelPort))
+	}
 	if err != nil {
 		if !*noOpen {
 			openBrowser(fmt.Sprintf("http://127.0.0.1:%d", a.panelPort))
@@ -168,6 +178,19 @@ func main() {
 			_ = rollbackAndExec(*afterUpdate)
 		}
 		os.Exit(1)
+	}
+	// Persist a fresh installation's automatically selected port so later
+	// starts, tray links and online updates keep using the same endpoint.
+	if a.cfg.PanelPort == 0 && a.panelPort != defaultPanelPort {
+		a.cfg.PanelPort = a.panelPort
+		if err = a.save(); err != nil {
+			log.Print(err)
+			listener.Close()
+			if *afterUpdate != "" {
+				_ = rollbackAndExec(*afterUpdate)
+			}
+			os.Exit(1)
+		}
 	}
 	listener = a.wrapPanelTLS(listener)
 	if a.panelPort != legacyPanelPort {

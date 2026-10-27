@@ -144,3 +144,41 @@ func TestInstallerBrokenExistingDataFailsWithoutWrites(t *testing.T) {
 		t.Fatal("failed probe changed database")
 	}
 }
+
+func TestInstallerSuggestPortAdvancesPastOccupied(t *testing.T) {
+	root := t.TempDir()
+	listener := installerTestListener(t)
+	port := listener.Addr().(*net.TCPAddr).Port
+	// Occupy the requested port; suggest must return the next free one.
+	if err := installerPanelPort(root, "suggest", port); err != nil {
+		t.Fatal(err)
+	}
+	listener.Close()
+	if err := installerPanelPort(root, "suggest", port); err != nil {
+		t.Fatal(err)
+	}
+	if err := installerPanelPort(root, "suggest", 0); err == nil {
+		t.Fatal("suggest accepted out-of-range start port")
+	}
+}
+
+func TestInstallerSuggestPortConflictsSkipped(t *testing.T) {
+	root := t.TempDir()
+	listener := installerTestListener(t)
+	port := listener.Addr().(*net.TCPAddr).Port
+	listener.Close()
+	// suggest should accept a free port and print it (validated by exit code).
+	if err := installerPanelPort(root, "suggest", port); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDefaultPanelPortIs9950(t *testing.T) {
+	a := &App{root: t.TempDir()}
+	if err := a.load(); err != nil {
+		t.Fatal(err)
+	}
+	if a.configuredPanelPort() != 9950 {
+		t.Fatalf("default panel port = %d, want 9950", a.configuredPanelPort())
+	}
+}

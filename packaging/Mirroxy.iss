@@ -85,8 +85,8 @@ english.PanelPortTitle=Local dashboard port
 chinesesimplified.PanelPortTitle=本机面板端口
 english.PanelPortDescription=Choose an available TCP port for Mirroxy.
 chinesesimplified.PanelPortDescription=为 Mirroxy 选择可用的 TCP 端口。
-english.PanelPortHelp=The default is 9527. If it is occupied, close the program using it and retry, or enter another port. Upgrades keep the existing dashboard port.
-chinesesimplified.PanelPortHelp=默认端口为 9527。若端口被占用，请关闭占用程序后重试，或输入其他端口。升级时默认保留已有面板端口。
+english.PanelPortHelp=The default is 9950. If it is occupied, the installer advances automatically (9951, 9952, ...). Enter a specific port to override; upgrades keep the existing dashboard port.
+chinesesimplified.PanelPortHelp=默认端口为 9950。若被占用，安装器会自动顺延（9951、9952……）找到可用端口。也可手动指定端口；升级时默认保留已有面板端口。
 english.PanelPortLabel=Dashboard port (1024-65000):
 chinesesimplified.PanelPortLabel=面板端口（1024–65000）：
 english.PanelPortInvalid=Enter a port between 1024 and 65000.
@@ -225,6 +225,16 @@ begin
   end;
 end;
 
+procedure AutoAdvancePanelPort;
+var
+  Detail: String;
+begin
+  if not RunPanelPortHelper('suggest', Detail) then
+    PanelReadError := FmtMessage(ExpandConstant('{cm:PanelSettingsFailed}'), [Detail])
+  else
+    PanelPortPage.Values[0] := Detail;
+end;
+
 procedure LoadPanelPort;
 var
   Detail: String;
@@ -237,8 +247,13 @@ begin
     PanelReadError := FmtMessage(ExpandConstant('{cm:PanelSettingsFailed}'), [Detail])
   else
   begin
-    ExistingPanelPort := StrToIntDef(Detail, 9527);
+    ExistingPanelPort := StrToIntDef(Detail, 9950);
     PanelPortPage.Values[0] := ExpandConstant('{param:PANELPORT|' + IntToStr(ExistingPanelPort) + '}');
+    // A fresh install with no explicit /PANELPORT choice advances past
+    // occupied defaults. Existing installations keep their configured port.
+    if (not FileExists(ExpandConstant('{app}\data\Mirroxy.db'))) and
+       (ExpandConstant('{param:PANELPORT|}') = '') then
+      AutoAdvancePanelPort;
   end;
 end;
 
@@ -259,7 +274,7 @@ begin
     ExpandConstant('{cm:PanelPortTitle}'), ExpandConstant('{cm:PanelPortDescription}'),
     ExpandConstant('{cm:PanelPortHelp}'));
   PanelPortPage.Add(ExpandConstant('{cm:PanelPortLabel}'), False);
-  PanelPortPage.Values[0] := '9527';
+  PanelPortPage.Values[0] := '9950';
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
@@ -286,6 +301,14 @@ begin
     PanelPortPage.Values[0] := IntToStr(Port);
 end;
 
+function PanelPortAutoAdvanceAllowed: Boolean;
+begin
+  // Only the unspecified default advances; an explicit /PANELPORT or an
+  // existing installation keeps the user's exact choice.
+  Result := (not FileExists(ExpandConstant('{app}\data\Mirroxy.db'))) and
+    (ExpandConstant('{param:PANELPORT|}') = '');
+end;
+
 function CheckPanelPort(const Operation: String; var Detail: String): Boolean;
 var
   HelperDetail: String;
@@ -293,7 +316,14 @@ begin
   Result := ValidPanelPort(Detail);
   if Result then
   begin
-    Result := RunPanelPortHelper(Operation, HelperDetail);
+    if PanelPortAutoAdvanceAllowed then
+    begin
+      Result := RunPanelPortHelper('suggest', HelperDetail);
+      if Result then
+        PanelPortPage.Values[0] := HelperDetail;
+    end
+    else
+      Result := RunPanelPortHelper(Operation, HelperDetail);
     if not Result then
       Detail := FmtMessage(ExpandConstant('{cm:PanelPortFailed}'), [PanelPortPage.Values[0], HelperDetail]);
   end;
@@ -314,6 +344,9 @@ begin
 #endif
   if CurPageID <> PanelPortPage.ID then
     Exit;
+  // Re-probe after the user leaves the page. The default may have become
+  // occupied while the wizard was open; an explicit port is still checked.
+  LoadPanelPort;
   // Only the executable in this exact installation can defer the check until
   // its graceful exit. Unrelated listeners are reported on the port page.
   Result := CheckPanelPort('check-upgrade', Detail);

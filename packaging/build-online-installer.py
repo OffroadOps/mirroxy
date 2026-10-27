@@ -21,8 +21,10 @@ output=ROOT/'dist/bootstrap'
 output.mkdir(parents=True,exist_ok=True)
 destination=output/'Mirroxy-online-setup.exe'
 if destination.exists():
-    raise SystemExit('Stable installer already exists. Reuse it; do not recompile for application releases.')
-env={**os.environ,'GOOS':'windows','GOARCH':'amd64','CGO_ENABLED':'0','GOTOOLCHAIN':'local'}
+    answer = os.environ.get('MIRROXY_REBUILD_ONLINE_INSTALLER', '')
+    if answer != '1':
+        raise SystemExit('Stable installer already exists. Reuse it, or set MIRROXY_REBUILD_ONLINE_INSTALLER=1 to rebuild deliberately.')
+env={**os.environ,'GOOS':'windows','GOARCH':'amd64','CGO_ENABLED':'0','GOTOOLCHAIN':os.environ.get('GOTOOLCHAIN', 'auto')}
 with tempfile.TemporaryDirectory(prefix='online-installer-',dir=ROOT/'work') as temporary:
     stage=Path(temporary)
     subprocess.run([args.go,'build','-trimpath','-ldflags=-s -w -X main.feedBase='+args.feed_base,'-o',str(stage/'Mirroxy-bootstrap.exe'),'./cmd/bootstrap'],cwd=ROOT,env=env,check=True)

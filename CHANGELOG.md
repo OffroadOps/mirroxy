@@ -3,6 +3,18 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.8.2 (2026-10-27)
+
+- 默认面板端口改为 9950；未保存过面板端口的新安装若端口被占用，安装器自动顺延（9951、9952……）寻找可用端口，避免安装失败
+- 安装时仍支持手动指定端口；已有安装的升级保留原端口，节点、凭据与流量数据不变
+
+<details><summary>English</summary>
+
+- The default local dashboard port is now 9950. For new installations without a saved port, an occupied port is advanced automatically (9951, 9952, ...) so setup does not fail.
+- Setup still accepts a manually specified port; upgrades keep the existing port and preserve nodes, credentials and traffic data.
+
+</details>
+
 ## 0.8.1 (2026-10-27)
 
 - 新增节点编辑：右键或「⋯」菜单打开编辑窗口，可修改别名、地址、端口、认证信息、流控、传输层与 TLS / REALITY 参数，样式参考 v2rayN 的编辑表单

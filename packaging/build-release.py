@@ -15,7 +15,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / 'work/release-assets'
-VERSION = '0.8.1'
+VERSION = '0.8.2'
 DIST = ROOT / 'dist' / f'v{VERSION}'
 RELEASE_URL = f'https://github.com/OffroadOps/mirroxy/releases/download/v{VERSION}'
 
