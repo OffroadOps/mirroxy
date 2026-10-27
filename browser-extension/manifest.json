@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Mirroxy 下载接力 / Download Relay",
+  "description": "把浏览器里的下载交给本机 Mirroxy 下载管理器。浏览器下载只在 Mirroxy 接单成功后取消；接单失败时保留浏览器下载。",
+  "version": "1.0.0",
+  "minimum_chrome_version": "110",
+  "permissions": ["downloads", "storage", "contextMenus", "notifications"],
+  "host_permissions": [
+    "https://127.0.0.1/*",
+    "https://localhost/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "Mirroxy 下载接力",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -123,6 +123,69 @@ func forwardedRequest(r *http.Request) bool {
 type localAccessKey struct{}
 
 func localAccess(r *http.Request) bool { v, _ := r.Context().Value(localAccessKey{}).(bool); return v }
+
+func isExtensionOrigin(origin string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" || (u.Scheme != "chrome-extension" && u.Scheme != "moz-extension") {
+		return false
+	}
+	return u.Path == "" && u.RawQuery == "" && u.Fragment == ""
+}
+
+// allowBrowserConnector lets only the Mirroxy browser extension reach the
+// connector API from this machine. Regular pages keep the strict same-origin
+// policy, and the connector still requires its own per-install token.
+func (a *App) allowBrowserConnector(w http.ResponseWriter, r *http.Request) bool {
+	if !strings.HasPrefix(r.URL.Path, "/api/downloads/connector/") {
+		return false
+	}
+	origin := r.Header.Get("Origin")
+	if !isExtensionOrigin(origin) {
+		return false
+	}
+	if !loopbackRequest(r) || forwardedRequest(r) {
+		http.Error(w, "浏览器接力仅允许本机访问", 403)
+		return true
+	}
+	host, _, err := net.SplitHostPort(r.Host)
+	if err != nil || (host != "127.0.0.1" && host != "localhost") {
+		http.Error(w, "不支持的本机 Host", 403)
+		return true
+	}
+	w.Header().Set("Access-Control-Allow-Origin", origin)
+	w.Header().Set("Vary", "Origin")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Mirroxy-Download-Token")
+	w.Header().Set("Access-Control-Max-Age", "600")
+	if strings.EqualFold(r.Header.Get("Access-Control-Request-Private-Network"), "true") {
+		w.Header().Set("Access-Control-Allow-Private-Network", "true")
+	}
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	if r.Method != "POST" {
+		w.Header().Set("Allow", "POST, OPTIONS")
+		http.Error(w, "Method not allowed", 405)
+		return true
+	}
+	r = r.WithContext(context.WithValue(r.Context(), localAccessKey{}, true))
+	if !a.browserConnectorAuthorized(r) {
+		respond(w, nil, errors.New("浏览器接力令牌无效，请在 Mirroxy 下载页重新复制配置"))
+		return true
+	}
+	a.browserConnectorAPI(w, r)
+	return true
+}
+
+func (a *App) browserConnectorAuthorized(r *http.Request) bool {
+	a.mu.Lock()
+	want := a.cfg.BrowserDownloadToken
+	a.mu.Unlock()
+	got := r.Header.Get("X-Mirroxy-Download-Token")
+	return want != "" && subtle.ConstantTimeCompare([]byte(got), []byte(want)) == 1
+}
+
 func (a *App) accessGuard(next http.Handler, remote bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -130,6 +193,9 @@ func (a *App) accessGuard(next http.Handler, remote bool) http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
 		w.Header().Set("Cache-Control", "no-store")
+		if !remote && a.allowBrowserConnector(w, r) {
+			return
+		}
 		local := !remote && loopbackRequest(r) && !forwardedRequest(r)
 		if local {
 			expected := fmt.Sprintf("127.0.0.1:%d", a.panelPort)

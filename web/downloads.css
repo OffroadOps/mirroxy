@@ -33,3 +33,13 @@ progress.dl-progress{appearance:none;-webkit-appearance:none;display:block;width
 .dl-stall-hint{color:#d39c35;font-size:11px;margin-top:7px}.dl-stall-hint button{margin-left:10px}
 .dl-details>.dl-detail-actions{justify-content:flex-end;gap:8px;margin-top:9px}
 .dl-status.stalled{color:#d39c35}
+.dl-connector-card{margin-top:16px;flex-shrink:0}
+.dl-connector-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.dl-connector-head h2{margin:0 0 6px}
+.dl-connector-head p{font-size:12px;color:var(--muted);margin:0}
+.dl-connector-status{flex:none;font-size:10px;padding:4px 9px;border-radius:20px;background:rgba(211,156,53,.13);color:#b7872e;white-space:nowrap}
+.dl-connector-status.connected{background:rgba(72,186,136,.13);color:#34946b}
+.dl-connector-card .buttons{margin-top:14px}
+.dl-connector-steps{margin:16px 0 0;padding-left:20px;font-size:12px;line-height:1.9;color:inherit}
+.dl-connector-steps code{font-size:11px}
+@media(min-width:741px){.dl-connector-card{padding:16px}.dl-connector-card .dl-connector-steps{max-height:150px;overflow:auto}}

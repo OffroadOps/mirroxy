@@ -791,6 +791,14 @@ func (a *App) downloadAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "下载管理目前仅允许本机访问", 403)
 		return
 	}
+	if r.Method == "GET" && r.URL.Path == "/api/downloads/connector" {
+		a.browserConnectorInfo(w, r)
+		return
+	}
+	if r.Method == "GET" && r.URL.Path == "/api/downloads/connector/extension.zip" {
+		a.browserExtensionZip(w, r)
+		return
+	}
 	d, err := a.downloads()
 	if err != nil {
 		respond(w, nil, err)

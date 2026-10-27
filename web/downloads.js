@@ -29,6 +29,11 @@
     <div class="dl-statusbar"><span id="dlTotals">0 个任务</span><span>最多同时下载 30 个任务 · 每任务最多 16 个连接</span><span id="dlSpeed">↓ 0 B/s</span></div>
     <div id="dlDetails" class="dl-details hidden"></div>
     <p class="field-hint dl-note">默认只删除任务记录；勾选删除文件时移入可恢复的回收区。多连接需要服务器支持 Range；节点代理遵循该节点的出口策略。</p>
+    <div class="settings-card dl-connector-card">
+      <div class="dl-connector-head"><div><h2>浏览器接力</h2><p>在 Chrome / Edge 里点击下载时，自动交给 Mirroxy 下载管理器。Mirroxy 成功接单后才取消浏览器下载；接单失败会保留浏览器下载。</p></div><span id="dlConnectorStatus" class="dl-connector-status">等待扩展连接</span></div>
+      <div class="buttons"><a class="button small" id="dlConnectorZip" href="/api/downloads/connector/extension.zip" download="Mirroxy-browser-extension.zip">下载扩展 ZIP</a><button type="button" class="button small primary" id="dlConnectorConfig">复制扩展配置</button><button type="button" class="button small ghost" id="dlConnectorHelp">安装说明</button></div>
+      <div id="dlConnectorHelpBox" class="hidden"><ol class="dl-connector-steps"><li>解压下载的 ZIP，Chrome 打开 <code>chrome://extensions</code>（Edge 为 <code>edge://extensions</code>），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。</li><li>点击「复制扩展配置」，在扩展设置中导入并保存，再点「测试连接」。</li><li>若提示证书错误，请先在面板页首点击「信任根证书」，然后重新测试。</li></ol><p class="field-hint">扩展只读取下载链接与文件名，不读取 Cookie 或密码。需要登录的下载可能无法由 Mirroxy 继续，可在扩展设置中排除该网站。</p></div>
+    </div>
   </section>`);
   document.body.insertAdjacentHTML('beforeend',`<dialog id="dlDialog" aria-labelledby="dlTitle"><form id="dlForm">
     <div class="dialog-heading"><div><h2 id="dlTitle">新建下载</h2><p>下载到运行 Mirroxy 的这台电脑。</p></div><button type="button" class="icon-button" id="dlCancel" aria-label="关闭下载弹窗">×</button></div>
@@ -101,6 +106,23 @@
     if(task)dl('dlDetails').insertAdjacentHTML('beforeend',`<div class="dl-detail-actions"><button class="button small" data-dl-open="open-file" data-id="${esc(task.id)}" ${task.status==='complete'&&task.path?'':'disabled'}>${text('打开文件')}</button><button class="button small" data-dl-open="open-folder" data-id="${esc(task.id)}">${text('打开所在文件夹')}</button></div>`);
   }
   async function load() { if(loading||dl('view-downloads').classList.contains('hidden')||!state?.localAccess)return;loading=true;try{data=await apiGet('downloads');dl('dlError').classList.add('hidden');draw()}catch(error){dl('dlError').textContent=error.message;dl('dlError').classList.remove('hidden')}finally{loading=false;draw()} }
+  let connectorInfo=null,connectorTimer;
+  async function refreshConnector() {
+    clearTimeout(connectorTimer);
+    try {
+      connectorInfo=await apiGet('downloads/connector');
+      const badge=dl('dlConnectorStatus');
+      badge.textContent=text(connectorInfo.connected?'扩展已连接':'等待扩展连接');
+      badge.className='dl-connector-status'+(connectorInfo.connected?' connected':'');
+    } catch { connectorTimer=setTimeout(refreshConnector,5000) }
+  }
+  dl('dlConnectorConfig').onclick=()=>act(dl('dlConnectorConfig'),async()=>{
+    if(!connectorInfo)connectorInfo=await apiGet('downloads/connector');
+    await copyText(JSON.stringify({url:connectorInfo.url,token:connectorInfo.token}));
+    toast(text('扩展配置已复制，粘贴到扩展设置后保存并测试连接'));
+    refreshConnector();
+  });
+  dl('dlConnectorHelp').onclick=()=>dl('dlConnectorHelpBox').classList.toggle('hidden');
   function updateNodes() {const id=dl('dlNode').value;const nodes=(state?.nodes||[]).filter(node=>node.status==='running'||node.id===id);dl('dlNode').innerHTML='<option value="">'+text('选择已启动的节点')+'</option>'+nodes.map(node=>`<option value="${esc(node.id)}" ${node.status!=='running'?'disabled':''}>${esc(node.name)} · 127.0.0.1:${node.port}${node.status!=='running'?' · '+text('未启动'):''}</option>`).join('');dl('dlNode').value=id;}
   function proxyFields() {dl('dlNodeField').classList.toggle('hidden',dl('dlProxyMode').value!=='node');dl('dlProxyField').classList.toggle('hidden',dl('dlProxyMode').value!=='custom');dl('dlProxy').required=dl('dlProxyMode').value==='custom';dl('dlNode').required=dl('dlProxyMode').value==='node';}
   function open(task) {editing=task||null;dl('dlTitle').textContent=text(task?'编辑下载任务':'新建下载');dl('dlSave').textContent=text(task?'保存修改':'开始下载');dl('dlURL').value=task?.url||'';dl('dlName').value=task?.name||'';dl('dlDir').value=task?.dir||data.defaultDir;dl('dlName').readOnly=!!task;dl('dlDir').readOnly=!!task;dl('dlProxyMode').value=task?.proxyMode||'direct';updateNodes();dl('dlNode').value=task?.nodeId||'';dl('dlProxy').value=task?.proxyUrl||'';dl('dlConnections').value=task?.connections||8;dl('dlLimit').value=task?.limitKiB||0;dl('dlLater').checked=false;dl('dlLater').closest('label').classList.toggle('hidden',!!task);dl('dlFormError').classList.add('hidden');dl('dlEditHint').textContent=text(task?'编辑任务前请先暂停。文件名和目录保持不变；更换链接时必须指向相同文件，避免损坏断点数据。保存后继续保持暂停，点击「继续」开始。':'只显示已启动节点。不会自动启动节点，也不会在代理故障时切换为直连。自定义代理使用 HTTP，可填 http://用户名:密码@主机:端口。');proxyFields();dl('dlDialog').showModal();dl('dlURL').focus();}
@@ -113,7 +135,7 @@
   dl('dlDeleteForm').onsubmit=event=>{event.preventDefault();const resolve=deleteResolve;deleteResolve=null;const files=dl('dlDeleteFiles').checked;dl('dlDeleteDialog').close();resolve?.(files)};
   async function action(ids,verb) {if(!ids.length)return;let deleteFiles=false;if(verb==='remove'){const answer=await confirmDelete(ids);if(answer===null)return;deleteFiles=answer}const failures=[];for(const id of ids){const task=data.tasks.find(t=>t.id===id);if(!task)continue;if(verb==='pause'&&!['active','waiting'].includes(task.status))continue;if(['resume','retry'].includes(verb)&&task.status==='complete')continue;try{await api('downloads/action',{id,action:verb,deleteFiles})}catch(error){failures.push(error.message)}}if(failures.length)toast([...new Set(failures)].join('\n'),true);await load();}
   nav.onclick=()=>{view('downloads');activate()};
-  function activate() {dl('pageName').textContent=text('下载管理');load();}
+  function activate() {dl('pageName').textContent=text('下载管理');load();refreshConnector();}
   dl('dlAdd').onclick=dl('dlEmptyAdd').onclick=()=>open();
   dl('dlCancel').onclick=()=>dl('dlDialog').close();dl('dlProxyMode').onchange=proxyFields;
   dl('dlEdit').onclick=()=>open(data.tasks.find(task=>selected.has(task.id)));

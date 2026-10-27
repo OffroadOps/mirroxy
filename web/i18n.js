@@ -286,7 +286,19 @@
     '面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。':'The panel uses a local self-signed certificate, so browsers keep reporting an insecure connection. Trust the root certificate to get the padlock back.',
     '关闭提示':'Dismiss notice',
     '加速器运行中，已自动暂停':'paused while an accelerator is running',
-    '双击任意节点即可切换：未启动的节点会先启动，然后把系统代理接管过去。':'Double-click any node to switch to it. A node that is not running is started first and the system proxy is handed over to it.'
+    '双击任意节点即可切换：未启动的节点会先启动，然后把系统代理接管过去。':'Double-click any node to switch to it. A node that is not running is started first and the system proxy is handed over to it.',
+    '浏览器接力':'Browser download relay',
+    '在 Chrome / Edge 里点击下载时，自动交给 Mirroxy 下载管理器。Mirroxy 成功接单后才取消浏览器下载；接单失败会保留浏览器下载。':'Downloads started in Chrome / Edge are handed to the Mirroxy download manager. The browser copy is cancelled only after Mirroxy accepts the task; failures keep the browser download.',
+    '等待扩展连接':'Waiting for extension',
+    '扩展已连接':'Extension connected',
+    '下载扩展 ZIP':'Download extension ZIP',
+    '复制扩展配置':'Copy extension config',
+    '安装说明':'Setup guide',
+    '扩展配置已复制，粘贴到扩展设置后保存并测试连接':'Extension config copied. Paste it into the extension options, save and test the connection.',
+    '解压下载的 ZIP，Chrome 打开 chrome://extensions（Edge 为 edge://extensions），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。':'Unzip the downloaded file, open chrome://extensions (edge://extensions in Edge), enable Developer mode, then click Load unpacked and choose that folder.',
+    '点击「复制扩展配置」，在扩展设置中导入并保存，再点「测试连接」。':'Click Copy extension config, import and save it in the extension options, then click Test connection.',
+    '若提示证书错误，请先在面板页首点击「信任根证书」，然后重新测试。':'If the certificate is rejected, trust the root certificate from the banner at the top of the panel first, then test again.',
+    '扩展只读取下载链接与文件名，不读取 Cookie 或密码。需要登录的下载可能无法由 Mirroxy 继续，可在扩展设置中排除该网站。':'The extension reads only download URLs and file names, never cookies or passwords. Downloads that require sign-in may not continue in Mirroxy; exclude that site in the extension options.'
   });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];

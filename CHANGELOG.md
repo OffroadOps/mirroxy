@@ -3,6 +3,22 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.8.3 (2026-10-27)
+
+- 新增浏览器下载接力：Chrome / Edge 扩展在浏览器发起下载时先把链接交给 Mirroxy，接单成功后才取消浏览器下载；Mirroxy 未运行、未配置或引擎异常时保留浏览器下载，不丢文件
+- 下载管理页新增「浏览器接力」：一键下载扩展 ZIP、复制扩展配置、查看扩展连接状态与安装说明；扩展支持自动接管、右键「使用 Mirroxy 下载」、按网站排除
+- 浏览器接力使用独立本机令牌，仅允许本机浏览器扩展来源调用；不读取或转发 Cookie、密码，面板状态不暴露该令牌
+- 修复全新安装首次启动时浏览器接力令牌未生成的问题，令牌在后续启动与升级后保持不变
+
+<details><summary>English</summary>
+
+- Browser download relay: a Chrome / Edge extension offers new downloads to Mirroxy first and cancels the browser copy only after Mirroxy accepts. If Mirroxy is stopped, unconfigured or the engine fails, the browser download is kept.
+- The Downloads page now includes a Browser relay card: download the extension ZIP, copy its configuration, check connection state and read setup steps. The extension supports automatic takeover, a "Download with Mirroxy" link menu and per-site exclusions.
+- The relay uses a dedicated local token and accepts only local browser-extension origins. It never reads or forwards cookies or passwords, and the panel state never exposes the token.
+- Fixed the connector token missing on the first start of a fresh installation; the token now persists across restarts and upgrades.
+
+</details>
+
 ## 0.8.2 (2026-10-27)
 
 - 默认面板端口改为 9950；未保存过面板端口的新安装若端口被占用，安装器自动顺延（9951、9952……）寻找可用端口，避免安装失败

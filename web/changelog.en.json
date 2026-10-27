@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.3",
+    "date": "2026-10-27",
+    "changes": [
+      "Browser download relay: a Chrome / Edge extension offers new downloads to Mirroxy first and cancels the browser copy only after Mirroxy accepts. If Mirroxy is stopped, unconfigured or the engine fails, the browser download is kept.",
+      "The Downloads page now includes a Browser relay card: download the extension ZIP, copy its configuration, check connection state and read setup steps. The extension supports automatic takeover, a \"Download with Mirroxy\" link menu and per-site exclusions.",
+      "The relay uses a dedicated local token and accepts only local browser-extension origins. It never reads or forwards cookies or passwords, and the panel state never exposes the token.",
+      "Fixed the connector token missing on the first start of a fresh installation; the token now persists across restarts and upgrades."
+    ]
+  },
+  {
     "version": "0.8.2",
     "date": "2026-10-27",
     "changes": [

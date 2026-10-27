@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mirroxy 下载接力</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body class="popup">
+<header class="popup-head">
+  <img src="icons/icon48.png" width="32" height="32" alt="">
+  <div><strong>Mirroxy 下载接力</strong><small>Download Relay</small></div>
+  <span id="statusDot" class="dot"></span>
+</header>
+<p id="status" class="status">正在检查连接…</p>
+<label class="row"><span><strong>启用下载接力</strong><small>浏览器下载交给 Mirroxy</small></span><input id="enabled" type="checkbox" class="switch"></label>
+<label class="row"><span><strong>自动接管新下载</strong><small>关闭后仍可用右键菜单</small></span><input id="autoIntercept" type="checkbox" class="switch"></label>
+<div class="buttons">
+  <button id="options" class="button">扩展设置</button>
+  <button id="openPanel" class="button primary">打开 Mirroxy</button>
+</div>
+<p id="hint" class="hint">首次使用请在 Mirroxy「下载管理」页复制连接配置，粘贴到扩展设置。</p>
+<script src="popup.js"></script>
+</body>
+</html>

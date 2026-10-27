@@ -81,6 +81,7 @@ type Settings struct {
 	BypassLAN                     *bool              `json:"bypassLAN,omitempty"` // nil means enabled: LAN and loopback stay direct.
 	GeoAutoUpdate                 bool               `json:"geoAutoUpdate"`
 	PanelPort                     int                `json:"panelPort,omitempty"` // Local dashboard port; 0 keeps the 9950 default.
+	BrowserDownloadToken          string             `json:"browserDownloadToken,omitempty"`
 	AppRouting                    AppRoutingSettings `json:"appRouting"`
 }
 type App struct {
@@ -125,6 +126,7 @@ type App struct {
 	capabilities     map[string]NodeCapabilities
 	downloadInitMu   sync.Mutex
 	downloadManager  *DownloadManager
+	browserSeen      time.Time
 }
 
 func newID() string                        { b := make([]byte, 12); _, _ = rand.Read(b); return hex.EncodeToString(b) }
@@ -144,7 +146,7 @@ func writeJSON(path string, value any) error {
 	return os.Rename(tmp, path)
 }
 func (a *App) load() error {
-	a.cfg = Settings{StartPort: 5060, Nodes: []Node{}, Subscriptions: []Subscription{}, Updated: map[string]string{}, OpenBrowser: true, ResumeNodes: true, DefaultRoute: "inherit", LogLevel: "warning", SubscribeHours: 6, HealthMonitor: true, HealthInterval: 60, AutoDownload: true, AutoDeploy: serverPlatform()}
+	a.cfg = Settings{StartPort: 5060, Nodes: []Node{}, Subscriptions: []Subscription{}, Updated: map[string]string{}, OpenBrowser: true, ResumeNodes: true, DefaultRoute: "inherit", LogLevel: "warning", SubscribeHours: 6, HealthMonitor: true, HealthInterval: 60, AutoDownload: true, AutoDeploy: serverPlatform(), BrowserDownloadToken: newID() + newID()}
 	err := a.readState("configuration", &a.cfg)
 	if errors.Is(err, errStateMissing) {
 		legacy, legacyErr := os.ReadFile(a.dataPath("settings.json"))
@@ -205,6 +207,10 @@ func (a *App) load() error {
 		a.cfg.PausedSystemProxy = nil
 	}
 	appRoutingChanged := false
+	if a.cfg.BrowserDownloadToken == "" {
+		a.cfg.BrowserDownloadToken = newID() + newID()
+		appRoutingChanged = true
+	}
 	if a.cfg.AppRouting.Secret == "" {
 		a.cfg.AppRouting.Secret = newID() + newID()
 		appRoutingChanged = true
@@ -343,6 +349,7 @@ func (n Node) coreKey() string {
 	}
 	return engine + "-" + n.ID
 }
+
 // coreEngine maps a core key back to the engine that provides it. Node keys
 // look like "xray-<id>" or "sing-box-<id>".
 func coreEngine(key string) string {
