@@ -16,6 +16,10 @@
 - 订阅管理页改为表格：名称、地址（只显示域名，完整订阅地址仍不在面板中出现）、节点数、最后更新与状态，支持更新、编辑、删除和全部更新；点击名称跳到节点面板对应分组
 - 新增编辑订阅：可修改名称或替换订阅地址，节点、端口与自定义名称保持不变，新地址在下次更新时生效
 - 新增删除订阅：可以连同节点一起删除，也可以保留节点为手动添加；不会重启其他节点的核心
+- 全局设置改为即时保存：开关和下拉框改动后立即保存，数字项在离开输入框或按回车时保存，设置名称旁显示「保存中 / 已保存」；去掉「保存设置」按钮
+- 设置值超出范围时在本地直接提示并恢复原值，不会发出请求；后台拒绝时同样恢复原值并显示原因。修改面板端口前会先确认，取消则保持原端口
+- 远程访问时设置项改为只读并注明原因；远程管理的账号密码表单仍需手动保存，避免填到一半就开放远程访问
+- 设置、Geo 文件、AI API 与更新日志页去掉英文标语，标题与卡片更紧凑
 
 <details><summary>English</summary>
 
@@ -30,6 +34,10 @@
 - The Subscriptions page is now a table with name, address (host only; the full subscription address still never appears in the panel), node count, last update and status, with update, edit, delete and update-all actions. Clicking a name opens its tab in the node dashboard.
 - Subscriptions can be edited: change the name or replace the address. Nodes, ports and custom names stay as they are, and a new address takes effect on the next update.
 - Subscriptions can be deleted together with their nodes, or with the nodes kept as manual nodes. Other nodes' cores are never restarted.
+- Settings now save as you change them: switches and lists save immediately, numbers save when you leave the field or press Enter, and a Saving / Saved label appears next to the setting. The Save settings button is gone.
+- Out-of-range values are rejected in the page and put back without a request; a value the backend refuses is also put back, with the reason shown. Changing the panel port asks for confirmation first, and cancelling keeps the current port.
+- Over remote access the settings are read-only, with a note saying so. The remote-management account form still has its own Save button, so remote access is never opened with half-entered credentials.
+- The Settings, Geo files, AI API and Changelog pages drop their slogan headings and use more compact titles and cards.
 
 </details>
 

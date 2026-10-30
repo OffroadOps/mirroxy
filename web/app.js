@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key,params)=>window.MirroxyI18n?.t(key,params)||key;
-let state=null,token='',importMode='v2rayn',pending=0,settingsDirty=false,remoteDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
+let state=null,token='',importMode='v2rayn',pending=0,remoteDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
 const latest=new Map();
 function translateEvent(value){const match=String(value).match(/^(\d{2}:\d{2}:\d{2}\s+)(.*)$/);return match?match[1]+t(match[2]):t(value)}
 function toast(message,error=false,action=null){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.querySelector('.toast-action')?.remove();if(action){const btn=document.createElement('button');btn.className='toast-action';btn.textContent=action.label;btn.onclick=()=>{el.classList.add('hidden');action.onClick()};el.append(btn)}toastTimer=setTimeout(()=>el.classList.add('hidden'),error?9500:action?9000:4500);}
@@ -34,12 +34,12 @@ function render(){
  renderSubscriptions();
  renderCores()
  renderGeoFiles()
- if(!settingsDirty){for(const [id,key] of Object.entries(settingFields)){$(id)[$(id).type==='checkbox'?'checked':'value']=state.settings[key]??'';}}
+ for(const [id,key] of Object.entries(settingFields)){const el=$(id);if(document.activeElement===el||savingSettings.has(id))continue;el[el.type==='checkbox'?'checked':'value']=state.settings[key]??'';el.disabled=!state.settingsEditable}
  if(!remoteDirty){$('remoteEnabled').checked=state.remote.enabled;$('remoteScheme').value=state.remote.scheme;$('remotePort').value=state.remote.port;$('remoteUser').value=state.remote.username;$('remoteCert').value=state.remote.certFile;$('remoteKey').value=state.remote.keyFile;}
  $('remoteStatus').textContent=t(state.remote.error)|| (state.remote.running?t('远程 {scheme} 已开启，端口 {port}；需要账号密码。',{scheme:state.remote.scheme.toUpperCase(),port:state.remote.port}):t('远程访问已关闭。本机仍可免登录使用面板和 API。'));
  $('accessNote').textContent=t(state.remote.running?'本机免登录 · 远程需认证':'本机免登录');
 $('apiAddress').textContent=location.origin+'/api/v1/';
- $('saveSettings').disabled=!state.settingsEditable;$('saveRemote').disabled=!state.settingsEditable;
+ $('settingsNote').textContent=t(state.settingsEditable?'修改后自动保存':'远程访问时只能查看全局设置');$('saveRemote').disabled=!state.settingsEditable;
  $('events').textContent=state.events?.map(translateEvent).join('\n')||t('noRecords');$('rootPath').textContent=t('运行目录：')+state.root;
 }
 // Node table: v2rayN-style rows with group tabs, column sorting, multi-select,
@@ -434,8 +434,30 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){
  document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));
 });
 const settingFields={settingPort:'startPort',settingUpdate:'autoUpdate',settingSubscribe:'autoSubscribe',settingAutostart:'autostart',settingOpenBrowser:'openBrowser',settingResume:'resumeNodes',settingRoute:'defaultRoute',settingLog:'logLevel',settingSubscribeHours:'subscribeHours',settingHealth:'healthMonitor',settingHealthInterval:'healthInterval',settingAutoDeploy:'autoDeploy',settingAutoDownload:'autoDownload',settingAccelGuard:'pauseSystemProxyOnAccelerator',settingBypassLAN:'bypassLAN',settingGeoUpdate:'geoAutoUpdate',settingPanelPort:'panelPort'};
-Object.keys(settingFields).forEach(id=>$(id).addEventListener('input',()=>settingsDirty=true));
-$('saveSettings').onclick=()=>act($('saveSettings'),async()=>{const data={};for(const [id,key] of Object.entries(settingFields)){const el=$(id);data[key]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value}const previousPort=state.settings.panelPort;await api('settings',data);settingsDirty=false;toast(t('全局设置已保存'));if(data.panelPort&&data.panelPort!==previousPort){toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+data.panelPort+'/'},1800)}});
+// Settings save field by field: switches and lists on change, numbers when the
+// field is left or Enter is pressed. Saves run one at a time so a slow save
+// cannot be overtaken by a later one, and a rejected value is put back.
+const savingSettings=new Set();let settingsQueue=Promise.resolve();
+function settingValue(el){return el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value}
+function settingRow(el){return el.closest('.setting-row')}
+function markSetting(el,mark,text=''){const row=settingRow(el);if(!row)return;let badge=row.querySelector('.save-state');if(!badge){badge=document.createElement('em');badge.className='save-state';badge.setAttribute('aria-live','polite');row.querySelector('strong')?.after(badge)}badge.dataset.state=mark;badge.textContent=text;clearTimeout(badge.timer);if(mark==='saved')badge.timer=setTimeout(()=>{badge.textContent='';badge.dataset.state=''},2500)}
+function resetSetting(el){const key=settingFields[el.id];el[el.type==='checkbox'?'checked':'value']=state.settings[key]??''}
+function saveSetting(el){
+ const key=settingFields[el.id],value=settingValue(el);
+ if(!state?.settingsEditable){resetSetting(el);return}
+ if(value===state.settings[key])return;
+ if(el.type==='number'&&(!Number.isInteger(value)||value<Number(el.min)||value>Number(el.max))){markSetting(el,'error',t('请填写 {min}–{max} 之间的整数',{min:el.min,max:el.max}));resetSetting(el);return}
+ if(key==='panelPort'&&!confirm(t('面板将切换到端口 {port}，页面会跳转到新地址。继续？',{port:value}))){resetSetting(el);return}
+ savingSettings.add(el.id);markSetting(el,'saving',t('保存中…'));
+ settingsQueue=settingsQueue.then(async()=>{
+  try{await api('settings',{[key]:value});state.settings[key]=value;markSetting(el,'saved',t('已保存'));
+   if(key==='panelPort'){toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+value+'/'},1800)}}
+  catch(e){markSetting(el,'error',e.message);resetSetting(el);toast(e.message,true)}
+  finally{savingSettings.delete(el.id)}
+ });
+ settingsQueue.then(refresh);
+}
+for(const id of Object.keys(settingFields)){const el=$(id);el.addEventListener('change',()=>saveSetting(el));if(el.type==='number')el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}else if(e.key==='Escape'){resetSetting(el);el.blur()}})}
 $('trustPanelCA').onclick=()=>act($('trustPanelCA'),async()=>{await api('panel/trust-ca',{});toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
 async function loadPanelCertStatus(){try{const s=await apiGet('panel/cert-status');const el=$('panelCertStatus');if(!el)return;if(s.tls){el.textContent=(s.trusted?t('证书已受信任，浏览器显示安全锁'):t('证书已生成，点击「信任根证书」完成安装'))+' · '+escapeHTML(s.fingerprint||'')+' · '+t('有效期至')+' '+escapeHTML(s.notAfter||'')}else{el.textContent=t('面板当前为 HTTP：证书未就绪')}}catch{}}
 // The panel uses a local self-signed certificate. Without the root CA in the

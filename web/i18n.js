@@ -392,6 +392,15 @@
     "订阅已保存": "Subscription saved",
     "订阅下载或解析失败，请检查地址与网络": "Could not download or parse the subscription. Check the address and the network."
   });
+  // Settings auto-save.
+  Object.assign(en, {
+    "修改后自动保存": "Changes save automatically",
+    "远程访问时只能查看全局设置": "Settings are read-only over remote access",
+    "请填写 {min}–{max} 之间的整数": "Enter a whole number from {min} to {max}",
+    "面板将切换到端口 {port}，页面会跳转到新地址。继续？": "The panel will move to port {port} and this page will reload at the new address. Continue?",
+    "保存中…": "Saving…",
+    "已保存": "Saved"
+  });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
     return values.some(value => String(value).toLowerCase().startsWith('zh')) ? 'zh-CN' : 'en';

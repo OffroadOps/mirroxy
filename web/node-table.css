@@ -120,3 +120,19 @@ th[aria-sort=descending] .nx-sort::after{content:'▼'}
 .button.danger-fill:hover{background:#a63a32}
 #subEditDialog,#subDeleteDialog{width:min(480px,calc(100vw - 28px))}
 html[data-theme=dark] .button.danger-fill{background:#a8433b;border-color:#c0564d;color:#fff}
+
+/* Settings save per field; a small state label sits beside the field name. */
+.save-state{display:inline-block;margin-left:8px;font-size:11px;font-style:normal;font-weight:400;color:var(--nx-faint)}
+.save-state[data-state=saved]{color:var(--nx-fast)}
+.save-state[data-state=error]{color:var(--nx-bad)}
+.setting-row>span>strong{display:inline}
+.setting-row>span>small{margin-top:5px}
+#view-settings .settings-card{margin:0 0 12px;padding:6px 20px 10px}
+#view-settings .settings-card h2{font-size:13px;margin:12px 0 2px;color:var(--nx-soft);font-weight:600}
+#view-settings .setting-row{padding:12px 0}
+#view-settings .setting-row:last-child{border-bottom:0}
+#view-settings>h2{font-size:13px;color:var(--nx-soft);margin:18px 0 4px}
+.setting-row input:disabled,.setting-row select:disabled{cursor:not-allowed;opacity:.6}
+:is(#view-geofiles,#view-api,#view-changelog,#view-apps) .page-heading{margin-bottom:14px}
+:is(#view-geofiles,#view-api,#view-changelog,#view-apps) .page-heading h1{font-size:18px;margin:0 0 4px}
+.settings-subnav{margin-bottom:12px}
