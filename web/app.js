@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key,params)=>window.MirroxyI18n?.t(key,params)||key;
-let state=null,token='',importMode='v2rayn',pending=0,settingsDirty=false,remoteDirty=false,proxyDirty=false,routingDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
+let state=null,token='',importMode='v2rayn',pending=0,settingsDirty=false,remoteDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
 const latest=new Map();
 function translateEvent(value){const match=String(value).match(/^(\d{2}:\d{2}:\d{2}\s+)(.*)$/);return match?match[1]+t(match[2]):t(value)}
 function toast(message,error=false,action=null){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.querySelector('.toast-action')?.remove();if(action){const btn=document.createElement('button');btn.className='toast-action';btn.textContent=action.label;btn.onclick=()=>{el.classList.add('hidden');action.onClick()};el.append(btn)}toastTimer=setTimeout(()=>el.classList.add('hidden'),error?9500:action?9000:4500);}
@@ -26,8 +26,7 @@ function render(){
  $('workspacePlatform').textContent=platform.os==='darwin'?'macOS · Apple Silicon':platform.server?'Linux '+platform.arch.toUpperCase()+t(' · 服务端'):t('Windows 工作空间');
  $('linuxServiceNote').classList.toggle('hidden',!platform.server);
  $('importDeployHint').textContent=t(state.settings.autoDeploy?'导入后自动选择核心、分配端口并启动':'导入后自行选择要启动的节点');
- const running=state.nodes.filter(n=>n.status==='running').length;
- $('version').textContent=state.version;$('navCount').textContent=state.nodes.length;$('totalCount').textContent=state.nodes.length;$('runningCount').textContent=running;$('listCount').textContent=state.nodes.length;
+ $('version').textContent=state.version;$('navCount').textContent=state.nodes.length;
  renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyDownloads?.onState(state);renderCertBanner();
  $('appNavCount').textContent=appRoutingAvailable?((appRoutingDraft?.profiles??state.appRouting?.profiles)??[]).length:0;
  $('subNavCount').textContent=state.subscriptions.length;
@@ -43,64 +42,191 @@ $('apiAddress').textContent=location.origin+'/api/v1/';
  $('saveSettings').disabled=!state.settingsEditable;$('saveRemote').disabled=!state.settingsEditable;
  $('events').textContent=state.events?.map(translateEvent).join('\n')||t('noRecords');$('rootPath').textContent=t('运行目录：')+state.root;
 }
+// Node table: v2rayN-style rows with group tabs, column sorting, multi-select,
+// one shared context menu and keyboard shortcuts. Health and traffic patch the
+// cells in place every second so a refresh never loses the selection.
+const NT=MirroxyNodeTable;
+let nodeGroup='all',nodeSort={key:'',dir:'asc'},selectedNodes=new Set(),nodeAnchor='',nodeCursor='',visibleNodeIDs=[],menuNodeIDs=[],testingNodes=false;
+try{const saved=JSON.parse(localStorage.getItem('Mirroxy.nodeTable')||'{}');if(typeof saved.group==='string')nodeGroup=saved.group;if(typeof saved.sort?.key==='string')nodeSort=saved.sort}catch{}
+function saveNodeTable(){try{localStorage.setItem('Mirroxy.nodeTable',JSON.stringify({group:nodeGroup,sort:nodeSort}))}catch{}}
+const nodeByID=id=>state?.nodes.find(n=>n.id===id);
+const selectedList=()=>[...selectedNodes].map(nodeByID).filter(Boolean);
+const nodesView=()=>!!state&&!$('view-nodes').classList.contains('hidden');
 function renderHealth(health){if(!health)return;
- const counts=[t('available')+' '+health.online,t('unavailable')+' '+health.offline];if(health.unknown)counts.push(t('pendingCheck')+' '+health.unknown);
- $('nodeHealthCounts').textContent=counts.join(' · ');
- $('healthSchedule').textContent=(health.enabled?t('每 {seconds} 秒检测所有节点',{seconds:health.intervalSeconds}):t('自动检测已关闭'))+(health.checking?' · '+t('checking')+' '+health.checking:'');
  for(const [id,h] of Object.entries(health.nodes)){
-  const row=document.querySelector('[data-node-id="'+id+'"]');if(!row)continue;
-  row.classList.toggle('health-offline',h.status==='offline');
-  const badge=row.querySelector('[data-health]');
-  const label=h.status==='online'?t('available'):h.status==='offline'?t('unavailable'):t('pendingCheck');
-  badge.textContent=h.checking?(h.status==='unknown'?t('checking'):label+' · '+t('checking')):label;
-  badge.dataset.status=h.status;
+  const cell=$('nodes').querySelector('[data-node-id="'+id+'"] [data-health]');if(!cell)continue;
+  const online=h.status==='online'&&h.latencyMs>0;
+  cell.textContent=online?h.latencyMs+' ms':h.status==='offline'?t('超时'):h.checking?t('检测中…'):'—';
+  cell.dataset.status=online?NT.latencyClass(h.latencyMs):h.status;cell.classList.toggle('checking',!!h.checking);
   const checked=Date.parse(h.checkedAt)>0?new Date(h.checkedAt).toLocaleString():'';
-  badge.title=checked?t('最近检测：')+checked+'; '+(h.status==='online'?h.latencyMs+' ms':t(h.error)||label):t('尚未完成首次联网检测');
+  cell.title=checked?t('最近检测：')+checked+(h.status==='offline'&&h.error?'\n'+t(h.error):''):t('尚未完成首次联网检测');
+  cell.closest('tr').classList.toggle('health-offline',h.status==='offline');
  }
 }
 function bytes(n){n=Number(n)||0;const units=['B','KiB','MiB','GiB','TiB'];let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return (i?n.toFixed(n>=100?0:1):Math.round(n))+' '+units[i];}
 function renderTraffic(traffic){if(!traffic)return;
  renderHealth(traffic.health);
- $('sumConnections').textContent=traffic.connections;$('sumUpload').textContent=bytes(traffic.uploadBytesPerSecond)+'/s';$('sumDownload').textContent=bytes(traffic.downloadBytesPerSecond)+'/s';$('sumUploaded').textContent=bytes(traffic.uploadedBytes);$('sumDownloaded').textContent=bytes(traffic.downloadedBytes);
- const stale=state.nodes.filter(n=>n.status==='running'&&!traffic.nodes[n.id]?.available).length;$('trafficHealth').textContent=stale?'· '+stale+' '+t('个节点等待统计'):'';
- for(const [id,v] of Object.entries(traffic.nodes)){const row=document.querySelector('[data-node-id="'+id+'"]');if(!row)continue;const live=state.nodes.find(n=>n.id===id)?.status==='running';const values={connections:live&&!v.connectionCountAvailable?'—':v.connections,upload:live&&!v.available?'—':bytes(v.uploadBytesPerSecond)+'/s',download:live&&!v.available?'—':bytes(v.downloadBytesPerSecond)+'/s',uploaded:bytes(v.uploadedBytes),downloaded:bytes(v.downloadedBytes)};for(const [key,value] of Object.entries(values)){const cell=row.querySelector('[data-stat="'+key+'"]');if(cell)cell.textContent=value}}
+ $('sumUpload').textContent='↑ '+bytes(traffic.uploadBytesPerSecond)+'/s';$('sumDownload').textContent='↓ '+bytes(traffic.downloadBytesPerSecond)+'/s';
+ $('statusConnections').textContent=t('连接')+' '+traffic.connections;
+ $('statusConnections').title=t('累计上传')+' '+bytes(traffic.uploadedBytes)+' · '+t('累计下载')+' '+bytes(traffic.downloadedBytes);
+ for(const [id,v] of Object.entries(traffic.nodes)){const row=$('nodes').querySelector('[data-node-id="'+id+'"]');if(!row)continue;const live=nodeByID(id)?.status==='running';
+  const total=(Number(v.uploadedBytes)||0)+(Number(v.downloadedBytes)||0);
+  const values={connections:!live?'':v.connectionCountAvailable?v.connections:'—',upload:!live?'':v.available?bytes(v.uploadBytesPerSecond)+'/s':'—',download:!live?'':v.available?bytes(v.downloadBytesPerSecond)+'/s':'—',total:total?bytes(total):''};
+  for(const [key,value] of Object.entries(values)){const cell=row.querySelector('[data-stat="'+key+'"]');if(cell)cell.textContent=value}
+  const totalCell=row.querySelector('[data-stat="total"]');if(totalCell)totalCell.title=t('累计上传')+' '+bytes(v.uploadedBytes)+'\n'+t('累计下载')+' '+bytes(v.downloadedBytes);
+ }
 }
 let trafficBusy=false;
-async function refreshTraffic(){if(trafficBusy||document.hidden)return;trafficBusy=true;try{const res=await fetch('/api/traffic',{cache:'no-store'});if(res.ok){const traffic=await res.json();if(state){state.traffic=traffic;renderTraffic(traffic)}}}catch{$('trafficHealth').textContent='· '+t('统计连接中断')}finally{trafficBusy=false}}
+async function refreshTraffic(){if(trafficBusy||document.hidden)return;trafficBusy=true;try{const res=await fetch('/api/traffic',{cache:'no-store'});if(res.ok){const traffic=await res.json();if(state){state.traffic=traffic;renderTraffic(traffic)}}}catch{}finally{trafficBusy=false}}
+function groupLabel(g){return g.id==='all'?t('全部'):g.id==='running'?t('running'):g.id==='manual'?t('手动添加'):g.name}
+function renderGroups(){const list=NT.groups(state.nodes,state.subscriptions);if(!list.some(g=>g.id===nodeGroup))nodeGroup='all';
+ $('nodeGroups').innerHTML=list.map(g=>`<button type="button" role="tab" class="nx-group${g.id===nodeGroup?' active':''}" aria-selected="${g.id===nodeGroup}" data-node-group="${escapeHTML(g.id)}">${escapeHTML(groupLabel(g))}<span>${g.count}</span></button>`).join('')}
+function nodeRow(n){
+ const running=n.status==='running',dot=n.status==='error'?'error':running?'running':n.enabled?'starting':'stopped';
+ const tags=(n.route&&n.route!=='inherit'?`<span class="nx-tag" title="${t('出口策略')}">${routeLabel(n.route)}</span>`:'')+(n.listBottom?`<span class="nx-tag" title="${t('手动置底，启动后仍保持在列表末尾')}">${t('已置底')}</span>`:'');
+ const title=n.name+'\n'+n.protocol.toUpperCase()+' · '+n.server+'\n'+t(n.engine==='A'?'coreA':'coreB')+' · '+t(running?'running':n.status==='error'?'startError':'stopped');
+ const blank=running?'—':'';
+ const classes=[running&&'running',!n.enabled&&!running&&'stopped',n.systemProxy&&'active-system-node',selectedNodes.has(n.id)&&'selected',n.id===nodeCursor&&'cursor'].filter(Boolean).join(' ');
+ return `<tr data-node-id="${n.id}" class="${classes}" aria-selected="${selectedNodes.has(n.id)}"><td class="nx-name" title="${escapeHTML(title)}"><i class="nx-dot ${dot}" aria-hidden="true"></i>${n.systemProxy?`<span class="nx-star" title="${t('Windows 当前正在使用此节点作为系统代理')}">★</span>`:''}<span class="nx-label">${escapeHTML(n.name)}</span>${tags}</td><td><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span></td><td class="nx-latency" data-health>—</td><td>${n.port?`<button type="button" class="port-copy" data-copy="127.0.0.1:${n.port}" title="${t('点击复制地址')}"><code>${n.port}</code></button>`:''}</td><td class="numeric" data-stat="connections">${blank}</td><td class="numeric upload" data-stat="upload">${blank}</td><td class="numeric download" data-stat="download">${blank}</td><td class="numeric" data-stat="total"></td></tr>`;
+}
 function renderNodes(){
- const query=$('search').value.trim().toLowerCase();const nodes=MirroxyNodeList.sortedNodes(state.nodes.filter(n=>(n.name+' '+n.protocol+' '+n.server+' '+n.port).toLowerCase().includes(query)));
- const appsAvailable=state.platform?.os==='windows'&&state.localAccess&&state.appRouting?.supported;
- $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);
- $('nodes').innerHTML=nodes.map(n=>{const running=n.status==='running',port=n.port?'127.0.0.1:'+n.port:'',active=n.systemProxy;
- return `<tr data-node-id="${n.id}" class="${running?'running':''}${active?' active-system-node':''}" data-system-active="${active?'proxy':'none'}"><td class="name-cell"><div class="node-name"><h3 title="${escapeHTML(n.name)}">${escapeHTML(n.name)}</h3><button class="rename-node" data-rename-node="${n.id}" aria-label="${t('修改 {name} 的名称',{name:escapeHTML(n.name)})}" title="${t('修改节点名称')}">🖊</button></div><div class="node-meta">${active?`<span class="system-badge" title="${t('Windows 当前正在使用此节点作为系统代理')}"><span aria-hidden="true">◉</span>${t('系统代理')}</span>`:''}<span class="status ${n.status==='error'?'error':''}"><i></i>${t(running?'running':n.status==='error'?'startError':'stopped')}</span><span class="protocol">${escapeHTML(n.protocol.toUpperCase())}</span><span>${t(n.engine==='A'?'coreA':'coreB').replace(t('网络'),'')}</span><span class="node-health" data-health>${t('pendingCheck')}</span></div></td><td class="port-cell">${port?`<button class="port-copy" data-copy="${port}" title="${t('点击复制地址')}"><code>${port}</code><span>⧉</span></button>`:`<span class="muted">${t('启动后分配')}</span>`}</td><td class="numeric" data-stat="connections">—</td><td class="numeric upload" data-stat="upload">—</td><td class="numeric download" data-stat="download">—</td><td class="numeric" data-stat="uploaded">—</td><td class="numeric" data-stat="downloaded">—</td><td><select class="route-select" data-route="${n.id}" aria-label="${t('{name}出口策略',{name:escapeHTML(n.name)})}"><option value="inherit" ${!n.route||n.route==='inherit'?'selected':''}>${t('跟随全局')} · ${routeLabel(n.effectiveRoute)}</option><option value="blacklist" ${n.route==='blacklist'?'selected':''}>${t('黑名单')}</option><option value="proxy" ${n.route==='proxy'?'selected':''}>${t('全部走此节点')}</option><option value="bypass-cn" ${n.route==='bypass-cn'?'selected':''}>${t('绕过局域网和大陆')}</option></select></td><td class="row-actions"><button class="button small ${running?'':'primary'}" data-action="${n.enabled?'stop':'start'}" data-id="${n.id}">${t(n.enabled?'stop':'start')}</button><button class="text-btn more" data-more="${n.id}" aria-label="${t('{name}更多操作',{name:escapeHTML(n.name)})}">⋯</button><div class="popover hidden" id="more-${n.id}"><button data-edit-node="${n.id}">${t('编辑节点')}</button><button data-share-node="${n.id}">${t('分享链接')}</button><button data-test="${n.id}">${t('立即检测可用性')}</button><button data-system="${n.id}">${t(running?'设为系统代理':'启动并设为系统代理')}</button>${appsAvailable?`<button data-node-apps="${n.id}">${t('指定应用')}</button>`:''}<button data-action="reassign" data-id="${n.id}" ${n.enabled?'disabled':''}>${t('重新分配端口')}</button><button data-log="${n.engine}" data-log-node="${n.id}">${t('查看核心日志')}</button><button data-action="delete" data-id="${n.id}">${t('删除节点')}</button></div></td></tr>`;
- }).join('');
- for(const n of nodes){const row=$('nodes').querySelector('[data-node-id="'+n.id+'"]');if(!row)continue;row.classList.toggle('stopped',!n.enabled&&n.status!=='running');const placement=document.createElement('button');placement.dataset.action=n.listBottom?'auto-order':'move-bottom';placement.dataset.id=n.id;placement.textContent=t(n.listBottom?'恢复自动排序':'置于列表末尾');row.querySelector('.popover').prepend(placement);if(n.listBottom){const marker=document.createElement('span');marker.className='node-placement';marker.textContent=t('已置底');marker.title=t('手动置底，启动后仍保持在列表末尾');row.querySelector('.node-meta').append(marker)}}
- if(!nodes.length&&state.nodes.length)$('nodes').innerHTML=`<tr><td colspan="9" class="no-match">${t('没有匹配的节点')}</td></tr>`;
- document.querySelectorAll('[data-system]').forEach(el=>el.classList.toggle('hidden',state.platform?.systemProxy===false));
+ renderGroups();
+ const health=state.traffic?.health?.nodes,traffic=state.traffic?.nodes;
+ const nodes=NT.sortNodes(NT.filterNodes(state.nodes,{group:nodeGroup,query:$('search').value,subscriptions:state.subscriptions}),nodeSort,health,traffic,MirroxyNodeList.sortedNodes);
+ visibleNodeIDs=nodes.map(n=>n.id);
+ selectedNodes=new Set([...selectedNodes].filter(id=>state.nodes.some(n=>n.id===id)));
+ $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);$('nodeHint').classList.toggle('hidden',!state.nodes.length);
+ $('nodeHead').querySelectorAll('[data-sort]').forEach(b=>{const on=nodeSort.key===b.dataset.sort;b.closest('th').setAttribute('aria-sort',on?(nodeSort.dir==='asc'?'ascending':'descending'):'none')});
+ $('nodes').innerHTML=nodes.length?nodes.map(nodeRow).join(''):`<tr><td colspan="8" class="no-match">${t('没有匹配的节点')}</td></tr>`;
  renderTraffic(state.traffic);
+}
+function paintSelection(){$('nodes').querySelectorAll('[data-node-id]').forEach(row=>{const on=selectedNodes.has(row.dataset.nodeId);row.classList.toggle('selected',on);row.setAttribute('aria-selected',on);row.classList.toggle('cursor',row.dataset.nodeId===nodeCursor)})}
+function selectNode(id,event){
+ if(event?.shiftKey&&nodeAnchor)selectedNodes=new Set(NT.range(visibleNodeIDs,nodeAnchor,id));
+ else if(event?.ctrlKey||event?.metaKey){selectedNodes.has(id)?selectedNodes.delete(id):selectedNodes.add(id);nodeAnchor=id}
+ else{selectedNodes=new Set([id]);nodeAnchor=id}
+ nodeCursor=id;paintSelection();
+}
+function moveCursor(step,extend){if(!visibleNodeIDs.length)return;const index=visibleNodeIDs.indexOf(nodeCursor);const next=visibleNodeIDs[step===Infinity?visibleNodeIDs.length-1:step===-Infinity?0:Math.max(0,Math.min(visibleNodeIDs.length-1,index<0?0:index+step))];
+ if(extend){if(!nodeAnchor)nodeAnchor=nodeCursor||next;selectedNodes=new Set(NT.range(visibleNodeIDs,nodeAnchor,next))}else{selectedNodes=new Set([next]);nodeAnchor=next}
+ nodeCursor=next;paintSelection();$('nodes').querySelector('[data-node-id="'+next+'"]')?.scrollIntoView({block:'nearest'});
 }
 function routeLabel(mode){return t({'bypass-cn':'绕过大陆',blacklist:'黑名单',proxy:'全局'}[mode]||'绕过大陆')}
 function renderProxy(){
- if(!routingDirty)$('routingMode').value=state.settings.routingMode||'bypass-cn';
- $('routingMode').title=t({'bypass-cn':'局域网和大陆直连，其他流量走节点',blacklist:'命中代理名单走节点，其余直连',proxy:'全部流量走对应节点'}[$('routingMode').value])+t('。切换后立即生效。');
- const managed=proxyManaged();
- $('proxyToggle').checked=managed;
- const running=state.nodes.filter(n=>n.status==='running'),stopped=state.nodes.filter(n=>n.status!=='running');
- if(!proxyDirty){
-  $('proxyNode').innerHTML=running.concat(stopped).map(n=>`<option value="${n.id}">${escapeHTML(n.name)}${n.status==='running'?' · '+n.port:' · '+t('stopped')}</option>`).join('');
-  const wanted=state.settings.systemProxyNode;
-  const active=state.nodes.find(n=>n.systemProxy);
-  if(wanted&&[...running,...stopped].some(n=>n.id===wanted))$('proxyNode').value=wanted;
-  else if(active)$('proxyNode').value=active.id;
- }
+ const mode=state.settings.systemProxyMode||'unchanged',routing=state.settings.routingMode||'bypass-cn';
+ document.querySelectorAll('[data-proxy-mode]').forEach(b=>{const on=b.dataset.proxyMode===mode;b.classList.toggle('active',on);b.setAttribute('aria-checked',on)});
+ document.querySelectorAll('[data-routing]').forEach(b=>{const on=b.dataset.routing===routing;b.classList.toggle('active',on);b.setAttribute('aria-checked',on)});
  const hidden=state.platform?.systemProxy===false;
- $('proxyNode').classList.toggle('hidden',hidden);
- $('clearSystemProxy').classList.toggle('hidden',hidden);
- const current=(state.systemProxyEnabled?t('当前系统代理：')+state.systemProxy:t('当前未启用系统代理'))+(state.settings.acceleratorPaused?' · '+t('加速器运行中，已自动暂停'):'');
- $('proxyToggle').title=current;
- $('proxyControls').title=current;
- $('clearSystemProxy').title=t('清除系统代理')+'\n'+t('会关闭当前 Windows 系统代理，包括其他代理软件配置的代理。');
+ $('proxyModeGroup').classList.toggle('hidden',hidden);$('statusNode').classList.toggle('hidden',hidden);
+ const active=state.nodes.find(n=>n.systemProxy);
+ $('statusNode').textContent=state.settings.acceleratorPaused?t('加速器运行中，已自动暂停'):active?'★ '+active.name:state.systemProxyEnabled?t('当前系统代理：')+state.systemProxy:t('当前未启用系统代理');
+ $('statusNode').title=state.systemProxyEnabled?t('当前系统代理：')+state.systemProxy:t('当前未启用系统代理');
+ $('statusRunning').textContent=t('{count} 个运行中',{count:state.nodes.filter(n=>n.status==='running').length});
 }
+// One action covers the daily switch: start the node when needed and hand the
+// system proxy over to it.
+function switchNode(id){if(state.platform?.systemProxy===false)return;act(null,async()=>{await api('proxy',{action:'set',id});toast(t('系统代理已切换到该节点'))})}
+function importToast(result){if(result.warnings?.length)toast(t('导入 {count} 个节点。',{count:result.count})+' '+result.warnings.map(t).join('；'),!result.count);else toast(result.deployed?t('已导入 {count} 个节点，自动启动 {deployed} 个代理',{count:result.count,deployed:result.deployed}):t('已导入 {count} 个节点，点击「启动」即可使用',{count:result.count}))}
+function openRename(id){const n=nodeByID(id);if(!n)return;renameNodeID=n.id;$('renameName').value=n.name;$('renameDialog').showModal();$('renameName').focus();$('renameName').select()}
+async function openShare(id){const result=await api('node/share',{id});$('nodeExportName').textContent=result.name;$('nodeExportURI').value=result.url;qrNodeID=id;$('nodeExportQR').classList.add('hidden');$('toggleNodeQR').textContent=t('显示二维码');$('nodeExportDialog').showModal()}
+async function batchNode(nodes,action,route){const errors=[];for(const n of nodes){try{await api('node',{id:n.id,action,route})}catch(e){errors.push(n.name+'：'+e.message)}}if(errors.length)throw Error(errors.join('\n'))}
+const busyHealth=()=>[t('正在检测其他节点，请稍后重试'),t('该节点正在检测，请稍后查看结果')];
+// Health probes are capped at three at a time by the backend, so two workers
+// test the list and wait their turn when the background monitor is busy.
+async function testNodes(nodes){
+ nodes=nodes.filter(Boolean);if(!nodes.length)return;if(testingNodes){toast(t('测速进行中，请稍候'));return}
+ testingNodes=true;const button=$('testNodes'),queue=nodes.slice();let done=0,ok=0;
+ const progress=()=>{button.textContent=t('测速 {done}/{total}',{done,total:nodes.length})};progress();button.disabled=true;
+ const worker=async()=>{for(let n=queue.shift();n;n=queue.shift()){for(let attempt=0;attempt<30;attempt++){try{await api('test',{id:n.id});ok++;break}catch(e){if(!busyHealth().includes(e.message))break;await new Promise(r=>setTimeout(r,1000))}}done++;progress();refreshTraffic()}};
+ try{await Promise.all([worker(),worker()])}finally{testingNodes=false;button.disabled=false;button.textContent=t('测速')}
+ toast(t('测速完成：{ok}/{total} 个节点可用',{ok,total:nodes.length}));await refresh();
+}
+const toolbarTestTargets=()=>selectedNodes.size>1?selectedList():visibleNodeIDs.map(nodeByID);
+async function copyShareLinks(nodes){const links=[];for(const n of nodes)links.push((await api('node/share',{id:n.id})).url);await copyText(links.join('\n'));toast(t('已复制 {count} 条分享链接',{count:links.length}))}
+const nodeMenu=$('nodeMenu');
+function closeNodeMenu(){nodeMenu.classList.add('hidden')}
+function menuItem(verb,label,on,key='',checked){if(!on)return '';return `<button type="button" role="${checked===undefined?'menuitem':'menuitemradio'}"${checked===undefined?'':` aria-checked="${checked}"`} data-nm="${verb}"><span>${escapeHTML(label)}</span>${key?`<kbd>${key}</kbd>`:''}</button>`}
+function openNodeMenu(x,y){
+ const nodes=selectedList();if(!nodes.length)return;menuNodeIDs=nodes.map(n=>n.id);
+ const s=NT.menuState(nodes,{systemProxy:state.platform?.systemProxy!==false,appRouting:state.platform?.os==='windows'&&state.localAccess&&state.appRouting?.supported});
+ const one=nodes.length===1,n=nodes[0],route=one?(n.route||'inherit'):'',sep='<div class="nx-menu-sep" role="separator"></div>';
+ const routes={inherit:t('跟随全局')+' · '+routeLabel(state.settings.routingMode),'bypass-cn':t('绕过局域网和大陆'),blacklist:t('黑名单'),proxy:t('全部走此节点')};
+ nodeMenu.innerHTML=`<div class="nx-menu-caption">${one?escapeHTML(n.name):escapeHTML(t('已选 {count} 个节点',{count:nodes.length}))}</div>`
+  +menuItem('proxy',t(n.status==='running'?'设为系统代理':'启动并设为系统代理'),s.setProxy,'Enter')+menuItem('start',t('启动'),s.start,'Space')+menuItem('stop',t('停止'),s.stop,s.start?'':'Space')+menuItem('test',t('测速'),s.test,'Ctrl+R')+sep
+  +menuItem('edit',t('编辑节点'),s.edit,'Ctrl+E')+menuItem('rename',t('重命名'),s.rename,'F2')+menuItem('share',t('分享链接 / 二维码'),s.share)+menuItem('copyLinks',t('复制分享链接'),s.copyLinks,'Ctrl+C')+menuItem('copyAddress',t('复制本地地址'),s.copyAddress)+sep
+  +`<div class="nx-menu-caption">${t('出口策略')}</div>`+Object.entries(routes).map(([value,label])=>menuItem('route:'+value,label,true,'',route===value)).join('')+sep
+  +menuItem('apps',t('指定应用'),s.apps)+menuItem('move-bottom',t('置于列表末尾'),s.moveBottom)+menuItem('auto-order',t('恢复自动排序'),s.autoOrder)+menuItem('reassign',t('重新分配端口'),s.reassign)+menuItem('log',t('查看核心日志'),s.log)+sep
+  +menuItem('delete',one?t('删除节点'):t('删除 {count} 个节点',{count:nodes.length}),s.remove,'Del');
+ nodeMenu.classList.remove('hidden');nodeMenu.style.maxHeight=Math.max(120,window.innerHeight-16)+'px';
+ const point=NT.position(x,y,nodeMenu.offsetWidth,nodeMenu.offsetHeight,window.innerWidth,window.innerHeight);
+ nodeMenu.style.left=point.left+'px';nodeMenu.style.top=point.top+'px';
+ nodeMenu.querySelector('button')?.focus();
+}
+function runNodeVerb(verb,ids){
+ const nodes=ids.map(nodeByID).filter(Boolean);if(!nodes.length)return;const n=nodes[0],one=nodes.length===1;
+ if(verb==='proxy')return switchNode(n.id);
+ if(verb==='edit')return act(null,()=>openEditNode(n.id));
+ if(verb==='rename')return openRename(n.id);
+ if(verb==='share')return act(null,()=>openShare(n.id));
+ if(verb==='copyLinks')return act(null,()=>copyShareLinks(nodes));
+ if(verb==='copyAddress')return copyText('127.0.0.1:'+n.port).then(()=>toast(t('已复制 ')+'127.0.0.1:'+n.port)).catch(e=>toast(e.message,true));
+ if(verb==='test')return testNodes(nodes);
+ if(verb==='apps')return openNodeApps(n.id);
+ if(verb==='log')return act(null,async()=>{const result=await api('log',{engine:n.engine,id:n.id});$('logContent').textContent=result.text;$('logDialog').showModal()});
+ if(verb.startsWith('route:'))return act(null,async()=>{await batchNode(nodes,'route',verb.slice(6));toast(t('出口策略已更新'))});
+ if(verb==='delete'&&!confirm(one?t('删除这个节点？它的本地代理端口也会停止。'):t('删除选中的 {count} 个节点？它们的本地代理端口也会停止。',{count:nodes.length})))return;
+ const targets=verb==='start'?nodes.filter(n=>!n.enabled):verb==='stop'?nodes.filter(n=>n.enabled):verb==='move-bottom'?nodes.filter(n=>!n.listBottom):verb==='auto-order'?nodes.filter(n=>n.listBottom):nodes;
+ act(null,async()=>{await batchNode(targets,verb);if(verb==='delete')targets.forEach(n=>selectedNodes.delete(n.id));
+  const message=t({start:'代理已启动，端口固定绑定此节点',stop:'代理已停止','move-bottom':'已置于列表末尾','auto-order':'已恢复自动排序',delete:'节点已删除'}[verb]||'操作已完成');
+  if(verb==='start'&&one&&!proxyManaged()&&state.platform?.systemProxy!==false)toast(message,false,{label:t('接管系统代理'),onClick:()=>setNodeAsProxy(n.id)});else toast(message)});
+}
+nodeMenu.addEventListener('click',e=>{const b=e.target.closest('[data-nm]');if(!b)return;closeNodeMenu();runNodeVerb(b.dataset.nm,menuNodeIDs)});
+nodeMenu.addEventListener('keydown',e=>{const items=[...nodeMenu.querySelectorAll('button')];const index=items.indexOf(document.activeElement);if(e.key==='Escape'){closeNodeMenu();$('nodeTableWrap').focus();return}if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next]?.focus()}});
+document.addEventListener('pointerdown',e=>{if(!nodeMenu.contains(e.target))closeNodeMenu()});
+window.addEventListener('resize',closeNodeMenu);window.addEventListener('scroll',e=>{if(!nodeMenu.contains(e.target))closeNodeMenu()},true);
+$('nodes').addEventListener('click',e=>{const row=e.target.closest('[data-node-id]');if(!row||e.target.closest('button'))return;selectNode(row.dataset.nodeId,e);$('nodeTableWrap').focus({preventScroll:true})});
+$('nodes').addEventListener('mousedown',e=>{if(e.shiftKey&&e.target.closest('[data-node-id]'))e.preventDefault()});
+$('nodes').addEventListener('contextmenu',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;e.preventDefault();if(!selectedNodes.has(row.dataset.nodeId))selectNode(row.dataset.nodeId);else{nodeCursor=row.dataset.nodeId;paintSelection()}openNodeMenu(e.clientX,e.clientY)});
+// Double-clicking a node row switches to it in one action.
+$('nodes').addEventListener('dblclick',e=>{const row=e.target.closest('[data-node-id]');if(!row||e.target.closest('button,select,input,textarea,a'))return;switchNode(row.dataset.nodeId)});
+$('nodeGroups').addEventListener('click',e=>{const b=e.target.closest('[data-node-group]');if(!b)return;nodeGroup=b.dataset.nodeGroup;saveNodeTable();renderNodes()});
+$('nodeHead').addEventListener('click',e=>{const b=e.target.closest('[data-sort]');if(!b)return;nodeSort=NT.nextSort(nodeSort,b.dataset.sort);saveNodeTable();renderNodes()});
+document.addEventListener('keydown',e=>{
+ if(!nodesView()||document.querySelector('dialog[open]')||!nodeMenu.classList.contains('hidden'))return;
+ const key=e.key,lower=key.length===1?key.toLowerCase():key,mod=e.ctrlKey||e.metaKey;
+ if(e.target.closest?.('input,textarea,select,[contenteditable]')){if(key==='Escape'&&e.target===$('search')&&$('search').value){$('search').value='';renderNodes()}return}
+ if(e.target.closest?.('button,a')&&(key==='Enter'||key===' '))return;
+ if(mod&&lower==='f'){e.preventDefault();$('search').focus();$('search').select();return}
+ if(mod&&lower==='a'){e.preventDefault();selectedNodes=new Set(visibleNodeIDs);paintSelection();return}
+ if(mod&&lower==='r'){e.preventDefault();testNodes(selectedNodes.size?selectedList():visibleNodeIDs.map(nodeByID));return}
+ if(['ArrowDown','ArrowUp','Home','End'].includes(key)){e.preventDefault();moveCursor({ArrowDown:1,ArrowUp:-1,Home:-Infinity,End:Infinity}[key],e.shiftKey);return}
+ if(key==='Escape'){selectedNodes.clear();paintSelection();return}
+ if(!selectedNodes.size)return;
+ const ids=[...selectedNodes],current=selectedNodes.has(nodeCursor)?nodeCursor:ids[0];
+ if(key==='Enter'){e.preventDefault();runNodeVerb('proxy',[current])}
+ else if(key===' '){e.preventDefault();runNodeVerb(selectedList().some(n=>!n.enabled)?'start':'stop',ids)}
+ else if(key==='Delete'){e.preventDefault();runNodeVerb('delete',ids)}
+ else if(key==='F2'){e.preventDefault();runNodeVerb('rename',[current])}
+ else if(mod&&lower==='e'){e.preventDefault();runNodeVerb('edit',[current])}
+ else if(mod&&lower==='c'&&!String(getSelection()||'')){e.preventDefault();runNodeVerb('copyLinks',ids)}
+ else if(key==='ContextMenu'||(key==='F10'&&e.shiftKey)){e.preventDefault();const rect=$('nodes').querySelector('[data-node-id="'+current+'"]')?.getBoundingClientRect();if(rect)openNodeMenu(rect.left+40,rect.bottom)}
+});
+// Ctrl+V anywhere on the node page imports share links directly; a single
+// http(s) address opens the subscription form pre-filled instead.
+document.addEventListener('paste',e=>{
+ if(!nodesView()||document.querySelector('dialog[open]')||e.target.closest?.('input,textarea,[contenteditable]'))return;
+ const pasted=NT.classifyPaste(e.clipboardData?.getData('text')||'');if(pasted.kind==='none')return;e.preventDefault();
+ if(pasted.kind==='subscription'){showImport('subscription');$('subUrl').value=pasted.url;$('subName').focus();return}
+ act(null,async()=>{importToast(await api('import',{text:pasted.text}))});
+});
+document.querySelectorAll('[data-proxy-mode]').forEach(b=>b.onclick=()=>{const mode=b.dataset.proxyMode;if(!state||mode===(state.settings.systemProxyMode||'unchanged'))return;act(null,async()=>{
+ if(mode==='auto'){const id=[state.settings.systemProxyNode,nodeCursor,...selectedNodes].find(id=>nodeByID(id))||state.nodes.find(n=>n.status==='running')?.id;if(!id)throw Error(t('先双击一个节点，把它设为系统代理'));await api('proxy',{action:'set',id});toast(t('系统代理已接管，支持系统代理的浏览器和应用现在使用所选节点'))}
+ else if(mode==='clear'){await api('proxy',{action:'clear',id:state.settings.systemProxyNode});toast(t('系统代理已清除'))}
+ else{await api('proxy',{action:'restore'});toast(t('已交还系统代理设置，恢复接管前的配置'))}
+})});
+document.querySelectorAll('[data-routing]').forEach(b=>b.onclick=()=>{if(!state||b.dataset.routing===(state.settings.routingMode||'bypass-cn'))return;act(null,async()=>{await api('routing',{mode:b.dataset.routing});toast(t('路由模式已切换，相关节点的连接会短暂重连'))})});
+$('testNodes').onclick=()=>testNodes(toolbarTestTargets());
+$('refreshSubs').onclick=()=>{if(!state.subscriptions.length){showImport('subscription');return}const subs=nodeGroup.startsWith('sub:')?state.subscriptions.filter(s=>'sub:'+s.id===nodeGroup):state.subscriptions;act($('refreshSubs'),async()=>{let count=0;const errors=[];for(const s of subs){try{count+=(await api('subscription/refresh',{id:s.id})).count}catch(e){errors.push(s.name+'：'+e.message)}}if(errors.length)throw Error(errors.join('\n'));toast(t('订阅已更新，共 {count} 个节点',{count}))})};
 function cloneAppRouting(value){return JSON.parse(JSON.stringify(value||{defaultNode:'',compatMode:false,profiles:[]}))}
 function renderAppRouting(){
  const routing=state.appRouting;if(!routing)return;
@@ -246,49 +372,23 @@ $('toggleAppRouting').onclick=()=>act($('toggleAppRouting'),async()=>{if(state.a
 $('probeCapabilities').onclick=()=>act($('probeCapabilities'),async()=>{if(!appRoutingDraft.defaultNode)throw Error(t('请先选择默认应用节点'));const result=await api('node/capabilities',{id:appRoutingDraft.defaultNode});toast(t('能力检测完成：')+` TCP ${result.tcp?'✓':'×'} · UDP ${result.udp?'✓':'×'} · IPv6 ${result.ipv6?'✓':'×'}`)});
 $('importTop').onclick=$('importEmpty').onclick=()=>showImport();$('addSubscription').onclick=()=>showImport('subscription');
 $('search').oninput=()=>state&&renderNodes();
-$('proxyToggle').onchange=()=>act(null,async()=>{if($('proxyToggle').checked){await api('proxy',{action:'set',id:$('proxyNode').value});toast(t('系统代理已接管，支持系统代理的浏览器和应用现在使用所选节点'))}else{await api('proxy',{action:'restore'});toast(t('已交还系统代理设置，恢复接管前的配置'))}});
-$('proxyNode').onchange=()=>{proxyDirty=true;if(!$('proxyToggle').checked)return;act(null,async()=>{await api('proxy',{action:'set',id:$('proxyNode').value});proxyDirty=false;toast(t('系统代理已切换到所选节点'))})};
-$('routingMode').onchange=()=>act(null,async()=>{await api('routing',{mode:$('routingMode').value});routingDirty=false;toast(t('路由模式已切换，相关节点的连接会短暂重连'))});
-$('clearSystemProxy').onclick=()=>act($('clearSystemProxy'),async()=>{await api('proxy',{action:'clear'});toast(t('系统代理已清除'))});
 $('doImport').onclick=()=>act($('doImport'),async()=>{
  let result;if(importMode==='subscription'){if(!$('subUrl').value.trim())throw Error(t('请填写订阅地址'));const added=await api('subscription/add',{name:$('subName').value.trim(),url:$('subUrl').value.trim()});result=await api('subscription/refresh',{id:added.id})}
  else{result=await api('import',importMode==='v2rayn'?{path:$('v2raynPath').value.trim()}:{text:$('nodeLinksInput').value.trim()})}
- if(result.warnings?.length){$('importResult').textContent=t('导入 {count} 个节点。',{count:result.count})+'\n'+result.warnings.map(t).join('\n');$('importResult').className='form-result'}else{$('importDialog').close();toast(result.deployed?t('已导入 {count} 个节点，自动启动 {deployed} 个代理',{count:result.count,deployed:result.deployed}):t('已导入 {count} 个节点，点击「启动」即可使用',{count:result.count}));view('nodes')}
+ if(result.warnings?.length){$('importResult').textContent=t('导入 {count} 个节点。',{count:result.count})+'\n'+result.warnings.map(t).join('\n');$('importResult').className='form-result'}else{$('importDialog').close();importToast(result);view('nodes')}
 });
-function openNodeMenu(id,x,y,toggle=false){
- const menu=$('more-'+id);if(!menu)return;
- const wasOpen=!menu.classList.contains('hidden');
- document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));
- if(toggle&&wasOpen)return;
- menu.classList.remove('hidden');menu.style.maxHeight=(window.innerHeight-16)+'px';menu.style.overflowY='auto';
- menu.style.left=Math.max(8,Math.min(x,window.innerWidth-menu.offsetWidth-8))+'px';
- menu.style.top=Math.max(8,Math.min(y,window.innerHeight-menu.offsetHeight-8))+'px';
-}
-$('nodes').addEventListener('contextmenu',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;e.preventDefault();openNodeMenu(row.dataset.nodeId,e.clientX,e.clientY)});
-// Double-clicking a node row switches to it: the node is started when needed
-// and the system proxy is handed over in the same action.
-$('nodes').addEventListener('dblclick',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;if(e.target.closest('button,select,input,textarea,a'))return;act(null,async()=>{await api('proxy',{action:'set',id:row.dataset.nodeId});toast(t('系统代理已切换到该节点'))})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));if(e.key==='Enter'&&e.target instanceof HTMLInputElement&&e.target.dataset.appExeInput!==undefined){e.preventDefault();addAppExecutable(e.target.dataset.appExeInput)}});
 $('copyNodeExport').onclick=async()=>{try{await copyText($('nodeExportURI').value);toast(t('分享链接已复制'))}catch{$('nodeExportURI').focus();$('nodeExportURI').select();toast(t('请复制已选中的链接'),true)}};
 $('nodeExportDialog').addEventListener('close',()=>{$('nodeExportURI').value='';$('nodeExportName').textContent='';qrNodeID='';$('nodeExportQR').classList.add('hidden');$('toggleNodeQR').textContent=t('显示二维码')});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));return;}
  if(b.dataset.copy){copyText(b.dataset.copy).then(()=>toast(t('已复制 ')+b.dataset.copy)).catch(()=>toast(t('请手动复制：')+b.dataset.copy));}
- if(b.dataset.more){const rect=b.getBoundingClientRect();openNodeMenu(b.dataset.more,rect.right-175,rect.bottom+4,true);return;}
- if(b.dataset.renameNode){const n=state.nodes.find(n=>n.id===b.dataset.renameNode);if(n){renameNodeID=n.id;$('renameName').value=n.name;$('renameDialog').showModal();$('renameName').focus();$('renameName').select();}}
- if(b.dataset.editNode){act(b,async()=>{await openEditNode(b.dataset.editNode)});}
 	if(b.dataset.appDetail){const id=b.dataset.appDetail;openAppDetails.has(id)?openAppDetails.delete(id):openAppDetails.add(id);renderAppRouting();return;}
 	if(b.dataset.appExeRemove){const p=appRoutingDraft.profiles.find(p=>p.id===b.dataset.appExeRemove);if(p){p.executables=p.executables.filter(v=>v!==b.dataset.exeValue);appRoutingDirty=true;renderAppRouting();refreshNodeAppsDialog()}return;}
 	if(b.dataset.appExeAdd){addAppExecutable(b.dataset.appExeAdd);return;}
 	if(b.dataset.appEdit){openAppProfile(b.dataset.appEdit);return;}
 	if(b.dataset.appDelete){const p=appRoutingDraft.profiles.find(p=>p.id===b.dataset.appDelete);if(p&&confirm(t('删除应用配置 {name}？',{name:p.name}))){appRoutingDraft.profiles=appRoutingDraft.profiles.filter(p=>p.id!==b.dataset.appDelete);appRoutingDirty=true;renderAppRouting();refreshNodeAppsDialog()}return;}
-	if(b.dataset.nodeApps){openNodeApps(b.dataset.nodeApps);return;}
 	if(b.dataset.dirGo){act(b,()=>browseDirAt(b.dataset.dirGo));return;}
 	if(b.dataset.dirName){act(b,()=>browseDirAt(joinDir(b.dataset.dirBase,b.dataset.dirName)));return;}
- if(b.dataset.shareNode){act(b,async()=>{const result=await api('node/share',{id:b.dataset.shareNode});$('nodeExportName').textContent=result.name;$('nodeExportURI').value=result.url;qrNodeID=b.dataset.shareNode;$('nodeExportQR').classList.add('hidden');$('toggleNodeQR').textContent=t('显示二维码');$('nodeExportDialog').showModal()});}
- if(b.dataset.action){if(b.dataset.action==='delete'&&!confirm(t('删除这个节点？它的本地代理端口也会停止。')))return;act(b,async()=>{await api('node',{id:b.dataset.id,action:b.dataset.action});const message=t({'start':'代理已启动，端口固定绑定此节点','move-bottom':'已置于列表末尾','auto-order':'已恢复自动排序'}[b.dataset.action]||'操作已完成');if(b.dataset.action==='start'&&!proxyManaged()&&state.platform?.systemProxy!==false)toast(message,false,{label:t('接管系统代理'),onClick:()=>setNodeAsProxy(b.dataset.id)});else toast(message)});}
- if(b.dataset.test){act(b,async()=>{const result=await api('test',{id:b.dataset.test});toast(t('节点可用：')+result.latencyMs+' ms')});}
- 
- if(b.dataset.system){act(b,async()=>{await api('proxy',{id:b.dataset.system,action:'set'});proxyDirty=false;toast(t('系统代理已启用，支持系统代理的浏览器和应用现在使用此节点'))});}
  if(b.dataset.refreshSub){act(b,async()=>{const result=await api('subscription/refresh',{id:b.dataset.refreshSub});toast(t('订阅已更新，共 {count} 个节点',{count:result.count}))});}
  if(b.dataset.coreCheck){act(b,async()=>{const result=await api('core/check',{engine:b.dataset.coreCheck});latest.set(b.dataset.coreCheck,result.version);toast(t('官方最新版本：')+result.version)});}
  if(b.dataset.coreUpdate){act(b,async()=>{toast(t('正在下载并检查核心更新，请稍候…'));await api('core/update',{engine:b.dataset.coreUpdate});toast(t('核心已就绪'))});}
@@ -298,7 +398,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b){
  if(b.dataset.log){act(b,async()=>{const result=await api('log',{engine:b.dataset.log,id:b.dataset.logNode});$('logContent').textContent=result.text;$('logDialog').showModal()});}
  document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden'));
 });
-document.addEventListener('change',e=>{if(e.target.dataset.route){act(null,()=>api('node',{id:e.target.dataset.route,action:'route',route:e.target.value}))}});
 const settingFields={settingPort:'startPort',settingUpdate:'autoUpdate',settingSubscribe:'autoSubscribe',settingAutostart:'autostart',settingOpenBrowser:'openBrowser',settingResume:'resumeNodes',settingRoute:'defaultRoute',settingLog:'logLevel',settingSubscribeHours:'subscribeHours',settingHealth:'healthMonitor',settingHealthInterval:'healthInterval',settingAutoDeploy:'autoDeploy',settingAutoDownload:'autoDownload',settingAccelGuard:'pauseSystemProxyOnAccelerator',settingBypassLAN:'bypassLAN',settingGeoUpdate:'geoAutoUpdate',settingPanelPort:'panelPort'};
 Object.keys(settingFields).forEach(id=>$(id).addEventListener('input',()=>settingsDirty=true));
 $('saveSettings').onclick=()=>act($('saveSettings'),async()=>{const data={};for(const [id,key] of Object.entries(settingFields)){const el=$(id);data[key]=el.type==='checkbox'?el.checked:el.type==='number'?Number(el.value):el.value}const previousPort=state.settings.panelPort;await api('settings',data);settingsDirty=false;toast(t('全局设置已保存'));if(data.panelPort&&data.panelPort!==previousPort){toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+data.panelPort+'/'},1800)}});
@@ -321,4 +420,4 @@ try{pendingView=sessionStorage.getItem('Mirroxy.view')}catch{}
 function restoreView(){if(!pendingView)return;const base=['settings','geofiles','api','changelog'].includes(pendingView)?'settings':pendingView;const nav=document.querySelector('.nav[data-view="'+base+'"]');if(nav&&!nav.classList.contains('hidden')){const target=pendingView;pendingView=null;view(target);if(target==='downloads')window.MirroxyDownloads?.activate()}}
 restoreView();
 setTimeout(loadPanelCertStatus,2000);
-refresh();setInterval(()=>{if(!pending&&!document.hidden&&!document.querySelector('dialog[open]')&&!document.querySelector('.popover:not(.hidden)')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))refresh()},5000);setInterval(refreshTraffic,1000);window.addEventListener('scroll',()=>document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden')),true);
+refresh();setInterval(()=>{if(!pending&&!document.hidden&&!document.querySelector('dialog[open]')&&!document.querySelector('.popover:not(.hidden)')&&nodeMenu.classList.contains('hidden')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))refresh()},5000);setInterval(refreshTraffic,1000);window.addEventListener('scroll',()=>document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden')),true);

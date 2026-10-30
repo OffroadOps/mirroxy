@@ -3,6 +3,28 @@
 本文件由 `packaging/render-changelog.py` 从 `web/changelog.json` 与
 `web/changelog.en.json` 生成；面板内的「更新日志」页面读的是同样这两个文件。
 
+## 0.9.0 (2026-10-30)
+
+- 节点面板改为 v2rayN 式布局：顶部按订阅分组（全部 / 运行中 / 各订阅 / 手动添加），中间是紧凑可排序的节点表格（名称、协议、延迟、本地端口、连接、实时速度、累计流量），去掉占位的统计卡片和提示横条
+- 新增底部状态栏：系统代理「接管 / 清除 / 不改变」与路由「绕过大陆 / 黑名单 / 全局」改为分段按钮，点一下即生效；右侧显示当前系统代理节点、运行数量、总速度与连接数。顶部原来的开关、节点下拉和清除按钮移除
+- 节点支持单击选中、Ctrl / Shift 多选、Ctrl+A 全选，右键菜单覆盖全部操作，并可对多个节点批量启动、停止、测速、复制分享链接、修改出口策略与删除
+- 新增快捷键：回车切换为系统代理、空格启动 / 停止、Ctrl+R 测速、F2 重命名、Ctrl+E 编辑、Ctrl+C 复制分享链接、Delete 删除、方向键移动、Ctrl+F 搜索
+- 在节点页面直接按 Ctrl+V 即可导入剪贴板中的分享链接；粘贴单个订阅地址时自动打开添加订阅窗口并填好地址
+- 新增批量测速：多选时测速所选节点，否则测速当前分组全部节点，显示进度并在完成后汇总可用数量；延迟按快慢着色，超时标红
+- 每行的出口策略下拉框改为仅在与全局不同时显示的小标签，修改移到右键菜单；分组与排序方式会被记住
+
+<details><summary>English</summary>
+
+- The node dashboard now uses a v2rayN-style layout: subscription tabs along the top (All / Running / each subscription / Manual) and a compact, sortable node table (name, protocol, latency, local port, connections, live speed, total traffic). The placeholder stat cards and hint banners are gone.
+- New status bar at the bottom: the system proxy (Take over / Clear / Leave unchanged) and routing (Bypass mainland China / Blacklist / Global) are segmented buttons that apply on click, next to the current system-proxy node, running count, total speed and connections. The old top-bar switch, node picker and clear button are removed.
+- Nodes can be selected with a click, Ctrl / Shift for multi-select and Ctrl+A for all. The right-click menu holds every action and works on several nodes at once: start, stop, test, copy share links, change the exit policy and delete.
+- New shortcuts: Enter uses the node as system proxy, Space starts / stops, Ctrl+R tests, F2 renames, Ctrl+E edits, Ctrl+C copies share links, Delete removes, arrow keys move and Ctrl+F searches.
+- Press Ctrl+V on the node page to import share links from the clipboard. Pasting a single subscription address opens the subscription form with the address filled in.
+- Batch latency test: tests the selected nodes when several are selected, otherwise the whole group, with progress and a summary of available nodes. Latency is coloured by speed and timeouts are shown in red.
+- The per-row exit-policy dropdown is replaced by a small tag shown only when it differs from the global mode; changing it moved to the right-click menu. The chosen tab and sort order are remembered.
+
+</details>
+
 ## 0.8.5 (2026-10-28)
 
 - 修复浏览器接力读不到外部网站 Cookie 的问题：扩展的站点权限只覆盖 localhost，Chrome 因此拒绝返回下载站点的 Cookie，「兼容登录态下载」实际不成立；现在扩展对全部站点申请权限，需要登录或防盗链的下载站可以正常带上 Cookie
