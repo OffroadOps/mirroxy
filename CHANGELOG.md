@@ -12,6 +12,10 @@
 - 在节点页面直接按 Ctrl+V 即可导入剪贴板中的分享链接；粘贴单个订阅地址时自动打开添加订阅窗口并填好地址
 - 新增批量测速：多选时测速所选节点，否则测速当前分组全部节点，显示进度并在完成后汇总可用数量；延迟按快慢着色，超时标红
 - 每行的出口策略下拉框改为仅在与全局不同时显示的小标签，修改移到右键菜单；分组与排序方式会被记住
+- 订阅并入节点面板：每个订阅在顶部有自己的分组标签，右键标签即可更新、编辑或删除；更新失败的订阅在标签上显示红点并在提示中说明原因；分组栏末尾的「＋」直接添加订阅
+- 订阅管理页改为表格：名称、地址（只显示域名，完整订阅地址仍不在面板中出现）、节点数、最后更新与状态，支持更新、编辑、删除和全部更新；点击名称跳到节点面板对应分组
+- 新增编辑订阅：可修改名称或替换订阅地址，节点、端口与自定义名称保持不变，新地址在下次更新时生效
+- 新增删除订阅：可以连同节点一起删除，也可以保留节点为手动添加；不会重启其他节点的核心
 
 <details><summary>English</summary>
 
@@ -22,6 +26,10 @@
 - Press Ctrl+V on the node page to import share links from the clipboard. Pasting a single subscription address opens the subscription form with the address filled in.
 - Batch latency test: tests the selected nodes when several are selected, otherwise the whole group, with progress and a summary of available nodes. Latency is coloured by speed and timeouts are shown in red.
 - The per-row exit-policy dropdown is replaced by a small tag shown only when it differs from the global mode; changing it moved to the right-click menu. The chosen tab and sort order are remembered.
+- Subscriptions are part of the node dashboard: each one has its own tab, and right-clicking the tab updates, edits or deletes it. A subscription whose last update failed shows a red dot with the reason in its tooltip, and the "+" at the end of the tabs adds a subscription.
+- The Subscriptions page is now a table with name, address (host only; the full subscription address still never appears in the panel), node count, last update and status, with update, edit, delete and update-all actions. Clicking a name opens its tab in the node dashboard.
+- Subscriptions can be edited: change the name or replace the address. Nodes, ports and custom names stay as they are, and a new address takes effect on the next update.
+- Subscriptions can be deleted together with their nodes, or with the nodes kept as manual nodes. Other nodes' cores are never restarted.
 
 </details>
 

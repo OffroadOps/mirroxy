@@ -46,7 +46,7 @@ func (a *App) state() M {
 	}
 	subs := []any{}
 	for _, s := range a.cfg.Subscriptions {
-		subs = append(subs, M{"id": s.ID, "name": s.Name, "updated": s.Updated, "error": s.Error})
+		subs = append(subs, M{"id": s.ID, "name": s.Name, "host": subscriptionHost(s.URL), "updated": s.Updated, "error": s.Error})
 	}
 	geoFiles := a.geoFilesState()
 	return M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "token": a.token, "nodes": nodes, "cores": cores, "events": a.events, "subscriptions": subs, "settings": M{"startPort": a.cfg.StartPort, "autoUpdate": a.cfg.AutoUpdate, "autoSubscribe": a.cfg.AutoSubscribe, "autostart": a.cfg.Autostart, "openBrowser": a.cfg.OpenBrowser, "resumeNodes": a.cfg.ResumeNodes, "defaultRoute": a.cfg.DefaultRoute, "routingMode": a.cfg.RoutingMode, "logLevel": a.cfg.LogLevel, "subscribeHours": a.cfg.SubscribeHours, "healthMonitor": a.cfg.HealthMonitor, "healthInterval": a.cfg.HealthInterval, "autoDownload": a.cfg.AutoDownload, "autoDeploy": a.cfg.AutoDeploy, "systemProxyMode": first(a.cfg.SystemProxyMode, "unchanged"), "systemProxyNode": a.cfg.SystemProxyNode, "pauseSystemProxyOnAccelerator": a.acceleratorGuardEnabled(), "acceleratorPaused": a.cfg.PausedSystemProxy != nil, "bypassLAN": a.bypassLANEnabled(), "geoAutoUpdate": a.cfg.GeoAutoUpdate, "panelPort": a.configuredPanelPort(), "panelTLS": a.panelTLS}, "updating": a.busyUpdate, "geoFiles": geoFiles, "systemProxy": proxy, "systemProxyEnabled": en == 1, "root": a.root, "remote": a.remoteState(), "traffic": a.trafficState(), "tray": a.trayWindow != 0, "panelPort": a.panelPort}
@@ -429,6 +429,10 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, M{"id": s.ID}, nil)
+	case "/api/subscription/edit":
+		respond(w, M{"ok": true}, a.editSubscription(body.ID, body.Name, body.URL))
+	case "/api/subscription/delete":
+		respond(w, M{"ok": true}, a.deleteSubscription(body.ID, body.Mode == "keep"))
 	case "/api/log":
 		engine, ok := internalEngine(body.Engine)
 		if !ok {

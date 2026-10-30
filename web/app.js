@@ -31,7 +31,7 @@ function render(){
  $('appNavCount').textContent=appRoutingAvailable?((appRoutingDraft?.profiles??state.appRouting?.profiles)??[]).length:0;
  $('subNavCount').textContent=state.subscriptions.length;
  restoreView();
- $('subscriptions').innerHTML=state.subscriptions.length?state.subscriptions.map(s=>`<article class="sub-card"><div><h3>${escapeHTML(s.name)}</h3><small>${escapeHTML(s.error||t('最后更新：')+(s.updated||t('尚未更新')))}</small></div><button class="button small" data-refresh-sub="${s.id}">↻ ${t('更新订阅')}</button></article>`).join(''):`<div class="empty"><h3>${t('还没有添加订阅')}</h3><p>${t('添加订阅后，可以在这里一键更新节点。')}</p></div>`;
+ renderSubscriptions();
  renderCores()
  renderGeoFiles()
  if(!settingsDirty){for(const [id,key] of Object.entries(settingFields)){$(id)[$(id).type==='checkbox'?'checked':'value']=state.settings[key]??'';}}
@@ -80,7 +80,7 @@ let trafficBusy=false;
 async function refreshTraffic(){if(trafficBusy||document.hidden)return;trafficBusy=true;try{const res=await fetch('/api/traffic',{cache:'no-store'});if(res.ok){const traffic=await res.json();if(state){state.traffic=traffic;renderTraffic(traffic)}}}catch{}finally{trafficBusy=false}}
 function groupLabel(g){return g.id==='all'?t('全部'):g.id==='running'?t('running'):g.id==='manual'?t('手动添加'):g.name}
 function renderGroups(){const list=NT.groups(state.nodes,state.subscriptions);if(!list.some(g=>g.id===nodeGroup))nodeGroup='all';
- $('nodeGroups').innerHTML=list.map(g=>`<button type="button" role="tab" class="nx-group${g.id===nodeGroup?' active':''}" aria-selected="${g.id===nodeGroup}" data-node-group="${escapeHTML(g.id)}">${escapeHTML(groupLabel(g))}<span>${g.count}</span></button>`).join('')}
+ $('nodeGroups').innerHTML=list.map(g=>{const sub=g.id.startsWith('sub:')?subByID(g.id.slice(4)):null;const title=sub?[sub.host,sub.error?t(sub.error):sub.updated?t('最后更新：')+sub.updated:t('尚未更新'),t('右键：更新 / 编辑 / 删除')].filter(Boolean).join('\n'):'';return `<button type="button" role="tab" class="nx-group${g.id===nodeGroup?' active':''}${sub?.error?' error':''}" aria-selected="${g.id===nodeGroup}" data-node-group="${escapeHTML(g.id)}"${title?` title="${escapeHTML(title)}"`:''}>${escapeHTML(groupLabel(g))}<span>${g.count}</span></button>`}).join('')+`<button type="button" class="nx-group nx-group-add" id="addSubscriptionTab" title="${t('添加订阅')}" aria-label="${t('添加订阅')}">＋</button>`}
 function nodeRow(n){
  const running=n.status==='running',dot=n.status==='error'?'error':running?'running':n.enabled?'starting':'stopped';
  const tags=(n.route&&n.route!=='inherit'?`<span class="nx-tag" title="${t('出口策略')}">${routeLabel(n.route)}</span>`:'')+(n.listBottom?`<span class="nx-tag" title="${t('手动置底，启动后仍保持在列表末尾')}">${t('已置底')}</span>`:'');
@@ -180,7 +180,7 @@ function runNodeVerb(verb,ids){
   const message=t({start:'代理已启动，端口固定绑定此节点',stop:'代理已停止','move-bottom':'已置于列表末尾','auto-order':'已恢复自动排序',delete:'节点已删除'}[verb]||'操作已完成');
   if(verb==='start'&&one&&!proxyManaged()&&state.platform?.systemProxy!==false)toast(message,false,{label:t('接管系统代理'),onClick:()=>setNodeAsProxy(n.id)});else toast(message)});
 }
-nodeMenu.addEventListener('click',e=>{const b=e.target.closest('[data-nm]');if(!b)return;closeNodeMenu();runNodeVerb(b.dataset.nm,menuNodeIDs)});
+nodeMenu.addEventListener('click',e=>{const b=e.target.closest('[data-nm]');if(!b)return;closeNodeMenu();if(b.dataset.nm.startsWith('sub-'))runSubVerb(b.dataset.nm);else runNodeVerb(b.dataset.nm,menuNodeIDs)});
 nodeMenu.addEventListener('keydown',e=>{const items=[...nodeMenu.querySelectorAll('button')];const index=items.indexOf(document.activeElement);if(e.key==='Escape'){closeNodeMenu();$('nodeTableWrap').focus();return}if(['ArrowDown','ArrowUp','Home','End'].includes(e.key)){e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?items.length-1:(index+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items[next]?.focus()}});
 document.addEventListener('pointerdown',e=>{if(!nodeMenu.contains(e.target))closeNodeMenu()});
 window.addEventListener('resize',closeNodeMenu);window.addEventListener('scroll',e=>{if(!nodeMenu.contains(e.target))closeNodeMenu()},true);
@@ -189,7 +189,7 @@ $('nodes').addEventListener('mousedown',e=>{if(e.shiftKey&&e.target.closest('[da
 $('nodes').addEventListener('contextmenu',e=>{const row=e.target.closest('[data-node-id]');if(!row)return;e.preventDefault();if(!selectedNodes.has(row.dataset.nodeId))selectNode(row.dataset.nodeId);else{nodeCursor=row.dataset.nodeId;paintSelection()}openNodeMenu(e.clientX,e.clientY)});
 // Double-clicking a node row switches to it in one action.
 $('nodes').addEventListener('dblclick',e=>{const row=e.target.closest('[data-node-id]');if(!row||e.target.closest('button,select,input,textarea,a'))return;switchNode(row.dataset.nodeId)});
-$('nodeGroups').addEventListener('click',e=>{const b=e.target.closest('[data-node-group]');if(!b)return;nodeGroup=b.dataset.nodeGroup;saveNodeTable();renderNodes()});
+$('nodeGroups').addEventListener('click',e=>{if(e.target.closest('#addSubscriptionTab')){showImport('subscription');return}const b=e.target.closest('[data-node-group]');if(!b)return;nodeGroup=b.dataset.nodeGroup;saveNodeTable();renderNodes()});
 $('nodeHead').addEventListener('click',e=>{const b=e.target.closest('[data-sort]');if(!b)return;nodeSort=NT.nextSort(nodeSort,b.dataset.sort);saveNodeTable();renderNodes()});
 document.addEventListener('keydown',e=>{
  if(!nodesView()||document.querySelector('dialog[open]')||!nodeMenu.classList.contains('hidden'))return;
@@ -226,7 +226,42 @@ document.querySelectorAll('[data-proxy-mode]').forEach(b=>b.onclick=()=>{const m
 })});
 document.querySelectorAll('[data-routing]').forEach(b=>b.onclick=()=>{if(!state||b.dataset.routing===(state.settings.routingMode||'bypass-cn'))return;act(null,async()=>{await api('routing',{mode:b.dataset.routing});toast(t('路由模式已切换，相关节点的连接会短暂重连'))})});
 $('testNodes').onclick=()=>testNodes(toolbarTestTargets());
-$('refreshSubs').onclick=()=>{if(!state.subscriptions.length){showImport('subscription');return}const subs=nodeGroup.startsWith('sub:')?state.subscriptions.filter(s=>'sub:'+s.id===nodeGroup):state.subscriptions;act($('refreshSubs'),async()=>{let count=0;const errors=[];for(const s of subs){try{count+=(await api('subscription/refresh',{id:s.id})).count}catch(e){errors.push(s.name+'：'+e.message)}}if(errors.length)throw Error(errors.join('\n'));toast(t('订阅已更新，共 {count} 个节点',{count}))})};
+// Subscriptions live in two places: a tab per subscription above the node table
+// (right-click for update / edit / delete) and a management table on their own
+// page. Both share these helpers.
+const subByID=id=>state?.subscriptions.find(s=>s.id===id);
+const subNodeCount=id=>state.nodes.filter(n=>n.source===id).length;
+async function refreshSubscriptions(subs,button){
+ if(!subs.length){showImport('subscription');return}
+ await act(button,async()=>{let count=0,deployed=0;const errors=[];for(const s of subs){try{const result=await api('subscription/refresh',{id:s.id});count+=result.count;deployed+=result.deployed||0}catch(e){errors.push(s.name+'：'+e.message)}}
+  if(errors.length)throw Error(errors.join('\n'));toast(deployed?t('订阅已更新，共 {count} 个节点，自动启动 {deployed} 个代理',{count,deployed}):t('订阅已更新，共 {count} 个节点',{count}))});
+}
+let editingSubID='',deletingSubID='';
+function openSubEdit(id){const s=subByID(id);if(!s)return;editingSubID=id;$('subEditName').value=s.name;$('subEditUrl').value='';$('subEditHint').textContent=s.host?t('当前地址：{host}（完整地址不在面板中显示）',{host:s.host}):'';$('subEditDialog').showModal();$('subEditName').focus();$('subEditName').select()}
+function openSubDelete(id){const s=subByID(id);if(!s)return;deletingSubID=id;const count=subNodeCount(id);$('subDeleteText').textContent=t('删除订阅「{name}」？它有 {count} 个节点：可以一起删除（相应代理端口会停止），也可以保留为手动添加的节点。',{name:s.name,count});$('subDeleteKeep').classList.toggle('hidden',!count);$('subDeleteDialog').showModal()}
+function deleteSubscription(keep){const id=deletingSubID;act(keep?$('subDeleteKeep'):$('subDeleteAll'),async()=>{await api('subscription/delete',{id,mode:keep?'keep':'delete'});$('subDeleteDialog').close();if(nodeGroup==='sub:'+id){nodeGroup='all';saveNodeTable()}toast(t(keep?'订阅已删除，节点已保留为手动添加':'订阅及其节点已删除'))})}
+function openSubMenu(id,x,y){const s=subByID(id);if(!s)return;
+ nodeMenu.innerHTML=`<div class="nx-menu-caption">${escapeHTML(s.name)}${s.host?' · '+escapeHTML(s.host):''}</div>`+menuItem('sub-refresh:'+id,t('更新此订阅'),true)+menuItem('sub-edit:'+id,t('编辑订阅'),true)+'<div class="nx-menu-sep" role="separator"></div>'+menuItem('sub-delete:'+id,t('删除订阅'),true);
+ nodeMenu.classList.remove('hidden');nodeMenu.style.maxHeight=Math.max(120,window.innerHeight-16)+'px';
+ const point=NT.position(x,y,nodeMenu.offsetWidth,nodeMenu.offsetHeight,window.innerWidth,window.innerHeight);
+ nodeMenu.style.left=point.left+'px';nodeMenu.style.top=point.top+'px';nodeMenu.querySelector('button')?.focus();
+}
+function runSubVerb(verb){const [action,id]=verb.split(':');const s=subByID(id);if(!s)return;
+ if(action==='sub-refresh')refreshSubscriptions([s],null);else if(action==='sub-edit')openSubEdit(id);else if(action==='sub-delete')openSubDelete(id)}
+function renderSubscriptions(){
+ const subs=state.subscriptions;$('subTableWrap').classList.toggle('hidden',!subs.length);$('subEmpty').classList.toggle('hidden',!!subs.length);$('refreshAllSubs').classList.toggle('hidden',!subs.length);
+ $('subAutoNote').textContent=state.settings.autoSubscribe?t('每 {hours} 小时自动更新',{hours:state.settings.subscribeHours}):t('自动更新已关闭，可在全局设置中开启');
+ $('subscriptions').innerHTML=subs.map(s=>{const count=subNodeCount(s.id);return `<tr data-sub-id="${s.id}"><td class="nx-name"><button type="button" class="nx-link" data-open-sub="${s.id}" title="${t('在节点面板中查看')}">${escapeHTML(s.name)}</button></td><td class="nx-host">${escapeHTML(s.host||'—')}</td><td class="numeric">${count}</td><td>${escapeHTML(s.updated||t('尚未更新'))}</td><td>${s.error?`<span class="nx-sub-error" title="${escapeHTML(t(s.error))}">${escapeHTML(t(s.error))}</span>`:s.updated?`<span class="nx-sub-ok">${t('正常')}</span>`:'—'}</td><td class="nx-row-actions"><button type="button" class="button small" data-refresh-sub="${s.id}">${t('更新')}</button><button type="button" class="button small ghost" data-edit-sub="${s.id}">${t('编辑')}</button><button type="button" class="button small ghost danger" data-delete-sub="${s.id}">${t('删除')}</button></td></tr>`}).join('');
+}
+$('refreshSubs').onclick=()=>refreshSubscriptions(nodeGroup.startsWith('sub:')?state.subscriptions.filter(s=>'sub:'+s.id===nodeGroup):state.subscriptions,$('refreshSubs'));
+$('refreshAllSubs').onclick=()=>refreshSubscriptions(state.subscriptions,$('refreshAllSubs'));
+$('nodeGroups').addEventListener('contextmenu',e=>{const b=e.target.closest('[data-node-group^="sub:"]');if(!b)return;e.preventDefault();openSubMenu(b.dataset.nodeGroup.slice(4),e.clientX,e.clientY)});
+$('subscriptions').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.editSub)openSubEdit(b.dataset.editSub);else if(b.dataset.deleteSub)openSubDelete(b.dataset.deleteSub);else if(b.dataset.openSub){nodeGroup='sub:'+b.dataset.openSub;saveNodeTable();view('nodes');renderNodes()}});
+$('cancelSubEdit').onclick=()=>$('subEditDialog').close();
+$('subEditForm').onsubmit=e=>{e.preventDefault();const id=editingSubID;act($('saveSubEdit'),async()=>{const name=$('subEditName').value.trim();if(!name)throw Error(t('请填写订阅名称'));await api('subscription/edit',{id,name,url:$('subEditUrl').value.trim()});$('subEditDialog').close();toast(t('订阅已保存'))})};
+$('cancelSubDelete').onclick=()=>$('subDeleteDialog').close();
+$('subDeleteKeep').onclick=()=>deleteSubscription(true);
+$('subDeleteAll').onclick=()=>deleteSubscription(false);
 function cloneAppRouting(value){return JSON.parse(JSON.stringify(value||{defaultNode:'',compatMode:false,profiles:[]}))}
 function renderAppRouting(){
  const routing=state.appRouting;if(!routing)return;
@@ -370,7 +405,7 @@ $('useProcess').onclick=()=>{const value=$('runningProcess').value;if(!value)ret
 $('saveAppRouting').onclick=()=>act($('saveAppRouting'),async()=>{await saveAppRoutingConfig();toast(t('应用代理配置已保存'))});
 $('toggleAppRouting').onclick=()=>act($('toggleAppRouting'),async()=>{if(state.appRouting.active||state.appRouting.running){await api('app-routing/stop',{});toast(t('应用代理已停止'))}else{if(appRoutingDirty)await saveAppRoutingConfig();const scan=await apiGet('app-routing/conflicts');if(scan.conflicts?.length){const names=scan.conflicts.map(x=>x.product+'（'+x.process+'）').join('、');if(!confirm(t('检测到正在运行的疑似加速器：{names}。\n\n两者都会接管游戏流量，可能互相冲突、加速失效或掉线。建议先退出加速器再开启。仍要继续吗？',{names})))return toast(t('已取消开启，请先退出加速器'),true)}await api('app-routing/start',{});toast(t('应用代理已启动'))}});
 $('probeCapabilities').onclick=()=>act($('probeCapabilities'),async()=>{if(!appRoutingDraft.defaultNode)throw Error(t('请先选择默认应用节点'));const result=await api('node/capabilities',{id:appRoutingDraft.defaultNode});toast(t('能力检测完成：')+` TCP ${result.tcp?'✓':'×'} · UDP ${result.udp?'✓':'×'} · IPv6 ${result.ipv6?'✓':'×'}`)});
-$('importTop').onclick=$('importEmpty').onclick=()=>showImport();$('addSubscription').onclick=()=>showImport('subscription');
+$('importTop').onclick=$('importEmpty').onclick=()=>showImport();$('addSubscription').onclick=$('addSubscriptionEmpty').onclick=()=>showImport('subscription');
 $('search').oninput=()=>state&&renderNodes();
 $('doImport').onclick=()=>act($('doImport'),async()=>{
  let result;if(importMode==='subscription'){if(!$('subUrl').value.trim())throw Error(t('请填写订阅地址'));const added=await api('subscription/add',{name:$('subName').value.trim(),url:$('subUrl').value.trim()});result=await api('subscription/refresh',{id:added.id})}

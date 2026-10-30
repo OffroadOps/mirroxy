@@ -9,7 +9,11 @@
       "New shortcuts: Enter uses the node as system proxy, Space starts / stops, Ctrl+R tests, F2 renames, Ctrl+E edits, Ctrl+C copies share links, Delete removes, arrow keys move and Ctrl+F searches.",
       "Press Ctrl+V on the node page to import share links from the clipboard. Pasting a single subscription address opens the subscription form with the address filled in.",
       "Batch latency test: tests the selected nodes when several are selected, otherwise the whole group, with progress and a summary of available nodes. Latency is coloured by speed and timeouts are shown in red.",
-      "The per-row exit-policy dropdown is replaced by a small tag shown only when it differs from the global mode; changing it moved to the right-click menu. The chosen tab and sort order are remembered."
+      "The per-row exit-policy dropdown is replaced by a small tag shown only when it differs from the global mode; changing it moved to the right-click menu. The chosen tab and sort order are remembered.",
+      "Subscriptions are part of the node dashboard: each one has its own tab, and right-clicking the tab updates, edits or deletes it. A subscription whose last update failed shows a red dot with the reason in its tooltip, and the \"+\" at the end of the tabs adds a subscription.",
+      "The Subscriptions page is now a table with name, address (host only; the full subscription address still never appears in the panel), node count, last update and status, with update, edit, delete and update-all actions. Clicking a name opens its tab in the node dashboard.",
+      "Subscriptions can be edited: change the name or replace the address. Nodes, ports and custom names stay as they are, and a new address takes effect on the next update.",
+      "Subscriptions can be deleted together with their nodes, or with the nodes kept as manual nodes. Other nodes' cores are never restarted."
     ]
   },
   {

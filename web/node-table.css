@@ -97,3 +97,26 @@ th[aria-sort=descending] .nx-sort::after{content:'▼'}
 .nx-status-info{margin-left:0;flex-wrap:wrap;white-space:normal}
 .nx-hint{display:none}
 }
+
+/* Subscription tabs and the subscription management table. */
+.nx-group.error{color:var(--nx-bad)}
+.nx-group.error::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--nx-bad)}
+.nx-group-add{padding:6px 9px;color:var(--nx-faint)}
+.nx-page-title{display:flex;align-items:baseline;gap:12px;min-width:0}
+.nx-page-title h2{margin:0;font-size:16px}
+.nx-page-note{font-size:11px;color:var(--nx-faint)}
+.nx-sub-table{min-width:640px}
+.nx-col-subname{width:24%}.nx-col-host{width:20%}.nx-col-count{width:8%}.nx-col-updated{width:15%}.nx-col-substatus{width:11%}.nx-col-subactions{width:22%}
+.nx-sub-table td{height:40px}
+.nx-sub-table tbody tr:hover td{background:transparent}
+.nx-link{border:0;background:none;padding:0;color:var(--nx-accent);font:inherit;font-weight:500;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.nx-link:hover{text-decoration:underline}
+.nx-host{font:11px Consolas,monospace;color:var(--nx-soft)}
+.nx-sub-error{color:var(--nx-bad)}
+.nx-sub-ok{color:var(--nx-fast)}
+.nx-row-actions{text-align:right;text-overflow:clip}
+.nx-row-actions .button{padding:5px 8px;font-size:11px;margin-left:2px}
+.button.danger-fill{background:#bf453c;border-color:#bf453c}
+.button.danger-fill:hover{background:#a63a32}
+#subEditDialog,#subDeleteDialog{width:min(480px,calc(100vw - 28px))}
+html[data-theme=dark] .button.danger-fill{background:#a8433b;border-color:#c0564d;color:#fff}

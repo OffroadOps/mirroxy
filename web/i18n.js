@@ -358,6 +358,40 @@
     "节点已删除": "Node deleted",
     "先双击一个节点，把它设为系统代理": "Double-click a node first to use it as the system proxy"
   });
+  // Subscription tabs, management table and dialogs.
+  Object.assign(en, {
+    "全部更新": "Update all",
+    "添加订阅": "Add subscription",
+    "地址": "Address",
+    "节点": "Nodes",
+    "最后更新": "Last updated",
+    "状态": "Status",
+    "添加订阅后，节点面板顶部会出现对应的分组标签，可以一键更新。": "Each subscription gets its own tab above the node table, where it can be updated in one click.",
+    "支持常见分享链接组成的明文或 Base64 订阅。更新时已匹配节点的本地端口和自定义名称保持不变；订阅中找不到原节点时会停用该节点，不会自动改走其他线路。": "Plain-text and Base64 subscriptions made of common share links are supported. Updating keeps the local ports and custom names of matched nodes; a node missing from the subscription is stopped instead of silently switching to another route.",
+    "编辑订阅": "Edit subscription",
+    "新的订阅地址": "New subscription address",
+    "留空则保留原地址": "Leave empty to keep the current address",
+    "修改地址后，下次更新订阅时生效；节点、端口与自定义名称保持不变。": "A new address takes effect on the next update; nodes, ports and custom names stay as they are.",
+    "保存": "Save",
+    "删除订阅": "Delete subscription",
+    "删除订阅，保留节点": "Delete, keep nodes",
+    "删除订阅和节点": "Delete with nodes",
+    "订阅已更新，共 {count} 个节点，自动启动 {deployed} 个代理": "Subscription updated: {count} nodes, {deployed} proxies started",
+    "当前地址：{host}（完整地址不在面板中显示）": "Current address: {host} (the full address is not shown in the panel)",
+    "删除订阅「{name}」？它有 {count} 个节点：可以一起删除（相应代理端口会停止），也可以保留为手动添加的节点。": "Delete the subscription \"{name}\"? It has {count} nodes: delete them too (their proxy ports stop) or keep them as manually added nodes.",
+    "订阅已删除，节点已保留为手动添加": "Subscription deleted; its nodes are kept as manual nodes",
+    "订阅及其节点已删除": "Subscription and its nodes deleted",
+    "更新此订阅": "Update this subscription",
+    "每 {hours} 小时自动更新": "Updates automatically every {hours} hours",
+    "自动更新已关闭，可在全局设置中开启": "Automatic updates are off; turn them on in Settings",
+    "在节点面板中查看": "Show in the node dashboard",
+    "正常": "OK",
+    "删除": "Delete",
+    "右键：更新 / 编辑 / 删除": "Right-click: update / edit / delete",
+    "请填写订阅名称": "Enter a subscription name",
+    "订阅已保存": "Subscription saved",
+    "订阅下载或解析失败，请检查地址与网络": "Could not download or parse the subscription. Check the address and the network."
+  });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
     return values.some(value => String(value).toLowerCase().startsWith('zh')) ? 'zh-CN' : 'en';
