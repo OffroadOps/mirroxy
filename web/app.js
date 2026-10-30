@@ -56,7 +56,7 @@ function renderHealth(health){if(!health)return;
  for(const [id,h] of Object.entries(health.nodes)){
   const cell=$('nodes').querySelector('[data-node-id="'+id+'"] [data-health]');if(!cell)continue;
   const online=h.status==='online'&&h.latencyMs>0;
-  cell.textContent=online?h.latencyMs+' ms':h.status==='offline'?t('超时'):h.checking?t('检测中…'):'—';
+  cell.textContent=online?h.latencyMs+' ms':h.status==='offline'?t('unavailable'):h.checking?t('检测中…'):'—';
   cell.dataset.status=online?NT.latencyClass(h.latencyMs):h.status;cell.classList.toggle('checking',!!h.checking);
   const checked=Date.parse(h.checkedAt)>0?new Date(h.checkedAt).toLocaleString():'';
   cell.title=checked?t('最近检测：')+checked+(h.status==='offline'&&h.error?'\n'+t(h.error):''):t('尚未完成首次联网检测');
