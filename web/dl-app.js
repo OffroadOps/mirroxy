@@ -194,7 +194,7 @@
       '-',
       { label: '关闭窗口', run: () => window.close() },
     ],
-    download: taskMenu,
+    download: () => [...taskMenu(), '-', { label: '下载设置', run: openSettings }],
     view: () => {
       const dark = document.documentElement.dataset.theme === 'dark', lang = window.MirroxyI18n?.preference || 'auto';
       return [
@@ -227,12 +227,17 @@
   }
   function proxyFields() { const mode = $('dmProxyMode').value; $('dmNodeField').classList.toggle('hidden', mode !== 'node'); $('dmProxyField').classList.toggle('hidden', mode !== 'custom'); $('dmNode').required = mode === 'node'; $('dmProxy').required = mode === 'custom'; }
   function openAdd(url = '') {
-    $('dmURL').value = url; $('dmName').value = ''; $('dmDir').value = $('dmDir').value || data.defaultDir || '';
-    updateNodes(); proxyFields(); $('dmAddError').classList.add('hidden'); $('dmAddDialog').showModal(); (url ? $('dmStart') : $('dmURL')).focus();
+    $('dmURL').value = url; $('dmName').value = ''; $('dmDir').value = data.defaultDir || '';
+    const defaults = data.defaults || {};
+    $('dmProxyMode').value = defaults.proxyMode || 'direct';
+    $('dmConnections').value = String(defaults.connections || 8);
+    $('dmLimit').value = defaults.limitKiB || 0;
+    $('dmProxy').value = defaults.proxyUrl || '';
+    updateNodes(); $('dmNode').value = defaults.nodeId || ''; proxyFields(); $('dmAddError').classList.add('hidden'); $('dmAddDialog').showModal(); (url ? $('dmStart') : $('dmURL')).focus();
   }
   async function submitAdd(paused) {
     const form = $('dmAddForm'); if (!form.reportValidity()) return;
-    const spec = { url: $('dmURL').value.trim(), name: $('dmName').value.trim(), dir: $('dmDir').value.trim(), proxyMode: $('dmProxyMode').value, nodeId: $('dmNode').value, proxyUrl: $('dmProxy').value.trim(), connections: Number($('dmConnections').value), limitKiB: 0 };
+    const spec = { url: $('dmURL').value.trim(), name: $('dmName').value.trim(), dir: $('dmDir').value.trim(), proxyMode: $('dmProxyMode').value, nodeId: $('dmNode').value, proxyUrl: $('dmProxy').value.trim(), connections: Number($('dmConnections').value), limitKiB: Number($('dmLimit').value) };
     $('dmStart').disabled = $('dmLater').disabled = true;
     try { await request('downloads/add', { ...spec, paused }); $('dmAddDialog').close(); toast(t(paused ? '任务已添加，稍后可点击「继续」开始' : '已开始下载')); await loadTasks(); }
     catch (error) { $('dmAddError').textContent = error.message; $('dmAddError').classList.remove('hidden'); }
@@ -251,6 +256,39 @@
     for (const task of done) { try { await request('downloads/action', { id: task.id, action: 'remove', deleteFiles: false }); } catch (error) { toast(error.message, true); break; } }
     await loadTasks();
   }
+
+  function defaultProxyFields() {
+    const mode = $('dmDefaultMode').value;
+    $('dmDefaultNodeField').classList.toggle('hidden', mode !== 'node');
+    $('dmDefaultProxyField').classList.toggle('hidden', mode !== 'custom');
+    $('dmDefaultNode').required = mode === 'node';
+    $('dmDefaultProxy').required = mode === 'custom';
+  }
+  function openSettings() {
+    const defaults = data.defaults || {};
+    $('dmDefaultDir').value = data.defaultDir || '';
+    $('dmDefaultMode').value = defaults.proxyMode || 'direct';
+    $('dmDefaultConnections').value = defaults.connections || 8;
+    $('dmDefaultLimit').value = defaults.limitKiB || 0;
+    $('dmDefaultProxy').value = defaults.proxyUrl || '';
+    const nodes = app?.nodes || [];
+    $('dmDefaultNode').innerHTML = '<option value="">选择节点</option>' + nodes.map(n => `<option value="${esc(n.id)}">${esc(n.name)}</option>`).join('');
+    $('dmDefaultNode').value = defaults.nodeId || '';
+    defaultProxyFields(); $('dmSettingsError').classList.add('hidden'); $('dmSettingsDialog').showModal();
+  }
+  $('dmSettings').onclick = openSettings;
+  $('dmDefaultMode').onchange = defaultProxyFields;
+  $('dmSettingsCancel').onclick = () => $('dmSettingsDialog').close();
+  $('dmRelaySettings').onclick = () => window.open('/#browser-relay', '_blank');
+  $('dmSettingsForm').onsubmit = async e => {
+    e.preventDefault();
+    const button = e.submitter; if (button) button.disabled = true;
+    try {
+      await request('downloads/settings', { dir: $('dmDefaultDir').value.trim(), proxyMode: $('dmDefaultMode').value, nodeId: $('dmDefaultNode').value, proxyUrl: $('dmDefaultProxy').value.trim(), connections: Number($('dmDefaultConnections').value), limitKiB: Number($('dmDefaultLimit').value) });
+      await loadTasks(); $('dmSettingsDialog').close(); toast(t('已保存'));
+    } catch (error) { $('dmSettingsError').textContent = error.message; $('dmSettingsError').classList.remove('hidden'); }
+    finally { if (button) button.disabled = false; }
+  };
 
   // Wiring -----------------------------------------------------------------
   $('dmAdd').onclick = () => openAdd();

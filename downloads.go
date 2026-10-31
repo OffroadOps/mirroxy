@@ -57,6 +57,7 @@ type DownloadTask struct {
 	lastCompleted   string
 }
 type downloadJournal struct {
+	Defaults   DownloadSpec    `json:"defaults"`
 	Tasks      []*DownloadTask `json:"tasks"`
 	DefaultDir string          `json:"defaultDir"`
 }
@@ -88,6 +89,9 @@ func (a *App) downloads() (*DownloadManager, error) {
 	}
 	if d.journal.Tasks == nil {
 		d.journal.Tasks = []*DownloadTask{}
+	}
+	if d.journal.Defaults.Connections == 0 {
+		d.journal.Defaults = DownloadSpec{Connections: 8, ProxyMode: "direct"}
 	}
 	for _, task := range d.journal.Tasks {
 		task.Speed = "0"
@@ -313,7 +317,28 @@ func (d *DownloadManager) validate(spec DownloadSpec) (DownloadSpec, error) {
 	return spec, nil
 }
 
+func (d *DownloadManager) updateDefaults(spec DownloadSpec) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	spec.URL = "https://example.invalid/"
+	spec.Name, spec.Referer, spec.UserAgent, spec.Cookie = "", "", "", ""
+	validated, err := d.validate(spec)
+	if err != nil {
+		return err
+	}
+	validated.URL = ""
+	previous := d.journal
+	d.journal.Defaults = validated
+	d.journal.DefaultDir = validated.Dir
+	if err := d.save(); err != nil {
+		d.journal = previous
+		return err
+	}
+	return nil
+}
+
 func resolveDownloadDirectory(path string) string {
+	path = filepath.Clean(filepath.FromSlash(path))
 	if resolved, err := filepath.EvalSymlinks(path); err == nil {
 		return resolved
 	}
@@ -560,7 +585,7 @@ func (d *DownloadManager) snapshot() (M, error) {
 		tasks = append(tasks, &copy)
 	}
 	sort.SliceStable(tasks, func(i, j int) bool { return tasks[i].Created > tasks[j].Created })
-	return M{"available": d.binary() != "", "running": d.alive(), "tasks": tasks, "defaultDir": d.journal.DefaultDir, "maxConnections": 16, "maxConcurrent": 30}, nil
+	return M{"available": d.binary() != "", "running": d.alive(), "tasks": tasks, "defaultDir": d.journal.DefaultDir, "defaults": d.journal.Defaults, "maxConnections": 16, "maxConcurrent": 30}, nil
 }
 func (d *DownloadManager) add(spec DownloadSpec, paused bool) (string, error) {
 	d.mu.Lock()
@@ -665,6 +690,7 @@ func (d *DownloadManager) action(id, action string, spec DownloadSpec, deleteFil
 				return err
 			}
 		}
+		task.GID = "" // The engine result was removed; retries must only handle remaining files.
 		task.Wanted = false
 		if len(deleteFiles) > 0 && deleteFiles[0] {
 			if err := d.save(); err != nil {
@@ -859,6 +885,11 @@ func (a *App) downloadAPI(w http.ResponseWriter, r *http.Request) {
 	decoder.DisallowUnknownFields()
 	if err = decoder.Decode(&body); err != nil {
 		respond(w, nil, errors.New("下载参数格式错误"))
+		return
+	}
+	if r.URL.Path == "/api/downloads/settings" {
+		err = d.updateDefaults(body.DownloadSpec)
+		respond(w, M{"ok": err == nil}, err)
 		return
 	}
 	if r.URL.Path == "/api/downloads/add" {

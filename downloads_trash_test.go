@@ -127,3 +127,59 @@ func TestDownloadDeleteDoesNotGuessZeroByteTaskFile(t *testing.T) {
 		t.Fatal("planned but untouched file moved")
 	}
 }
+
+func TestDownloadDeleteMissingFilesWithStaleDirectory(t *testing.T) {
+	d, task := trashFixture(t)
+	if err := os.Remove(task.Path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(task.Path + ".aria2"); err != nil {
+		t.Fatal(err)
+	}
+	// Historical directory spelling/location must not block record removal
+	// when neither payload nor resume data exists.
+	task.Dir = filepath.Join(t.TempDir(), "old-directory")
+	if err := d.action(task.ID, "remove", DownloadSpec{}, true); err != nil {
+		t.Fatal(err)
+	}
+	if len(d.journal.Tasks) != 0 {
+		t.Fatal("missing task was retained")
+	}
+}
+
+func TestDownloadDeleteMissingPayloadStillProtectsForeignResumeData(t *testing.T) {
+	d, task := trashFixture(t)
+	if err := os.Remove(task.Path); err != nil {
+		t.Fatal(err)
+	}
+	task.Dir = t.TempDir()
+	if err := d.trashTaskFiles(task); err == nil {
+		t.Fatal("foreign resume data accepted")
+	}
+	if _, err := os.Stat(task.Path + ".aria2"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDownloadDefaultsPersistAndValidate(t *testing.T) {
+	d, _ := trashFixture(t)
+	spec := DownloadSpec{Dir: t.TempDir(), ProxyMode: "custom", ProxyURL: "http://127.0.0.1:10808", Connections: 4, LimitKiB: 512}
+	if err := d.updateDefaults(spec); err != nil {
+		t.Fatal(err)
+	}
+	d.a.downloadManager = nil
+	reloaded, err := d.a.downloads()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.journal.Defaults.Connections != 4 || reloaded.journal.Defaults.LimitKiB != 512 || reloaded.journal.DefaultDir != spec.Dir {
+		t.Fatal("defaults not persisted")
+	}
+	spec.Connections = 17
+	if err := reloaded.updateDefaults(spec); err == nil {
+		t.Fatal("invalid defaults accepted")
+	}
+	if reloaded.journal.Defaults.Connections != 4 {
+		t.Fatal("invalid save changed defaults")
+	}
+}

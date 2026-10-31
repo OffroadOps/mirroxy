@@ -16,6 +16,15 @@ func (d *DownloadManager) trashTaskFiles(task *DownloadTask) error {
 	if task.Path == "" {
 		return nil
 	}
+	// Missing payload and resume data require no filesystem mutation.
+	path := filepath.Clean(filepath.FromSlash(task.Path))
+	if filepath.IsAbs(path) {
+		_, fileErr := os.Lstat(path)
+		_, resumeErr := os.Lstat(path + ".aria2")
+		if errors.Is(fileErr, os.ErrNotExist) && errors.Is(resumeErr, os.ErrNotExist) {
+			return nil
+		}
+	}
 	completed, _ := strconv.ParseUint(task.Completed, 10, 64)
 	if completed == 0 && task.Status != "complete" {
 		return nil
@@ -23,7 +32,6 @@ func (d *DownloadManager) trashTaskFiles(task *DownloadTask) error {
 	if _, err := d.validate(task.DownloadSpec); err != nil {
 		return errors.New("保存目录校验失败，未删除文件")
 	}
-	path := filepath.Clean(filepath.FromSlash(task.Path))
 	equal := func(a, b string) bool {
 		if runtime.GOOS == "windows" {
 			return strings.EqualFold(a, b)
