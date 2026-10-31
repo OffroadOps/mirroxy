@@ -16,7 +16,13 @@
   const save = () => { try { localStorage.setItem('Mirroxy.downloadWindow', JSON.stringify({ node, sort })); } catch {} };
 
   function toast(message, error = false) { clearTimeout(toastTimer); const el = $('dmToast'); el.textContent = message; el.className = 'dm-toast' + (error ? ' error' : ''); toastTimer = setTimeout(() => el.classList.add('hidden'), error ? 8000 : 3500); }
+  const desktop = window.go?.main?.Desktop;
+  function openPanel(relay = false) { if (desktop) desktop.OpenPanel(relay); else window.open(relay ? '/#browser-relay' : '/', '_blank'); }
   async function request(path, body) {
+    if (desktop) {
+      try { return JSON.parse(await desktop.Request(path, body === undefined ? '' : JSON.stringify(body))); }
+      catch (error) { throw Error(String(error)); }
+    }
     const response = await fetch('/api/' + path, body === undefined ? { cache: 'no-store' } : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-App-Token': token }, body: JSON.stringify(body) });
     let result; try { result = await response.json(); } catch { throw Error(t(response.status === 403 ? '下载管理目前仅允许本机访问' : '后台响应异常，请刷新页面')); }
     if (!response.ok || result.error) throw Error(t(result.error || '操作未完成'));
@@ -192,7 +198,7 @@
       { label: '全部暂停', enabled: !$('dmPauseAll').disabled, run: pauseAll },
       { label: '删除已完成', enabled: !$('dmClean').disabled, run: cleanFinished },
       '-',
-      { label: '关闭窗口', run: () => window.close() },
+      { label: '关闭窗口', run: () => desktop ? desktop.Close() : window.close() },
     ],
     download: () => [...taskMenu(), '-', { label: '下载设置', run: openSettings }],
     view: () => {
@@ -208,8 +214,8 @@
       ];
     },
     help: () => [
-      { label: '打开 Mirroxy 主面板', run: () => window.open('/', '_blank') },
-      { label: '安装浏览器接力扩展', run: () => window.open('/#browser-relay', '_blank') },
+      { label: '打开 Mirroxy 主面板', run: () => openPanel() },
+      { label: '安装浏览器接力扩展', run: () => openPanel(true) },
     ],
   };
   function setTheme(value) { document.documentElement.dataset.theme = value; try { localStorage.setItem('Mirroxy.theme', value); } catch {} }
@@ -279,7 +285,7 @@
   $('dmSettings').onclick = openSettings;
   $('dmDefaultMode').onchange = defaultProxyFields;
   $('dmSettingsCancel').onclick = () => $('dmSettingsDialog').close();
-  $('dmRelaySettings').onclick = () => window.open('/#browser-relay', '_blank');
+  $('dmRelaySettings').onclick = () => openPanel(true);
   $('dmSettingsForm').onsubmit = async e => {
     e.preventDefault();
     const button = e.submitter; if (button) button.disabled = true;
@@ -290,12 +296,20 @@
     finally { if (button) button.disabled = false; }
   };
 
+  document.querySelectorAll('[data-pick-dir]').forEach(button => {
+    button.classList.toggle('hidden', !desktop);
+    button.onclick = async () => {
+      try { const field = $(button.dataset.pickDir); const dir = await desktop.PickDirectory(field.value); if (dir) field.value = dir; }
+      catch (error) { toast(String(error), true); }
+    };
+  });
+
   // Wiring -----------------------------------------------------------------
   $('dmAdd').onclick = () => openAdd();
   $('dmPauseAll').onclick = pauseAll;
   $('dmClean').onclick = cleanFinished;
   $('dmFolder').onclick = () => { const task = selectedTasks()[0]; if (task) openFolder(task.id); };
-  $('dmPanel').onclick = () => window.open('/', '_blank');
+  $('dmPanel').onclick = () => openPanel();
   document.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => action([...selected], b.dataset.bulk));
   $('dmInstall').onclick = async () => { const b = $('dmInstall'); b.disabled = true; b.textContent = t('正在下载并校验引擎…'); try { await request('downloads/install', {}); await loadTasks(); } catch (error) { toast(error.message, true); } finally { b.disabled = false; b.textContent = t('安装 aria2 引擎'); } };
   document.querySelectorAll('.dm-node').forEach(b => b.onclick = () => { node = b.dataset.node; save(); render(); });

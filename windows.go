@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -25,25 +24,16 @@ func openBrowser(url string) {
 		_ = cmd.Process.Release()
 	}
 }
-// openAppWindow opens a panel page in an Edge app window (no address bar or
-// tabs) so the download manager looks like a desktop window. Without Edge it
-// falls back to the default browser.
-func openAppWindow(url string) {
-	for _, base := range []string{os.Getenv("ProgramFiles(x86)"), os.Getenv("ProgramFiles"), os.Getenv("LOCALAPPDATA")} {
-		if base == "" {
-			continue
-		}
-		edge := filepath.Join(base, "Microsoft", "Edge", "Application", "msedge.exe")
-		if _, err := os.Stat(edge); err != nil {
-			continue
-		}
-		cmd := exec.Command(edge, "--app="+url, "--window-size=1180,720")
-		if cmd.Start() == nil {
-			_ = cmd.Process.Release()
-			return
-		}
+
+// The Wails window runs separately; closing it never stops downloads or cores.
+func (a *App) openDownloadDesktop() {
+	binary := filepath.Join(a.root, "Mirroxy-downloads.exe")
+	cmd := exec.Command(binary, "-panel", fmt.Sprint(a.panelPort))
+	if err := cmd.Start(); err != nil {
+		showTrayActionError("打开下载管理（请安装含桌面客户端的完整程序包）", err)
+		return
 	}
-	openBrowser(url)
+	_ = cmd.Process.Release()
 }
 func createJob() uintptr {
 	h, err := windows.CreateJobObject(nil, nil)

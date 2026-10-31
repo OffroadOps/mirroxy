@@ -448,7 +448,7 @@ func (a *App) runTray() {
 				case selected == trayMenuOpen:
 					go open()
 				case selected == trayMenuDownloads:
-					go openAppWindow(a.panelURL() + "/downloads")
+					go a.openDownloadDesktop()
 				case selected == trayMenuReload:
 					if err := a.restartApplication(); err != nil {
 						showTrayReloadError(err)

@@ -75,8 +75,9 @@
 <h2 id="dmAddTitle" class="dm-dialog-title">新建下载任务</h2>
 <div class="dm-dialog-body">
 <label class="dm-field">地址<input id="dmURL" type="url" required autocomplete="off" spellcheck="false" placeholder="https://example.com/file.zip"></label>
+<button type="button" class="dm-button hidden" data-pick-dir="dmDir">选择保存目录…</button>
 <div class="dm-row"><label class="dm-field dm-grow">保存到<input id="dmDir" required autocomplete="off" spellcheck="false" placeholder="D:\Downloads"></label><label class="dm-field dm-grow">文件名<input id="dmName" maxlength="240" autocomplete="off" placeholder="留空由服务器决定"></label></div>
-<div class="dm-row"><label class="dm-field">代理<select id="dmProxyMode"><option value="direct">直连</option><option value="node">Mirroxy 节点</option><option value="custom">自定义 HTTP 代理</option></select></label><label class="dm-field dm-grow hidden" id="dmNodeField">节点<select id="dmNode"></select></label><label class="dm-field dm-grow hidden" id="dmProxyField">代理地址<input id="dmProxy" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:10808"></label><label class="dm-field">连接数<select id="dmConnections"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>16</option></select></label></div>
+<div class="dm-row"><label class="dm-field">代理<select id="dmProxyMode"><option value="direct">直连</option><option value="node">Mirroxy 节点</option><option value="custom">自定义 HTTP 代理</option></select></label><label class="dm-field dm-grow hidden" id="dmNodeField">节点<select id="dmNode"></select></label><label class="dm-field dm-grow hidden" id="dmProxyField">代理地址<input id="dmProxy" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:10808"></label><label class="dm-field">连接数<input id="dmConnections" type="number" min="1" max="16" value="8" required></label></div>
 <label class="dm-field">每任务限速 (KiB/s，0 为不限速)<input id="dmLimit" type="number" min="0" max="1048576" value="0" required></label>
 <p class="dm-hint">节点列表只含已启动的节点；代理故障时不会自动改为直连。多连接需要服务器支持断点续传。</p>
 <p id="dmAddError" class="dm-error hidden" role="alert"></p>
@@ -103,6 +104,7 @@
 
 <dialog id="dmSettingsDialog" class="dm-dialog" aria-labelledby="dmSettingsTitle"><form id="dmSettingsForm">
 <h2 id="dmSettingsTitle" class="dm-dialog-title">下载设置</h2><div class="dm-dialog-body">
+<button type="button" class="dm-button hidden" data-pick-dir="dmDefaultDir">选择保存目录…</button>
 <label class="dm-field">默认保存目录<input id="dmDefaultDir" required autocomplete="off"></label>
 <div class="dm-row"><label class="dm-field">默认代理<select id="dmDefaultMode"><option value="direct">直连</option><option value="node">Mirroxy 节点</option><option value="custom">自定义 HTTP 代理</option></select></label>
 <label class="dm-field dm-grow" id="dmDefaultNodeField">节点<select id="dmDefaultNode"></select></label>

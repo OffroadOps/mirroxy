@@ -69,6 +69,10 @@ def build(arch, go, rules, goos='linux', iscc=None):
     binary = ROOT / 'work' / f'release-Mirroxy-{goos}-{arch}'
     flags = '-s -w' + (' -H=windowsgui' if goos == 'windows' else '')
     subprocess.run([go, 'build', '-trimpath', '-ldflags='+flags, '-o', str(binary), '.'], cwd=ROOT, env=env, check=True)
+    desktop = None
+    if goos == 'windows':
+        desktop = ROOT/'work'/'release-Mirroxy-downloads.exe'
+        subprocess.run([go,'build','-tags','production','-trimpath','-ldflags='+flags,'-o',str(desktop),'.'],cwd=ROOT/'desktop',env=env,check=True)
     upgrade = None
     if goos == 'windows':
         upgrade = ROOT/'work'/'release-upgrade-windows-amd64.exe'
@@ -87,6 +91,7 @@ def build(arch, go, rules, goos='linux', iscc=None):
     exe = '.exe' if goos == 'windows' else ''
     add('Mirroxy'+exe, binary.read_bytes(), 0o755)
     if upgrade: add('upgrade.exe',upgrade.read_bytes(),0o755)
+    if desktop: add('Mirroxy-downloads.exe',desktop.read_bytes(),0o755)
     add('bin/runtime/Mirroxy_core_A'+exe, member(xray, 'xray'+exe), 0o755)
     add('bin/runtime/Mirroxy_core_B'+exe, member(singbox, 'sing-box'+exe), 0o755)
     if goos == 'windows':
