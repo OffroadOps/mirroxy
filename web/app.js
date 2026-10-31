@@ -27,7 +27,7 @@ function render(){
  $('linuxServiceNote').classList.toggle('hidden',!platform.server);
  $('importDeployHint').textContent=t(state.settings.autoDeploy?'导入后自动选择核心、分配端口并启动':'导入后自行选择要启动的节点');
  $('version').textContent=state.version;$('navCount').textContent=state.nodes.length;
- renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyDownloads?.onState(state);renderCertBanner();
+ renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyRelay?.onState(state);renderCertBanner();
  $('appNavCount').textContent=appRoutingAvailable?((appRoutingDraft?.profiles??state.appRouting?.profiles)??[]).length:0;
  $('subNavCount').textContent=state.subscriptions.length;
  restoreView();
@@ -474,7 +474,7 @@ $('stopAll').onclick=()=>act($('stopAll'),async()=>{await api('stop-all',{});toa
 $('shutdown').onclick=async()=>{if(!confirm(t('退出 Mirroxy 后台？所有由它提供的代理都会停止。')))return;try{await api('shutdown',{});toast(t(state.platform?.os==='darwin'?'后台已退出，使用 launchctl kickstart 可再次启动':state.platform?.server?'后台已退出。控制台运行 sudo Mirroxyctl start 可再次启动':'后台已退出。双击 Mirroxy.exe 可再次启动'));$('backendStatus').textContent=t('后台已退出');offline=true}catch(e){toast(e.message,true)}};
 let pendingView=null;
 try{pendingView=sessionStorage.getItem('Mirroxy.view')}catch{}
-function restoreView(){if(!pendingView)return;const base=['settings','geofiles','api','changelog'].includes(pendingView)?'settings':pendingView;const nav=document.querySelector('.nav[data-view="'+base+'"]');if(nav&&!nav.classList.contains('hidden')){const target=pendingView;pendingView=null;view(target);if(target==='downloads')window.MirroxyDownloads?.activate()}}
+function restoreView(){if(pendingView==='downloads')pendingView=null;if(!pendingView)return;const base=['settings','geofiles','api','changelog'].includes(pendingView)?'settings':pendingView;const nav=document.querySelector('.nav[data-view="'+base+'"]');if(nav&&!nav.classList.contains('hidden')){const target=pendingView;pendingView=null;view(target)}}
 restoreView();
 setTimeout(loadPanelCertStatus,2000);
 refresh();setInterval(()=>{if(!pending&&!document.hidden&&!document.querySelector('dialog[open]')&&!document.querySelector('.popover:not(.hidden)')&&nodeMenu.classList.contains('hidden')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))refresh()},5000);setInterval(refreshTraffic,1000);window.addEventListener('scroll',()=>document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden')),true);

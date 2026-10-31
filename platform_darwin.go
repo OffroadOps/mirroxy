@@ -9,6 +9,7 @@ import (
 
 func hideCommand(*exec.Cmd)          {}
 func openBrowser(address string)     { _ = exec.Command("/usr/bin/open", address).Run() }
+func openAppWindow(address string)   { openBrowser(address) }
 func createJob() uintptr             { return 0 }
 func assignJob(uintptr, int)         {}
 func closeJob(uintptr)               {}

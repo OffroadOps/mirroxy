@@ -14,7 +14,7 @@
  apply(initial);
  document.addEventListener('DOMContentLoaded',()=>{
   apply(document.documentElement.dataset.theme);
-  document.getElementById('themeToggle').addEventListener('click',()=>{
+  document.getElementById('themeToggle')?.addEventListener('click',()=>{
    const next=document.documentElement.dataset.theme==='dark'?'light':'dark';apply(next);try{localStorage.setItem(key,next)}catch{}
   });
  });

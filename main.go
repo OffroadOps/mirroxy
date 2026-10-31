@@ -314,11 +314,11 @@ func main() {
 	a.closeStore()
 }
 
-// panelIndex serves index.html with the running version substituted for the
+// panelPage serves an HTML page with the running version substituted for the
 // __VERSION__ placeholder. The asset cache key therefore always matches the
 // build instead of drifting behind a hardcoded string.
-func (a *App) panelIndex(w http.ResponseWriter, r *http.Request) {
-	page, err := fs.ReadFile(frontend, "web/index.html")
+func (a *App) panelPage(w http.ResponseWriter, name string) {
+	page, err := fs.ReadFile(frontend, "web/"+name)
 	if err != nil {
 		http.Error(w, "panel unavailable", http.StatusInternalServerError)
 		return
@@ -335,8 +335,14 @@ func (a *App) handler(remote bool) http.Handler {
 	mux.HandleFunc("/api/v1/", a.apiV1)
 	mux.HandleFunc("/api/", a.api)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" || r.URL.Path == "/index.html" {
-			a.panelIndex(w, r)
+		switch r.URL.Path {
+		case "/", "/index.html":
+			a.panelPage(w, "index.html")
+			return
+		case "/downloads", "/downloads.html":
+			// The download manager is its own page so the tray can open it
+			// in a separate app window.
+			a.panelPage(w, "downloads.html")
 			return
 		}
 		// Embedded assets carry no modification time, so the browser cannot

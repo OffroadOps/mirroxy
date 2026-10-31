@@ -59,6 +59,7 @@ const (
 	trayMenuReload    = 4
 	trayMenuElevate   = 5
 	trayMenuToggleAll = 6
+	trayMenuDownloads = 7
 
 	trayProxyNodeBase  = 20 // + index into the running-node snapshot
 	proxyNodeSlotLimit = 40
@@ -414,6 +415,7 @@ func (a *App) runTray() {
 				AppendMenu(menu, 0x3, 0, routeInfo)
 				AppendMenu(menu, 0x800, 0, "")
 				AppendMenu(menu, 0, trayMenuOpen, "打开面板")
+				AppendMenu(menu, 0, trayMenuDownloads, "下载管理")
 				AppendMenu(menu, 0, trayMenuReload, "重启面板")
 				AppendMenu(menu, 0, trayMenuElevate, "UAC运行")
 				anyRunning := false
@@ -445,6 +447,8 @@ func (a *App) runTray() {
 				switch {
 				case selected == trayMenuOpen:
 					go open()
+				case selected == trayMenuDownloads:
+					go openAppWindow(a.panelURL() + "/downloads")
 				case selected == trayMenuReload:
 					if err := a.restartApplication(); err != nil {
 						showTrayReloadError(err)

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mirroxy 下载管理</title><link rel="icon" type="image/png" href="/icon.png?v=__VERSION__"><script src="/i18n.js?v=__VERSION__"></script><script src="/theme.js?v=__VERSION__"></script><link rel="stylesheet" href="/dl-app.css?v=__VERSION__"><script src="/download-menu.js?v=__VERSION__" defer></script><script src="/dl-model.js?v=__VERSION__" defer></script><script src="/dl-app.js?v=__VERSION__" defer></script></head>
+<body class="dm">
+<svg class="dm-sprite" aria-hidden="true" focusable="false">
+<symbol id="i-add" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#2f9e5b"/><path d="M16 9v14M9 16h14" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></symbol>
+<symbol id="i-resume" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#2b7fd4"/><path d="M13 10.5v11l9-5.5z" fill="#fff"/></symbol>
+<symbol id="i-pause" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#e59a1c"/><path d="M12.5 10.5v11M19.5 10.5v11" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></symbol>
+<symbol id="i-pauseall" viewBox="0 0 32 32"><circle cx="13" cy="17" r="10" fill="#f0b04a"/><circle cx="19" cy="15" r="10" fill="#e08a12"/><path d="M16.5 10.5v9M21.5 10.5v9" stroke="#fff" stroke-width="2.8" stroke-linecap="round"/></symbol>
+<symbol id="i-delete" viewBox="0 0 32 32"><path d="M9 10h14l-1.3 15.2a2 2 0 0 1-2 1.8h-7.4a2 2 0 0 1-2-1.8z" fill="#d6473b"/><path d="M7 9h18M13 6h6" stroke="#a5281f" stroke-width="2.4" stroke-linecap="round"/><path d="M13.5 14v8M18.5 14v8" stroke="#fff" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-clean" viewBox="0 0 32 32"><path d="M9 10h14l-1.3 15.2a2 2 0 0 1-2 1.8h-7.4a2 2 0 0 1-2-1.8z" fill="#8a96a3"/><path d="M7 9h18M13 6h6" stroke="#5f6b77" stroke-width="2.4" stroke-linecap="round"/><path d="M12 18.5l3 3 5.5-6.5" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-folder" viewBox="0 0 32 32"><path d="M4 9a2 2 0 0 1 2-2h7l3 3h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#f2c14e"/><path d="M4 13h24v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" fill="#f7d77e"/></symbol>
+<symbol id="i-reconnect" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#6b5bd2"/><path d="M21.5 12.5A6.5 6.5 0 1 0 22.5 18" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M22.5 8.5v5h-5" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-panel" viewBox="0 0 32 32"><rect x="4" y="6" width="24" height="20" rx="3" fill="#20765e"/><rect x="7" y="11" width="7" height="12" rx="1" fill="#9be1c0"/><rect x="16" y="11" width="9" height="5" rx="1" fill="#fff"/><rect x="16" y="18" width="9" height="5" rx="1" fill="#fff"/></symbol>
+<symbol id="t-all" viewBox="0 0 20 20"><path d="M2 5a1.5 1.5 0 0 1 1.5-1.5H8l2 2h6.5A1.5 1.5 0 0 1 18 7v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 2 15.5z" fill="#f2c14e"/></symbol>
+<symbol id="t-compressed" viewBox="0 0 20 20"><rect x="3" y="2" width="14" height="16" rx="2" fill="#b98a3e"/><path d="M10 2v9" stroke="#f3dfb2" stroke-width="2" stroke-dasharray="1.6 1.6"/><rect x="8" y="11" width="4" height="4" rx="1" fill="#f3dfb2"/></symbol>
+<symbol id="t-documents" viewBox="0 0 20 20"><path d="M4 2h8l4 4v12H4z" fill="#3c82d8"/><path d="M12 2v4h4" fill="#9cc3f0"/><path d="M7 10h6M7 13h6" stroke="#fff" stroke-width="1.5"/></symbol>
+<symbol id="t-music" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#d0499a"/><path d="M8.5 13.5V6.5l5-1.5v7" stroke="#fff" stroke-width="1.5" fill="none"/><circle cx="7.5" cy="13.5" r="1.6" fill="#fff"/><circle cx="12.5" cy="12" r="1.6" fill="#fff"/></symbol>
+<symbol id="t-programs" viewBox="0 0 20 20"><rect x="2" y="3" width="16" height="14" rx="2" fill="#5263c9"/><rect x="2" y="3" width="16" height="3.5" rx="1.5" fill="#8d9bf0"/><path d="M6 10l2 2-2 2M10 14h4" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="t-video" viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="2" fill="#e05a2e"/><path d="M8.5 7.5v5l4.5-2.5z" fill="#fff"/></symbol>
+<symbol id="t-other" viewBox="0 0 20 20"><path d="M4 2h8l4 4v12H4z" fill="#8a96a3"/><path d="M12 2v4h4" fill="#c8d0d8"/></symbol>
+<symbol id="t-unfinished" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#2b7fd4"/><path d="M10 5.5v9M6.5 11l3.5 3.5 3.5-3.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="t-finished" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="#2f9e5b"/><path d="M6 10.5l2.7 2.7L14 7.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<header class="dm-menubar" role="menubar" aria-label="菜单">
+<button type="button" class="dm-menu-trigger" data-menu="task" role="menuitem" aria-haspopup="true">任务</button>
+<button type="button" class="dm-menu-trigger" data-menu="download" role="menuitem" aria-haspopup="true">下载</button>
+<button type="button" class="dm-menu-trigger" data-menu="view" role="menuitem" aria-haspopup="true">查看</button>
+<button type="button" class="dm-menu-trigger" data-menu="help" role="menuitem" aria-haspopup="true">帮助</button>
+<span class="dm-menubar-fill"></span>
+<label class="dm-search"><input id="dmSearch" type="search" placeholder="搜索文件名或链接" aria-label="搜索下载任务"></label>
+</header>
+<nav class="dm-toolbar" role="toolbar" aria-label="下载工具栏">
+<button type="button" class="dm-tool" id="dmAdd" title="新建下载任务 (Ctrl+N)"><svg><use href="#i-add"/></svg><span>新建任务</span></button>
+<button type="button" class="dm-tool" data-bulk="resume" title="继续所选任务"><svg><use href="#i-resume"/></svg><span>继续</span></button>
+<button type="button" class="dm-tool" data-bulk="pause" title="暂停所选任务"><svg><use href="#i-pause"/></svg><span>暂停</span></button>
+<button type="button" class="dm-tool" id="dmPauseAll" title="暂停全部正在下载的任务"><svg><use href="#i-pauseall"/></svg><span>全部暂停</span></button>
+<span class="dm-tool-sep"></span>
+<button type="button" class="dm-tool" data-bulk="remove" title="删除所选任务 (Del)"><svg><use href="#i-delete"/></svg><span>删除</span></button>
+<button type="button" class="dm-tool" id="dmClean" title="删除全部已完成的任务记录，保留文件"><svg><use href="#i-clean"/></svg><span>删除已完成</span></button>
+<span class="dm-tool-sep"></span>
+<button type="button" class="dm-tool" data-bulk="reconnect" title="保留断点，重新建立连接"><svg><use href="#i-reconnect"/></svg><span>断点重连</span></button>
+<button type="button" class="dm-tool" id="dmFolder" title="打开所选任务所在文件夹"><svg><use href="#i-folder"/></svg><span>打开文件夹</span></button>
+<span class="dm-tool-fill"></span>
+<button type="button" class="dm-tool" id="dmPanel" title="打开 Mirroxy 主面板"><svg><use href="#i-panel"/></svg><span>主面板</span></button>
+</nav>
+<div id="dmBanner" class="dm-banner hidden" role="alert"><span id="dmBannerText"></span><button type="button" class="dm-button" id="dmInstall">安装 aria2 引擎</button></div>
+<div class="dm-body">
+<aside class="dm-tree" aria-label="分类">
+<button type="button" class="dm-node" data-node="all"><svg><use href="#t-all"/></svg><span>全部下载</span><em data-count="all"></em></button>
+<div class="dm-children">
+<button type="button" class="dm-node" data-node="compressed"><svg><use href="#t-compressed"/></svg><span>压缩文件</span><em data-count="compressed"></em></button>
+<button type="button" class="dm-node" data-node="documents"><svg><use href="#t-documents"/></svg><span>文档</span><em data-count="documents"></em></button>
+<button type="button" class="dm-node" data-node="music"><svg><use href="#t-music"/></svg><span>音乐</span><em data-count="music"></em></button>
+<button type="button" class="dm-node" data-node="programs"><svg><use href="#t-programs"/></svg><span>程序</span><em data-count="programs"></em></button>
+<button type="button" class="dm-node" data-node="video"><svg><use href="#t-video"/></svg><span>视频</span><em data-count="video"></em></button>
+<button type="button" class="dm-node" data-node="other"><svg><use href="#t-other"/></svg><span>其他</span><em data-count="other"></em></button>
+</div>
+<button type="button" class="dm-node" data-node="unfinished"><svg><use href="#t-unfinished"/></svg><span>未完成</span><em data-count="unfinished"></em></button>
+<button type="button" class="dm-node" data-node="finished"><svg><use href="#t-finished"/></svg><span>已完成</span><em data-count="finished"></em></button>
+</aside>
+<section class="dm-list" id="dmList" tabindex="0" aria-label="下载任务">
+<table class="dm-table" aria-multiselectable="true"><colgroup><col class="c-name"><col class="c-size"><col class="c-status"><col class="c-eta"><col class="c-speed"><col class="c-proxy"><col class="c-created"><col class="c-dir"></colgroup>
+<thead id="dmHead"><tr><th data-sort="name">文件名</th><th data-sort="size" class="num">大小</th><th data-sort="status">状态</th><th data-sort="eta">剩余时间</th><th data-sort="speed" class="num">传输速率</th><th>代理</th><th data-sort="created">添加时间</th><th>保存位置</th></tr></thead>
+<tbody id="dmTasks"></tbody></table>
+<div id="dmEmpty" class="dm-empty hidden"><p id="dmEmptyText">还没有下载任务</p><small>点击「新建任务」，或在本窗口按 Ctrl+V 粘贴下载链接。浏览器接力扩展会把浏览器里的下载自动交给这里。</small></div>
+</section>
+</div>
+<footer class="dm-status"><span id="dmTotals">0 个任务</span><span id="dmSelection"></span><span class="dm-status-fill"></span><span id="dmSpeed">↓ 0 B/s</span><span id="dmEngine" class="dm-engine">aria2</span></footer>
+
+<div id="dmPopup" class="dm-popup hidden" role="menu"></div>
+<div id="dmToast" class="dm-toast hidden" role="status"></div>
+
+<dialog id="dmAddDialog" class="dm-dialog" aria-labelledby="dmAddTitle"><form id="dmAddForm">
+<h2 id="dmAddTitle" class="dm-dialog-title">新建下载任务</h2>
+<div class="dm-dialog-body">
+<label class="dm-field">地址<input id="dmURL" type="url" required autocomplete="off" spellcheck="false" placeholder="https://example.com/file.zip"></label>
+<div class="dm-row"><label class="dm-field dm-grow">保存到<input id="dmDir" required autocomplete="off" spellcheck="false" placeholder="D:\Downloads"></label><label class="dm-field dm-grow">文件名<input id="dmName" maxlength="240" autocomplete="off" placeholder="留空由服务器决定"></label></div>
+<div class="dm-row"><label class="dm-field">代理<select id="dmProxyMode"><option value="direct">直连</option><option value="node">Mirroxy 节点</option><option value="custom">自定义 HTTP 代理</option></select></label><label class="dm-field dm-grow hidden" id="dmNodeField">节点<select id="dmNode"></select></label><label class="dm-field dm-grow hidden" id="dmProxyField">代理地址<input id="dmProxy" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:10808"></label><label class="dm-field">连接数<select id="dmConnections"><option>1</option><option>2</option><option>4</option><option selected>8</option><option>16</option></select></label></div>
+<p class="dm-hint">节点列表只含已启动的节点；代理故障时不会自动改为直连。多连接需要服务器支持断点续传。</p>
+<p id="dmAddError" class="dm-error hidden" role="alert"></p>
+</div>
+<div class="dm-dialog-buttons"><button type="submit" class="dm-button primary" id="dmStart">开始下载</button><button type="button" class="dm-button" id="dmLater">稍后下载</button><button type="button" class="dm-button" id="dmAddCancel">取消</button></div>
+</form></dialog>
+
+<dialog id="dmInfoDialog" class="dm-dialog dm-info" aria-labelledby="dmInfoTitle">
+<h2 id="dmInfoTitle" class="dm-dialog-title"></h2>
+<div class="dm-dialog-body">
+<dl class="dm-props" id="dmInfoProps"></dl>
+<progress id="dmInfoProgress" class="dm-progress" max="100" value="0"></progress>
+<p id="dmInfoError" class="dm-error hidden"></p>
+</div>
+<div class="dm-dialog-buttons"><button type="button" class="dm-button" id="dmInfoToggle">暂停</button><button type="button" class="dm-button" id="dmInfoReconnect">断点重连</button><button type="button" class="dm-button" id="dmInfoOpen">打开文件</button><button type="button" class="dm-button" id="dmInfoFolder">打开文件夹</button><button type="button" class="dm-button primary" id="dmInfoClose">关闭</button></div>
+</dialog>
+
+<dialog id="dmDeleteDialog" class="dm-dialog" aria-labelledby="dmDeleteTitle"><form id="dmDeleteForm">
+<h2 id="dmDeleteTitle" class="dm-dialog-title">删除下载任务</h2>
+<div class="dm-dialog-body"><p id="dmDeleteSummary"></p><ul id="dmDeleteList" class="dm-delete-list"></ul>
+<label class="dm-check"><input type="checkbox" id="dmDeleteFiles"><span>同时删除下载文件和断点数据<small>移入保存目录的 .Mirroxy-trash 回收区，可以手动恢复。</small></span></label></div>
+<div class="dm-dialog-buttons"><button type="submit" class="dm-button danger" id="dmDeleteConfirm">删除</button><button type="button" class="dm-button" id="dmDeleteCancel">取消</button></div>
+</form></dialog>
+</body></html>

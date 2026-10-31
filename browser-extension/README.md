@@ -4,7 +4,7 @@
 
 ## 安装
 
-1. 在 Mirroxy 面板打开「下载管理」，在「浏览器接力」卡片点击「下载扩展 ZIP」。
+1. 在 Mirroxy 面板打开「全局设置」，在「浏览器接力」卡片点击「下载扩展 ZIP」。
 2. 解压 ZIP 到固定目录（例如 `D:\Mirroxy-extension`）。
 3. Chrome / Edge 打开 `chrome://extensions`（Edge 为 `edge://extensions`），开启「开发者模式」。
 4. 点击「加载已解压的扩展程序」，选择解压后的目录。
@@ -15,7 +15,7 @@
 
 ## 使用
 
-- 自动接管：浏览器发起新的 HTTP/HTTPS/FTP 下载时，扩展先把 URL、Referer、Cookie 和 User-Agent 交给 Mirroxy；接单成功后取消浏览器下载，任务出现在 Mirroxy「下载管理」。
+- 自动接管：浏览器发起新的 HTTP/HTTPS/FTP 下载时，扩展先把 URL、Referer、Cookie 和 User-Agent 交给 Mirroxy；接单成功后取消浏览器下载，任务出现在 Mirroxy「下载管理」窗口（托盘菜单打开）。
 - 手动接管：在链接上右键选择「使用 Mirroxy 下载此链接」；在页面空白处右键选择「使用 Mirroxy 下载当前页面」。
 - 排除网站：扩展设置里填写不接管的域名（每行一个）。
 - 总开关 / 自动接管开关在工具栏图标弹窗中随时切换。

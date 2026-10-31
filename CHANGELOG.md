@@ -20,6 +20,11 @@
 - 设置值超出范围时在本地直接提示并恢复原值，不会发出请求；后台拒绝时同样恢复原值并显示原因。修改面板端口前会先确认，取消则保持原端口
 - 远程访问时设置项改为只读并注明原因；远程管理的账号密码表单仍需手动保存，避免填到一半就开放远程访问
 - 设置、Geo 文件、AI API 与更新日志页去掉英文标语，标题与卡片更紧凑
+- 下载管理改为独立窗口：托盘菜单新增「下载管理」，用 Edge 应用窗口打开（无地址栏和标签页），面板侧栏不再显示下载页；没有托盘的平台保留侧栏入口，在新标签页打开同一页面
+- 下载窗口改为 IDM 式布局：菜单栏、大图标工具栏、按文件类型分类的左侧目录（压缩文件、文档、音乐、程序、视频、其他）与未完成 / 已完成分组、可排序的任务列表和状态栏，支持深色模式
+- 双击未完成任务打开实时刷新的属性窗口（地址、大小、已下载、速率、剩余时间、连接、代理），可在其中暂停、继续、断点重连或打开文件夹；双击已完成任务直接打开文件
+- 下载窗口支持多选、右键菜单与快捷键：Ctrl+N 新建、Ctrl+V 粘贴链接新建、Del 删除、空格暂停 / 继续、回车打开；新增「删除已完成」，只删记录保留文件
+- 移除不常用的任务编辑与限速入口；「浏览器接力」扩展下载与安装说明移到全局设置页，下载窗口的帮助菜单可直接跳转
 
 <details><summary>English</summary>
 
@@ -38,6 +43,11 @@
 - Out-of-range values are rejected in the page and put back without a request; a value the backend refuses is also put back, with the reason shown. Changing the panel port asks for confirmation first, and cancelling keeps the current port.
 - Over remote access the settings are read-only, with a note saying so. The remote-management account form still has its own Save button, so remote access is never opened with half-entered credentials.
 - The Settings, Geo files, AI API and Changelog pages drop their slogan headings and use more compact titles and cards.
+- The download manager is now its own window: the tray menu has a new Downloads item that opens it as an Edge app window (no address bar or tabs), and the dashboard sidebar no longer shows the download page. Platforms without a tray keep a sidebar link that opens the same page in a new tab.
+- The download window uses an IDM-style layout: a menu bar, a large-icon toolbar, a category tree by file type (compressed, documents, music, programs, video, other) with unfinished and finished groups, a sortable task list and a status bar, with a dark theme.
+- Double-clicking an unfinished task opens a live properties window (address, size, downloaded, rate, time left, connections, proxy) where it can be paused, resumed, reconnected or its folder opened; double-clicking a finished task opens the file.
+- The download window supports multi-selection, a context menu and shortcuts: Ctrl+N new, Ctrl+V paste a link, Del delete, Space pause / resume, Enter open. A new Delete completed action removes the records and keeps the files.
+- Task editing and the speed limit were dropped as rarely used. The browser relay extension download and setup steps moved to the Settings page, and the download window's Help menu links there.
 
 </details>
 

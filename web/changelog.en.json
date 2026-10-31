@@ -17,7 +17,12 @@
       "Settings now save as you change them: switches and lists save immediately, numbers save when you leave the field or press Enter, and a Saving / Saved label appears next to the setting. The Save settings button is gone.",
       "Out-of-range values are rejected in the page and put back without a request; a value the backend refuses is also put back, with the reason shown. Changing the panel port asks for confirmation first, and cancelling keeps the current port.",
       "Over remote access the settings are read-only, with a note saying so. The remote-management account form still has its own Save button, so remote access is never opened with half-entered credentials.",
-      "The Settings, Geo files, AI API and Changelog pages drop their slogan headings and use more compact titles and cards."
+      "The Settings, Geo files, AI API and Changelog pages drop their slogan headings and use more compact titles and cards.",
+      "The download manager is now its own window: the tray menu has a new Downloads item that opens it as an Edge app window (no address bar or tabs), and the dashboard sidebar no longer shows the download page. Platforms without a tray keep a sidebar link that opens the same page in a new tab.",
+      "The download window uses an IDM-style layout: a menu bar, a large-icon toolbar, a category tree by file type (compressed, documents, music, programs, video, other) with unfinished and finished groups, a sortable task list and a status bar, with a dark theme.",
+      "Double-clicking an unfinished task opens a live properties window (address, size, downloaded, rate, time left, connections, proxy) where it can be paused, resumed, reconnected or its folder opened; double-clicking a finished task opens the file.",
+      "The download window supports multi-selection, a context menu and shortcuts: Ctrl+N new, Ctrl+V paste a link, Del delete, Space pause / resume, Enter open. A new Delete completed action removes the records and keeps the files.",
+      "Task editing and the speed limit were dropped as rarely used. The browser relay extension download and setup steps moved to the Settings page, and the download window's Help menu links there."
     ]
   },
   {

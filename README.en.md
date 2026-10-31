@@ -41,8 +41,8 @@ connections of the others.
 - **Windows game / application proxy** — pick programs by `.exe` name or full path; their
   TCP/UDP traffic follows the bound node while everything else keeps the current network path.
   TUN only, no system route changes.
-- **Built-in download manager** — an aria2 page inside the dashboard: create, pause, resume,
-  limit bandwidth, batch operations and resume broken transfers. Every task picks direct
+- **Built-in download manager** — a separate aria2 download window opened from the tray menu:
+  create, pause, resume, batch operations and resume broken transfers. Every task picks direct
   access, a running Mirroxy node or a custom HTTP proxy.
 - **Privacy first** — nodes, subscriptions, remote credentials and traffic counters live in an
   AES-GCM encrypted SQLite database; the Windows master key is protected with DPAPI. Regular
@@ -124,9 +124,13 @@ mode rebuilds all node cores and reconnects briefly.
 
 ### Downloads (aria2)
 
-The dashboard has an IDM-style download page: a top toolbar and a task table, without a
-category sidebar. It supports creating, searching, pausing, resuming, editing the
-link/proxy/connections/speed limit, retrying and single or multi selection. Removing a task
+On Windows, "Downloads" in the tray menu opens an IDM-style download window as an Edge app window
+(no address bar or tabs); platforms without a tray open the same page (`/downloads`) from the
+dashboard sidebar. The window has a menu bar, a large-icon toolbar, a category tree by file type
+(compressed, documents, music, programs, video, other) plus unfinished / finished groups, and a
+sortable task list. It supports creating, searching, pausing, resuming, reconnecting, deleting
+completed tasks, a properties window, a context menu, multi-selection and shortcuts (Ctrl+N new,
+Ctrl+V paste a link, Del delete, Space pause / resume). Removing a task
 only drops the record and keeps the file and its `.aria2` resume data; ticking "also delete
 the downloaded file and resume data" moves them into a `.Mirroxy-trash` recovery folder next
 to the download directory.
@@ -142,7 +146,7 @@ keep the existing engine. Linux and macOS use the system `aria2c` (for example
 `sudo apt install aria2` or `brew install aria2`); no other platform is claimed to be
 verified on real hardware.
 
-**Browser download relay**: the Downloads page hands out a Chrome / Edge extension ZIP. No token
+**Browser download relay**: the "Browser relay" card on the Settings page hands out a Chrome / Edge extension ZIP. No token
 copying is needed: the extension discovers Mirroxy through the local 15060 port and pairs
 automatically. When the browser starts a download, the extension offers the URL to Mirroxy first and
 cancels the browser copy only after Mirroxy accepts the task. Failures (backend stopped, engine

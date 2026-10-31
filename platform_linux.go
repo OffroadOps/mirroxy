@@ -11,6 +11,7 @@ import (
 // systemd also owns the complete process group. Pdeathsig covers console runs.
 func hideCommand(cmd *exec.Cmd)      { cmd.SysProcAttr = &syscall.SysProcAttr{Pdeathsig: syscall.SIGKILL} }
 func openBrowser(string)             {}
+func openAppWindow(address string)   { openBrowser(address) }
 func createJob() uintptr             { return 0 }
 func assignJob(uintptr, int)         {}
 func closeJob(uintptr)               {}

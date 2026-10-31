@@ -136,3 +136,13 @@ html[data-theme=dark] .button.danger-fill{background:#a8433b;border-color:#c0564
 :is(#view-geofiles,#view-api,#view-changelog,#view-apps) .page-heading{margin-bottom:14px}
 :is(#view-geofiles,#view-api,#view-changelog,#view-apps) .page-heading h1{font-size:18px;margin:0 0 4px}
 .settings-subnav{margin-bottom:12px}
+
+/* Browser relay card on the settings page. */
+.relay-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.relay-status{font-size:11px;padding:2px 8px;border-radius:10px;background:#fbf0d9;color:#8a5a12}
+.relay-status.connected{background:#e2f3ea;color:var(--nx-fast)}
+html[data-theme=dark] .relay-status{background:#3a2f17;color:#f3d48e}
+html[data-theme=dark] .relay-status.connected{background:#1d3a2c}
+#browser-relay .buttons{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.relay-steps{margin:4px 0 8px;padding-left:20px;font-size:12px;line-height:1.8;color:var(--nx-soft)}
+a.nav{text-decoration:none}

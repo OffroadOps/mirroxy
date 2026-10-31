@@ -401,6 +401,75 @@
     "保存中…": "Saving…",
     "已保存": "Saved"
   });
+  // Download window and browser relay card.
+  Object.assign(en, {
+    "Mirroxy 下载管理": "Mirroxy Downloads",
+    "任务": "Tasks",
+    "下载": "Downloads",
+    "查看": "View",
+    "帮助": "Help",
+    "新建任务": "Add URL",
+    "删除已完成": "Delete completed",
+    "打开文件夹": "Open folder",
+    "主面板": "Dashboard",
+    "全部下载": "All downloads",
+    "压缩文件": "Compressed",
+    "文档": "Documents",
+    "音乐": "Music",
+    "程序": "Programs",
+    "视频": "Video",
+    "其他": "Other",
+    "未完成": "Unfinished",
+    "传输速率": "Transfer rate",
+    "添加时间": "Added",
+    "还没有下载任务": "No downloads yet",
+    "点击「新建任务」，或在本窗口按 Ctrl+V 粘贴下载链接。浏览器接力扩展会把浏览器里的下载自动交给这里。": "Click \"Add URL\" or press Ctrl+V in this window to paste a download link. The browser relay extension hands browser downloads over to this window.",
+    "0 个任务": "0 tasks",
+    "新建下载任务": "New download",
+    "保存到": "Save to",
+    "节点列表只含已启动的节点；代理故障时不会自动改为直连。多连接需要服务器支持断点续传。": "Only started nodes are listed; a failing proxy never falls back to a direct connection. Multiple connections need a server that supports resuming.",
+    "稍后下载": "Download later",
+    "移入保存目录的 .Mirroxy-trash 回收区，可以手动恢复。": "Moved to the .Mirroxy-trash folder in the save directory, where they can be restored by hand.",
+    "安装扩展后自动连接 Mirroxy，无需复制令牌。浏览器点击下载时交给 Mirroxy 的下载管理；成功接单后才取消浏览器下载，失败会保留浏览器下载。下载窗口在托盘菜单「下载管理」中打开。": "Once installed, the extension connects to Mirroxy by itself with no token to copy. Browser downloads are handed to the Mirroxy download manager; the browser download is cancelled only after Mirroxy accepts it, and kept if the hand-over fails. Open the download window from \"Downloads\" in the tray menu.",
+    "解压下载的 ZIP，Chrome 打开": "Unzip the download, open",
+    "（Edge 为": "in Chrome (Edge:",
+    "），开启「开发者模式」，点击「加载已解压的扩展程序」并选择该目录。": "), turn on Developer mode, click \"Load unpacked\" and pick that folder.",
+    "如果自动连接失败且提示证书错误，可点击「复制扩展配置（备用）」在扩展设置中手动导入。": "If automatic connection fails with a certificate error, click \"Copy extension config (backup)\" and import it in the extension options.",
+    "菜单": "Menu",
+    "新建下载任务 (Ctrl+N)": "New download (Ctrl+N)",
+    "继续所选任务": "Resume the selected tasks",
+    "暂停所选任务": "Pause the selected tasks",
+    "暂停全部正在下载的任务": "Pause every running download",
+    "删除所选任务 (Del)": "Delete the selected tasks (Del)",
+    "删除全部已完成的任务记录，保留文件": "Delete all completed task records and keep the files",
+    "保留断点，重新建立连接": "Reconnect and keep the partial download",
+    "打开所选任务所在文件夹": "Open the folder of the selected task",
+    "打开 Mirroxy 主面板": "Open the Mirroxy dashboard",
+    "分类": "Categories",
+    "下载任务": "Download tasks",
+    "留空由服务器决定": "Leave empty to use the server's name",
+    "下载管理目前仅允许本机访问": "The download manager is only available on this computer",
+    "这个分类里没有任务": "No tasks in this category",
+    "{count} 个任务 · {active} 个下载中": "{count} tasks · {active} downloading",
+    "已选 {count} 项": "{count} selected",
+    "还没有安装 aria2 下载引擎，安装后才能开始下载。": "The aria2 download engine is not installed yet. Install it to start downloading.",
+    "文件大小": "File size",
+    "删除 {count} 个下载任务？默认只删除任务记录，保留已下载的文件。": "Delete {count} download tasks? Only the records are deleted by default; downloaded files are kept.",
+    "已复制": "Copied",
+    "属性": "Properties",
+    "从剪贴板添加链接": "Add link from clipboard",
+    "关闭窗口": "Close window",
+    "深色模式": "Dark mode",
+    "跟随系统语言": "System language",
+    "简体中文": "简体中文",
+    "安装浏览器接力扩展": "Install the browser relay extension",
+    "任务已添加，稍后可点击「继续」开始": "Task added; click Resume when you want it to start",
+    "已开始下载": "Download started",
+    "删除 {count} 个已完成任务的记录？已下载的文件会保留。": "Delete the records of {count} completed tasks? Downloaded files are kept.",
+    "完成": "Complete",
+    "无速度": "Stalled",
+    "排队中": "Queued"
+  });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
     return values.some(value => String(value).toLowerCase().startsWith('zh')) ? 'zh-CN' : 'en';
@@ -437,7 +506,7 @@
     });
   }
   document.documentElement.lang = locale;
-  document.title = t('Mirroxy · 本地代理面板');
+  document.title = t(document.title);
   window.MirroxyI18n = { locale, preference, t, translateTree };
   document.addEventListener('DOMContentLoaded', () => { translateTree(document.body); initializeSelector(); });
 })();
