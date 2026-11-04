@@ -326,7 +326,6 @@ configuration behaviour of v2rayN; no part of the v2rayN client is copied.
 | `cmd/upgrade/` | Standalone Windows update helper |
 | `cmd/bootstrap/` | Bootstrap installer backend |
 | `packaging/` | Packaging, release and page generation scripts |
-| `android/` | Independently developed Android app (Kotlin + Jetpack Compose) |
 | `licenses/` | Third-party licenses and the NOTICE |
 | `docs/` | Design and verification notes |
 

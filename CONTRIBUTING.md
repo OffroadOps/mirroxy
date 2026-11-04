@@ -43,7 +43,7 @@ go build -trimpath -ldflags '-s -w -H=windowsgui' -o Mirroxy.exe .
 ```text
 feat: 节点行双击切换到系统代理
 fix: 切换路由模式后端口未重新分配
-docs: 补充 Android 构建说明
+docs: 补充构建说明
 ```
 
 ## 拉取请求

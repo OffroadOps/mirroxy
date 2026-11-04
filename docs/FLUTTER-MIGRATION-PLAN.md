@@ -2,7 +2,7 @@
 
 > 状态：规划稿（2026-11-02）。本文替代"继续扩展 WebUI"的路线，目标是用一套 Flutter 客户端覆盖 Windows / macOS / Linux 桌面与 Android，Go 后端保留为代理引擎。
 
-> **2026-11-04 更新**：桌面端路线已改为 Electron，详见 [`ELECTRON-REFACTOR-PLAN.md`](ELECTRON-REFACTOR-PLAN.md)。本文保留作历史参考。
+> **2026-11-04 更新**：桌面端路线已改为 Electron，详见 [`ELECTRON-REFACTOR-PLAN.md`](ELECTRON-REFACTOR-PLAN.md)。Android 原生版与本文的「Android 合流」均已放弃，`android/` 源码已删除。本文保留作历史参考。
 
 ## 1. 目标与边界
 

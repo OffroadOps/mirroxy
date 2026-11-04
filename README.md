@@ -268,7 +268,6 @@ v2rayN 的协议配置行为；没有复制完整 v2rayN 客户端。
 | `cmd/upgrade/` | Windows 独立更新助手 |
 | `cmd/bootstrap/` | 引导安装器后端 |
 | `packaging/` | 打包、发布与页面生成脚本 |
-| `android/` | 独立开发的 Android 原生版（Kotlin + Jetpack Compose） |
 | `licenses/` | 第三方组件许可证与 NOTICE |
 | `docs/` | 设计与验证文档 |
 
