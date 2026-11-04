@@ -1,7 +1,7 @@
 /* Download window: classic download-manager layout — menu bar, large-icon
    toolbar, category tree on the left, dense task list, status bar. */
-:root{color-scheme:light;--dm-bg:#f3f4f6;--dm-panel:#fff;--dm-bar:#fbfbfc;--dm-line:#dcdfe4;--dm-line-soft:#eceef1;--dm-ink:#1f2933;--dm-soft:#5f6b77;--dm-faint:#97a1ab;--dm-hover:#e8f1fc;--dm-select:#cfe3fa;--dm-select-line:#7fb0e8;--dm-accent:#2b7fd4;--dm-ok:#2f9e5b;--dm-warn:#c27c0e;--dm-bad:#c8372d;--dm-shadow:0 10px 30px #1b2a3a2e;font:12px "Segoe UI","Microsoft YaHei",sans-serif}
-html[data-theme=dark]{color-scheme:dark;--dm-bg:#16191d;--dm-panel:#1d2126;--dm-bar:#22272d;--dm-line:#343b43;--dm-line-soft:#2a3037;--dm-ink:#e3e8ee;--dm-soft:#a7b1bc;--dm-faint:#76818c;--dm-hover:#25313f;--dm-select:#1f3b5c;--dm-select-line:#3f78b8;--dm-accent:#5aa2ee;--dm-ok:#5cc98a;--dm-warn:#e6a94a;--dm-bad:#ff8a80;--dm-shadow:0 10px 30px #0009}
+:root{color-scheme:light;--dm-bg:#f6f7f8;--dm-panel:#fff;--dm-bar:#fafbfb;--dm-line:#dcdfe4;--dm-line-soft:#eceef1;--dm-ink:#171a1f;--dm-soft:#5f6b77;--dm-faint:#97a1ab;--dm-hover:#f0f3f2;--dm-select:#e8f5f2;--dm-select-line:#7cc4b8;--dm-accent:#0f766e;--dm-ok:#0f8a5f;--dm-warn:#a15c07;--dm-bad:#c0392b;--dm-shadow:0 12px 32px rgba(16,24,40,.14);font:12px -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+html[data-theme=dark]{color-scheme:dark;--dm-bg:#0c0e11;--dm-panel:#15181d;--dm-bar:#1a1e24;--dm-line:#252a32;--dm-line-soft:#20252c;--dm-ink:#e7e9ec;--dm-soft:#a7b1bc;--dm-faint:#76818c;--dm-hover:#1f242b;--dm-select:#12332f;--dm-select-line:#2f7a6d;--dm-accent:#2dd4bf;--dm-ok:#34d399;--dm-warn:#fbbf24;--dm-bad:#f87171;--dm-shadow:0 12px 32px rgba(0,0,0,.5)}
 *{box-sizing:border-box}
 html,body{height:100%}
 body.dm{margin:0;display:flex;flex-direction:column;background:var(--dm-bg);color:var(--dm-ink);overflow:hidden}
@@ -57,7 +57,7 @@ html[data-theme=dark] .dm-banner{background:#3a2f17;border-color:#6b5520;color:#
 .dm-name svg{width:16px;height:16px;flex:none}
 .dm-name span{overflow:hidden;text-overflow:ellipsis}
 .dm-st{position:relative;display:block;padding:0 4px;border-radius:2px;overflow:hidden}
-.dm-st i{position:absolute;inset:0 auto 0 0;background:#2b7fd426;pointer-events:none}
+.dm-st i{position:absolute;inset:0 auto 0 0;background:rgba(15,118,110,.16);pointer-events:none}
 .dm-st b{position:relative;font-weight:400}
 .dm-st.complete{color:var(--dm-ok)}
 .dm-st.error,.dm-st.removed{color:var(--dm-bad)}

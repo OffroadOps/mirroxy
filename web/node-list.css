@@ -1,4 +1,3 @@
-/* Mute stopped information, not the row's controls. No row opacity/filter. */
-:root{--stopped-ink:#7a857f}
-html[data-theme=dark]{--stopped-ink:#98a1ac}
-#nodes>tr.stopped>td,#nodes>tr.stopped .protocol{color:var(--stopped-ink)}
+/* Temporary overrides must not be reintroduced. */
+#nodes > tr.stopped > td,
+#nodes > tr.stopped .protocol { color: var(--muted); }
