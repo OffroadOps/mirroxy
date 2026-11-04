@@ -1,5 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+function currentTheme(): 'light' | 'dark' {
+  return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+}
+
+function syncTitleBarTheme(): void {
+  ipcRenderer.send('mx:window:theme', currentTheme());
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  syncTitleBarTheme();
+  new MutationObserver(syncTitleBarTheme).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+});
+
 contextBridge.exposeInMainWorld('mirroxy', {
   platform: process.platform,
   versions: {

@@ -1,25 +1,19 @@
 /* Node workspace: group tabs, dense table, bottom status bar, menus. */
-.nx-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-}
+#view-nodes.view { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.nx-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; flex: none; margin-bottom: 10px; }
 .nx-groups { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; min-width: 0; }
 .nx-group {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: 32px;
   max-width: 220px;
-  padding: 0 10px;
+  padding: 0 11px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 12.5px;
   white-space: nowrap;
 }
 .nx-group:hover { background: var(--surface-3); color: var(--ink); }
@@ -46,13 +40,14 @@
 .nx-group-add { padding: 0 8px; color: var(--faint); font-size: 14px; }
 
 .nx-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nx-tools .button.small { height: 32px; }
 .search {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  height: 30px;
-  padding: 0 8px;
+  height: 32px;
+  padding: 0 9px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -61,18 +56,21 @@
 .search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
 .search > span { display: inline-flex; font-size: 15px; line-height: 1; }
 .search input {
+  flex: 1;
   width: 160px;
-  height: 26px;
+  height: 28px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
-  font-size: 12px;
+  box-shadow: none;
+  font-size: 13px;
 }
 .search input:focus { box-shadow: none; border: 0; }
 
 .nx-table-wrap {
-  max-height: calc(100vh - 178px);
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -86,7 +84,7 @@
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink);
 }
 .nx-col-name { width: auto; }
@@ -100,12 +98,12 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  height: 32px;
+  height: 36px;
   padding: 0 10px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
@@ -126,7 +124,7 @@
 th[aria-sort=ascending] .nx-sort::after { content: "▲"; }
 th[aria-sort=descending] .nx-sort::after { content: "▼"; }
 .nx-table td {
-  height: 34px;
+  height: 38px;
   padding: 0 10px;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
@@ -272,7 +270,7 @@ th[aria-sort=descending] .nx-sort::after { content: "▼"; }
   border-top: 1px solid var(--line);
   background: var(--surface);
   color: var(--muted);
-  font-size: 11px;
+  font-size: 11.5px;
 }
 .nx-seg-group { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
 .nx-seg {

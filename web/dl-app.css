@@ -41,8 +41,8 @@ html[data-theme=dark] .dm-banner{background:#3a2f17;border-color:#6b5520;color:#
 .dm-children{padding-left:16px;margin:1px 0 3px;border-left:1px dotted var(--dm-line);margin-left:16px}
 
 .dm-list{flex:1;min-width:0;overflow:auto;background:var(--dm-panel);outline:none;position:relative}
-.dm-table{width:100%;min-width:1000px;border-collapse:separate;border-spacing:0;table-layout:fixed}
-.c-name{width:auto}.c-size{width:76px}.c-status{width:110px}.c-eta{width:90px}.c-speed{width:88px}.c-proxy{width:100px}.c-created{width:116px}.c-dir{width:140px}
+.dm-table{width:100%;min-width:820px;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.c-name{width:auto}.c-size{width:64px}.c-status{width:96px}.c-eta{width:76px}.c-speed{width:78px}.c-proxy{width:84px}.c-created{width:100px}.c-dir{width:116px}
 .dm-table th{position:sticky;top:0;z-index:1;height:24px;padding:0 8px;background:var(--dm-bar);border-bottom:1px solid var(--dm-line);border-right:1px solid var(--dm-line-soft);font-weight:400;color:var(--dm-soft);text-align:left;white-space:nowrap;user-select:none}
 .dm-table th[data-sort]:hover{background:var(--dm-hover)}
 .dm-table th.num,.dm-table td.num{text-align:right}

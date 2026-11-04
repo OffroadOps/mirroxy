@@ -5,6 +5,7 @@ export interface TrayOptions {
   iconPath: string;
   label: string;
   show: () => void;
+  openDownloads: () => void;
   quitUi: () => void;
   quitAll: () => void;
 }
@@ -18,6 +19,7 @@ export function createTray(options: TrayOptions): TrayType {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: '打开 Mirroxy', click: options.show },
+      { label: '下载管理', click: options.openDownloads },
       { type: 'separator' },
       { label: '退出界面（代理继续运行）', click: options.quitUi },
       { label: '退出 Mirroxy', click: options.quitAll },

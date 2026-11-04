@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mirroxy 下载管理</title><link rel="icon" type="image/png" href="/icon.png?v=__VERSION__"><script src="/i18n.js?v=__VERSION__"></script><script src="/theme.js?v=__VERSION__"></script><link rel="stylesheet" href="/dl-app.css?v=__VERSION__"><script src="/download-menu.js?v=__VERSION__" defer></script><script src="/dl-model.js?v=__VERSION__" defer></script><script src="/dl-app.js?v=__VERSION__" defer></script></head>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>下载管理</title><link rel="icon" type="image/png" href="/icon.png?v=__VERSION__"><script src="/i18n.js?v=__VERSION__"></script><script src="/theme.js?v=__VERSION__"></script><link rel="stylesheet" href="/dl-app.css?v=__VERSION__"><script src="/download-menu.js?v=__VERSION__" defer></script><script src="/dl-model.js?v=__VERSION__" defer></script><script src="/dl-app.js?v=__VERSION__" defer></script></head>
 <body class="dm">
 <svg class="dm-sprite" aria-hidden="true" focusable="false">
 <symbol id="i-add" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13" fill="#2f9e5b"/><path d="M16 9v14M9 16h14" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/></symbol>
@@ -63,7 +63,7 @@
 <table class="dm-table" aria-multiselectable="true"><colgroup><col class="c-name"><col class="c-size"><col class="c-status"><col class="c-eta"><col class="c-speed"><col class="c-proxy"><col class="c-created"><col class="c-dir"></colgroup>
 <thead id="dmHead"><tr><th data-sort="name">文件名</th><th data-sort="size" class="num">大小</th><th data-sort="status">状态</th><th data-sort="eta">剩余时间</th><th data-sort="speed" class="num">传输速率</th><th>代理</th><th data-sort="created">添加时间</th><th>保存位置</th></tr></thead>
 <tbody id="dmTasks"></tbody></table>
-<div id="dmEmpty" class="dm-empty hidden"><p id="dmEmptyText">还没有下载任务</p><small>点击「新建任务」，或在本窗口按 Ctrl+V 粘贴下载链接。浏览器接力扩展会把浏览器里的下载自动交给这里。</small></div>
+<div id="dmEmpty" class="dm-empty hidden"><p id="dmEmptyText">还没有下载任务</p><small>点击「新建任务」，或按 Ctrl+V 粘贴下载链接。</small></div>
 </section>
 </div>
 <footer class="dm-status"><span id="dmTotals">0 个任务</span><span id="dmSelection"></span><span class="dm-status-fill"></span><span id="dmSpeed">↓ 0 B/s</span><span id="dmEngine" class="dm-engine">aria2</span></footer>

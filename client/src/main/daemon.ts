@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
-import https from 'node:https';
+import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 import { app } from 'electron';
@@ -42,11 +42,10 @@ function request(
 ): Promise<{ status: number; text: string }> {
   return new Promise((resolve, reject) => {
     const payload = body === undefined ? undefined : JSON.stringify(body);
-    const req = https.request(
+    const req = http.request(
       url,
       {
         method,
-        rejectUnauthorized: false,
         timeout: 4000,
         headers: {
           ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
@@ -127,14 +126,18 @@ export class Daemon {
     const dataDir = resolveDataDir();
     fs.mkdirSync(dataDir, { recursive: true });
     const port = await freePort();
-    this.url = `https://${LOCAL_HOST}:${port}`;
+    this.url = `http://${LOCAL_HOST}:${port}`;
     this.spawnError = '';
 
-    const child = spawn(binary, ['--dir', dataDir, '--panel', String(port), '--no-open'], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    });
+    const child = spawn(
+      binary,
+      ['--dir', dataDir, '--panel', String(port), '--no-open', '--no-tray', '--panel-http'],
+      {
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+      },
+    );
     child.on('error', (error) => {
       this.spawnError = error.message;
     });

@@ -122,6 +122,7 @@ type App struct {
 	panelServer      *http.Server
 	panelListener    net.Listener
 	panelTLS         bool
+	panelHTTP        bool
 	panelMoving      bool
 	capabilities     map[string]NodeCapabilities
 	downloadInitMu   sync.Mutex

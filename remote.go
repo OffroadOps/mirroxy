@@ -196,7 +196,10 @@ func (a *App) accessGuard(next http.Handler, remote bool) http.Handler {
 		if !remote && a.allowBrowserConnector(w, r) {
 			return
 		}
-		local := !remote && loopbackRequest(r) && !forwardedRequest(r)
+		// The desktop client serves the panel over plain loopback HTTP. That
+		// socket only accepts local connections, so the remote credential path
+		// does not apply and proxy headers must not turn it into a remote login.
+		local := !remote && (a.panelHTTP || (loopbackRequest(r) && !forwardedRequest(r)))
 		if local {
 			expected := fmt.Sprintf("127.0.0.1:%d", a.panelPort)
 			localhost := fmt.Sprintf("localhost:%d", a.panelPort)

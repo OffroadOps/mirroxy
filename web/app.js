@@ -95,7 +95,7 @@ function renderNodes(){
  const nodes=NT.sortNodes(NT.filterNodes(state.nodes,{group:nodeGroup,query:$('search').value,subscriptions:state.subscriptions}),nodeSort,health,traffic,MirroxyNodeList.sortedNodes);
  visibleNodeIDs=nodes.map(n=>n.id);
  selectedNodes=new Set([...selectedNodes].filter(id=>state.nodes.some(n=>n.id===id)));
- $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);$('nodeHint').classList.toggle('hidden',!state.nodes.length);
+ $('empty').classList.toggle('hidden',state.nodes.length>0);$('nodeTableWrap').classList.toggle('hidden',!state.nodes.length);
  $('nodeHead').querySelectorAll('[data-sort]').forEach(b=>{const on=nodeSort.key===b.dataset.sort;b.closest('th').setAttribute('aria-sort',on?(nodeSort.dir==='asc'?'ascending':'descending'):'none')});
  $('nodes').innerHTML=nodes.length?nodes.map(nodeRow).join(''):`<tr><td colspan="8" class="no-match">${t('没有匹配的节点')}</td></tr>`;
  renderTraffic(state.traffic);
@@ -464,7 +464,7 @@ async function loadPanelCertStatus(){try{const s=await apiGet('panel/cert-status
 // trust store every visit raises a browser warning, so say it on the page
 // instead of letting the browser do it.
 let certBannerChecked=false;
-async function renderCertBanner(){const banner=$('caBanner');if(!banner)return;if(!state.settings.panelTLS){banner.classList.add('hidden');return}if(certBannerChecked)return;certBannerChecked=true;try{const s=await apiGet('panel/cert-status');if(s.tls&&!s.trusted){banner.classList.remove('hidden');$('caBannerText').textContent=t('面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。')}else banner.classList.add('hidden')}catch{banner.classList.add('hidden')}}
+async function renderCertBanner(){const banner=$('caBanner');if(!banner)return;if(!state.settings.panelTLS){banner.classList.add('hidden');const status=$('panelCertStatus'),row=status?.closest('.setting-row');row?.classList.add('hidden');row?.nextElementSibling?.classList.add('hidden');return}if(certBannerChecked)return;certBannerChecked=true;try{const s=await apiGet('panel/cert-status');if(s.tls&&!s.trusted){banner.classList.remove('hidden');$('caBannerText').textContent=t('面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。')}else banner.classList.add('hidden')}catch{banner.classList.add('hidden')}}
 $('caBannerTrust').onclick=()=>act($('caBannerTrust'),async()=>{await api('panel/trust-ca',{});certBannerChecked=false;toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
 $('caBannerDismiss').onclick=()=>{$('caBanner').classList.add('hidden')};
 ['remoteScheme','remoteEnabled','remotePort','remoteUser','remotePassword','remoteCert','remoteKey'].forEach(id=>$(id).addEventListener('input',()=>remoteDirty=true));

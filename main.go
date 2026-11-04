@@ -29,6 +29,8 @@ func main() {
 	root := flag.String("dir", filepath.Dir(exe), "运行目录，包含 bin 与 data")
 	port := flag.Int("panel", 15060, "本机 Web 面板端口")
 	noOpen := flag.Bool("no-open", false, "启动时不打开浏览器")
+	panelHTTP := flag.Bool("panel-http", false, "以明文 HTTP 提供本机面板（仅建议本机桌面客户端使用）")
+	noTray := flag.Bool("no-tray", false, "不创建系统托盘（由桌面客户端接管）")
 	initServer := flag.Bool("init", false, "初始化服务器：生成 HTTP 管理地址和账号密码")
 	resetPassword := flag.Bool("reset-password", false, "停止服务后重置管理密码")
 	accessInfo := flag.Bool("access-info", false, "显示安装时生成的管理地址和账号密码")
@@ -134,6 +136,7 @@ func main() {
 		log.SetOutput(io.MultiWriter(logfile, os.Stderr))
 	}
 	a := &App{root: *root, panelPort: *port, token: newID() + newID(), cores: map[string]*Core{}, shutdown: make(chan struct{}), trayDone: make(chan struct{}), appRouterPhase: "stopped"}
+	a.panelHTTP = *panelHTTP
 	if err = a.load(); err != nil {
 		log.Print(err)
 		if *afterUpdate != "" {
@@ -192,7 +195,9 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	listener = a.wrapPanelTLS(listener)
+	if !*panelHTTP {
+		listener = a.wrapPanelTLS(listener)
+	}
 	if a.panelPort != legacyPanelPort {
 		go a.serveLegacyRedirect(legacyPanelPort)
 	}
@@ -270,7 +275,11 @@ func main() {
 	go a.healthLoop()
 	go a.acceleratorGuardLoop()
 	go a.restoreDownloads()
-	go a.runTray()
+	if *noTray {
+		close(a.trayDone)
+	} else {
+		go a.runTray()
+	}
 	if !*noOpen && openAtStart {
 		openBrowser(a.panelURL())
 	}
