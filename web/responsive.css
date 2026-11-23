@@ -1,10 +1,11 @@
 @media (max-width: 1100px) {
   .nx-table-wrap { max-height: none; }
   .nx-table { min-width: 760px; }
-  main { padding: 18px 20px 14px; }
-  #view-downloads { margin: -18px -20px -14px; }
+  main { padding: 20px 22px 16px; }
+  #view-downloads { margin: -20px -22px -16px; }
   #caBanner:not(.hidden) ~ #view-downloads { margin-top: 0; }
-  .topbar { padding: 0 20px; }
+  .topbar { padding: 0 22px; }
+  .nx-status { padding: 10px 22px; }
 }
 
 @media (max-width: 900px) {
@@ -32,14 +33,15 @@
   .brand small { display: none; }
   .nav-label, .sidebar-bottom, .workspace { display: none; }
   .sidebar nav { display: flex; flex-wrap: wrap; gap: 2px; width: 100%; margin-top: 4px; }
-  .nav { width: auto; height: 30px; padding: 0 10px; margin: 0; font-size: 11px; }
+  .nav { width: auto; height: 34px; padding: 0 12px; margin: 0; font-size: 12px; }
   .nav > span:first-child:not(.nav-count) { display: none; }
-  .sidebar-controls { margin: 0; }
+  .sidebar-controls { margin: 0; padding-top: 0; border-top: 0; }
 
   .shell { margin-left: 0; }
-  .topbar { min-height: 48px; height: auto; padding: 10px 16px; }
-  main { padding: 14px 16px; }
-  #view-downloads { margin: -14px -16px; }
+  .topbar { min-height: 52px; height: auto; padding: 10px 16px; }
+  .topbar-badge { display: none; }
+  main { padding: 16px; }
+  #view-downloads { margin: -16px; }
   #caBanner:not(.hidden) ~ #view-downloads { margin-top: 0; }
 
   .page-heading { flex-wrap: wrap; }
@@ -50,8 +52,10 @@
   .nx-hint { display: none; }
   .ca-banner #caBannerText { min-width: 0; }
   .nx-table { min-width: 720px; }
-  .nx-status { padding: 8px 12px; gap: 10px; }
+  .nx-status { padding: 10px 16px; gap: 12px; }
   .nx-status-info { margin-left: 0; flex-wrap: wrap; white-space: normal; }
+  .empty { padding: 44px 18px 40px; }
+  .empty-hints { display: none; }
 
   .core-grid { grid-template-columns: 1fr; }
   .edit-grid { grid-template-columns: 1fr; }

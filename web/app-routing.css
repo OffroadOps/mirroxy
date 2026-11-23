@@ -8,8 +8,9 @@
   margin-bottom: 12px;
   padding: 16px 18px;
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .app-routing-node { display: flex; flex-direction: column; gap: 6px; }
 .app-routing-node label { font-size: 11px; font-weight: 600; color: var(--ink-2); }
@@ -37,15 +38,15 @@
 .capability-heading h3 { margin: 0; font-size: 12px; color: var(--ink-2); }
 .capability-results { display: flex; flex-wrap: wrap; gap: 6px; }
 .capability-results span {
-  padding: 4px 9px;
+  padding: 4px 10px;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--muted);
   font-size: 10px;
 }
-.capability-results span.ok { border-color: #b7dbc6; background: var(--accent-soft); color: var(--ok); }
-.capability-results span.bad { border-color: #e6c3bd; background: #fdf0ee; color: var(--bad); }
+.capability-results span.ok { border-color: #a6f4c5; background: var(--ok-soft); color: var(--ok); }
+.capability-results span.bad { border-color: #fecdca; background: var(--bad-soft); color: var(--bad); }
 #capabilityMeta { font-size: 10px; color: var(--faint); }
 .app-routing-error { margin: 0 0 12px; color: var(--bad); font-size: 12px; }
 
@@ -63,7 +64,9 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
+.app-profile-row:hover { border-color: var(--line-strong); }
 .app-profile-row.disabled { opacity: .55; }
 .app-profile-info h3 { margin: 0 0 3px; font-size: 13px; }
 .app-profile-info p { margin: 0; font-size: 11px; color: var(--muted); }
@@ -102,9 +105,10 @@
 .app-exe-add { display: flex; gap: 6px; margin-top: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
 .app-exe-add input { flex: 1; min-width: 0; }
 .app-profile-empty {
-  padding: 34px 20px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius);
+  padding: 38px 20px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   color: var(--muted);
   text-align: center;
 }
@@ -159,9 +163,9 @@
 .scan-row code { overflow: hidden; color: var(--faint); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .scan-row small { color: var(--muted); }
 .scan-main {
-  padding: 1px 6px;
-  border: 1px solid #b7dbc6;
-  border-radius: 10px;
+  padding: 2px 7px;
+  border: 1px solid #a6f4c5;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--ok);
   font-size: 9px;
