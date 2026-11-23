@@ -97,6 +97,65 @@ code, pre, kbd { font-family: var(--mono); }
   color: var(--ink-2);
   z-index: 40;
 }
+.sidebar-toggle {
+  position: absolute;
+  top: 25px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--faint);
+  transition: background .12s, color .12s, border-color .12s;
+}
+.sidebar-toggle:hover { background: var(--surface-3); color: var(--ink); border-color: var(--line); }
+.sidebar-toggle svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform .16s ease;
+}
+
+/* Collapsed rail: icons only. Scoped above the mobile breakpoint, where the
+   sidebar becomes a horizontal bar and the toggle is hidden. */
+@media (min-width: 741px) {
+  html.sidebar-collapsed .sidebar { width: 72px; padding: 16px 14px 14px; }
+  html.sidebar-collapsed .shell { margin-left: 72px; }
+  html.sidebar-collapsed .brand { justify-content: center; padding: 0; margin: 2px auto 10px; }
+  html.sidebar-collapsed .brand-text,
+  html.sidebar-collapsed .nav-label,
+  html.sidebar-collapsed .workspace,
+  html.sidebar-collapsed .nav-count,
+  html.sidebar-collapsed .language-select,
+  html.sidebar-collapsed .sidebar-bottom { display: none; }
+  html.sidebar-collapsed .sidebar-toggle { position: static; margin: 0 auto 10px; }
+  html.sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+  html.sidebar-collapsed .sidebar nav { margin-top: 0; }
+  html.sidebar-collapsed .nav {
+    width: 44px;
+    height: 40px;
+    margin: 0 auto 4px;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    font-size: 0;
+  }
+  html.sidebar-collapsed .sidebar-controls {
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding-top: 12px;
+  }
+}
+
 .brand {
   display: flex;
   align-items: center;

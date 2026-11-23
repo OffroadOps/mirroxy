@@ -511,6 +511,8 @@
     "实时连接记录仅在本机面板可用": "Live connection activity is only available from the local dashboard",
     "已清空内存中的连接记录": "In-memory connection log cleared",
     "已将 {host} 加入{bucket}": "Added {host} to {bucket}",
+    "折叠侧栏": "Collapse sidebar",
+    "展开侧栏": "Expand sidebar",
     "独立窗口": "Separate window",
     "在独立窗口中打开": "Open in a separate window",
     "在独立窗口中打开下载管理": "Open the download manager in a separate window",

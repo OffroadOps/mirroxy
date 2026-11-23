@@ -4,6 +4,14 @@ const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 const t=(key,params)=>window.MirroxyI18n?.t(key,params)||key;
 let state=null,token='',importMode='v2rayn',pending=0,remoteDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
 const desktopUI=()=>window.go?.main?.Desktop;
+const sidebarToggle=$('sidebarToggle');
+function setSidebarCollapsed(collapsed){
+ document.documentElement.classList.toggle('sidebar-collapsed',collapsed);
+ try{localStorage.setItem('Mirroxy.sidebar',collapsed?'collapsed':'expanded')}catch{}
+ if(sidebarToggle){const label=t(collapsed?'展开侧栏':'折叠侧栏');sidebarToggle.title=label;sidebarToggle.setAttribute('aria-label',label);sidebarToggle.setAttribute('aria-expanded',String(!collapsed))}
+}
+if(sidebarToggle)sidebarToggle.onclick=()=>setSidebarCollapsed(!document.documentElement.classList.contains('sidebar-collapsed'));
+setSidebarCollapsed(document.documentElement.classList.contains('sidebar-collapsed'));
 const latest=new Map();
 function translateEvent(value){const match=String(value).match(/^(\d{2}:\d{2}:\d{2}\s+)(.*)$/);return match?match[1]+t(match[2]):t(value)}
 function toast(message,error=false,action=null){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.querySelector('.toast-action')?.remove();if(action){const btn=document.createElement('button');btn.className='toast-action';btn.textContent=action.label;btn.onclick=()=>{el.classList.add('hidden');action.onClick()};el.append(btn)}toastTimer=setTimeout(()=>el.classList.add('hidden'),error?9500:action?9000:4500);}

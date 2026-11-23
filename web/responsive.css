@@ -31,6 +31,7 @@
   }
   .brand { flex: 1; padding: 0 4px; }
   .brand small { display: none; }
+  .sidebar-toggle { display: none; }
   .nav-label, .sidebar-bottom, .workspace { display: none; }
   .sidebar nav { display: flex; flex-wrap: wrap; gap: 2px; width: 100%; margin-top: 4px; }
   .nav { width: auto; height: 34px; padding: 0 12px; margin: 0; font-size: 12px; }
