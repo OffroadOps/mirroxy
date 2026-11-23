@@ -19,7 +19,10 @@
   const desktop = window.go?.main?.Desktop;
   const embedded = new URLSearchParams(location.search).get('embed') === '1';
   const postToPanel = action => { try { parent.postMessage({ source: 'mirroxy-downloads', action }, location.origin); } catch {} };
-  function openPopout() { if (desktop?.OpenDownloads) desktop.OpenDownloads(); else window.open('/downloads', '_blank', 'noopener'); }
+  function openPopout() {
+    const target = desktop?.OpenDownloads ? desktop : (() => { try { return parent.go?.main?.Desktop?.OpenDownloads ? parent.go.main.Desktop : null; } catch { return null; } })();
+    if (target) target.OpenDownloads(); else window.open('/downloads', '_blank', 'noopener');
+  }
   function openPanel(relay = false) { if (embedded) { postToPanel(relay ? 'relay' : 'panel'); return; } if (desktop) desktop.OpenPanel(relay); else window.open(relay ? '/#browser-relay' : '/', '_blank'); }
   async function request(path, body) {
     if (desktop) {
