@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -252,5 +253,189 @@ func TestGlobalModeBypassLANDirect(t *testing.T) {
 	xrules = xrayNodeRules("in-1", "node-x", "proxy", false)
 	if len(xrules) != 1 || xrules[0].(M)["outboundTag"] != "node-x" {
 		t.Fatalf("xray global mode without bypass must be a single rule: %+v", xrules)
+	}
+}
+
+func TestCustomRoutingNormalizationAndValidation(t *testing.T) {
+	in := CustomRoutingRules{
+		Proxy:  []string{"", " # comment ", "domain:Example.COM.", "*.example.com", ".example.com", "full:API.Test.com.", "keyword:OpenAI"},
+		Direct: []string{"// note", "10.0.0.5/8", "ip:1.1.1.1", "1.1.1.1", "geosite:CN", "geoip:Private"},
+		Block:  []string{`regexp:^ads\.`, "bad.example"},
+	}
+	got, err := normalizeCustomRules(in)
+	if err != nil {
+		t.Fatalf("normalizeCustomRules failed: %v", err)
+	}
+	wantProxy := []string{"example.com", "full:api.test.com", "keyword:openai"}
+	wantDirect := []string{"10.0.0.0/8", "1.1.1.1", "geosite:cn", "geoip:private"}
+	wantBlock := []string{`regexp:^ads\.`, "bad.example"}
+	if fmt.Sprint(got.Proxy) != fmt.Sprint(wantProxy) {
+		t.Fatalf("normalized Proxy = %v, want %v", got.Proxy, wantProxy)
+	}
+	if fmt.Sprint(got.Direct) != fmt.Sprint(wantDirect) {
+		t.Fatalf("normalized Direct = %v, want %v", got.Direct, wantDirect)
+	}
+	if fmt.Sprint(got.Block) != fmt.Sprint(wantBlock) {
+		t.Fatalf("normalized Block = %v, want %v", got.Block, wantBlock)
+	}
+	if !got.hasIP() {
+		t.Fatal("expected hasIP() to be true for CIDR/IP/geoip rules")
+	}
+	if (CustomRoutingRules{Proxy: []string{"example.com"}}).hasIP() {
+		t.Fatal("expected domain-only custom rules hasIP() to be false")
+	}
+
+	invalidCases := []string{
+		"https://example.com",
+		"ip:999.999.1.1",
+		"regexp:[unclosed",
+		"foo bar.com",
+		"geosite:unknown-xyz",
+		"geoip:unknown-xyz",
+		"example.com/path",
+	}
+	for _, bad := range invalidCases {
+		if _, err := normalizeCustomRules(CustomRoutingRules{Proxy: []string{bad}}); err == nil {
+			t.Fatalf("expected error for invalid rule %q", bad)
+		}
+	}
+}
+
+func TestCustomRoutingPrecedenceAndCoreConfigs(t *testing.T) {
+	custom := CustomRoutingRules{
+		Block:  []string{"ads.example.com", "9.9.9.9"},
+		Direct: []string{"internal.corp", "8.8.8.0/24", "keyword:cnki"},
+		Proxy:  []string{"full:override.cn", "114.114.114.114"},
+	}
+
+	// Xray priority: custom domains (block -> direct -> proxy) before bypass-cn domains,
+	// custom IPs (block -> direct -> proxy) before bypass-cn IPs.
+	xr := xrayNodeRulesWithCustom("in-1", "node-1", "bypass-cn", true, custom)
+	findXrayRule := func(target string, hasIP bool) int {
+		for i, raw := range xr {
+			r := raw.(M)
+			if r["outboundTag"] != target {
+				continue
+			}
+			if hasIP && r["ip"] != nil {
+				return i
+			}
+			if !hasIP && r["domain"] != nil {
+				return i
+			}
+		}
+		return -1
+	}
+	bDom, dDom, pDom := findXrayRule("block", false), findXrayRule("direct", false), findXrayRule("node-1", false)
+	bIP, dIP, pIP := findXrayRule("block", true), findXrayRule("direct", true), findXrayRule("node-1", true)
+	if !(bDom >= 0 && bDom < dDom && dDom < pDom) {
+		t.Fatalf("expected xray domain order block < direct < proxy, got %d %d %d (%+v)", bDom, dDom, pDom, xr)
+	}
+	if !(bIP >= 0 && bIP < dIP && dIP < pIP && pDom < bIP) {
+		t.Fatalf("expected xray IP order block < direct < proxy after domain rules, got %d %d %d (%+v)", bIP, dIP, pIP, xr)
+	}
+
+	// Sing-box: never mix distinct match fields in one rule object; block uses action="reject".
+	sets := map[string]bool{}
+	sr := singNodeRulesWithCustom("in-1", "node-1", "proxy", sets, false, custom)
+	resolveIdx := -1
+	rejectDomainIdx, rejectIPIdx := -1, -1
+	for i, raw := range sr {
+		r := raw.(M)
+		if r["action"] == "resolve" {
+			resolveIdx = i
+		}
+		if r["action"] == "reject" {
+			if _, hasOut := r["outbound"]; hasOut {
+				t.Fatalf("sing-box reject rule must not contain outbound: %+v", r)
+			}
+			if r["domain_suffix"] != nil {
+				rejectDomainIdx = i
+			}
+			if r["ip_cidr"] != nil {
+				rejectIPIdx = i
+			}
+		}
+		matchFields := 0
+		for _, k := range []string{"domain", "domain_suffix", "domain_keyword", "domain_regex", "rule_set", "ip_cidr", "ip_is_private"} {
+			if r[k] != nil {
+				matchFields++
+			}
+		}
+		if matchFields > 1 {
+			t.Fatalf("sing-box rule combined multiple AND match fields: %+v", r)
+		}
+	}
+	if resolveIdx <= rejectDomainIdx || rejectIPIdx <= resolveIdx {
+		t.Fatalf("expected sing-box domain_reject (%d) < resolve (%d) < ip_reject (%d)", rejectDomainIdx, resolveIdx, rejectIPIdx)
+	}
+
+	// coreConfig sets IPOnDemand in proxy mode when custom IP rules are present.
+	bypassLAN := false
+	a := &App{
+		root: t.TempDir(), cores: map[string]*Core{}, traffic: map[string]*Traffic{},
+		cfg: Settings{
+			RoutingMode: "proxy",
+			BypassLAN:   &bypassLAN,
+			CustomRules: custom,
+			Nodes:       []Node{{ID: "x1", Engine: "xray", Enabled: true, Port: 5061, Outbound: M{"protocol": "freedom"}}},
+			Updated:     map[string]string{},
+		},
+	}
+	cfg, _ := a.coreConfig("xray-x1")
+	routingCfg := cfg["routing"].(M)
+	if routingCfg["domainStrategy"] != "IPOnDemand" {
+		t.Fatalf("expected IPOnDemand in global mode with custom IP rules, got %v", routingCfg["domainStrategy"])
+	}
+}
+
+func TestCustomRoutingPersistenceAndAPI(t *testing.T) {
+	root := t.TempDir()
+	a := &App{root: root, panelPort: 15060, cores: map[string]*Core{}, traffic: map[string]*Traffic{}}
+	if err := a.load(); err != nil {
+		t.Fatal(err)
+	}
+
+	localCtx := context.WithValue(context.Background(), localAccessKey{}, true)
+	// Save via /api/routing/rules
+	req := httptest.NewRequest(http.MethodPost, "/api/routing/rules", strings.NewReader(`{"proxy":["*.OpenAI.com"],"direct":["10.0.0.0/8"],"block":["ads.test"]}`)).WithContext(localCtx)
+	rec := httptest.NewRecorder()
+	a.api(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /api/routing/rules failed: %d %s", rec.Code, rec.Body.String())
+	}
+
+	// Verify persistence after reload
+	b := &App{root: root, panelPort: 15060, cores: map[string]*Core{}, traffic: map[string]*Traffic{}}
+	if err := b.load(); err != nil {
+		t.Fatal(err)
+	}
+	if len(b.cfg.CustomRules.Proxy) != 1 || b.cfg.CustomRules.Proxy[0] != "openai.com" || len(b.cfg.CustomRules.Direct) != 1 || b.cfg.CustomRules.Direct[0] != "10.0.0.0/8" || len(b.cfg.CustomRules.Block) != 1 || b.cfg.CustomRules.Block[0] != "ads.test" {
+		t.Fatalf("reloaded custom rules mismatch: %+v", b.cfg.CustomRules)
+	}
+
+	// GET & POST /api/v1/routing/rules
+	v1Get := httptest.NewRecorder()
+	b.apiV1(v1Get, httptest.NewRequest(http.MethodGet, "/api/v1/routing/rules", nil).WithContext(localCtx))
+	if v1Get.Code != http.StatusOK || !strings.Contains(v1Get.Body.String(), "openai.com") {
+		t.Fatalf("GET /api/v1/routing/rules unexpected: %d %s", v1Get.Code, v1Get.Body.String())
+	}
+	v1PostReq := httptest.NewRequest(http.MethodPost, "/api/v1/routing/rules", strings.NewReader(`{"proxy":["claude.ai"],"direct":["127.0.0.1"],"block":[]}`)).WithContext(localCtx)
+	v1PostReq.Header.Set("Content-Type", "application/json")
+	v1Post := httptest.NewRecorder()
+	b.apiV1(v1Post, v1PostReq)
+	if v1Post.Code != http.StatusOK || len(b.cfg.CustomRules.Proxy) != 1 || b.cfg.CustomRules.Proxy[0] != "claude.ai" {
+		t.Fatalf("POST /api/v1/routing/rules failed: %d %s", v1Post.Code, v1Post.Body.String())
+	}
+
+	// Non-local remote modification rejected on non-server platforms.
+	if !serverPlatform() {
+		remoteReq := httptest.NewRequest(http.MethodPost, "/api/routing/rules", strings.NewReader(`{"proxy":["evil.com"]}`))
+		remoteReq = remoteReq.WithContext(context.WithValue(remoteReq.Context(), localAccessKey{}, false))
+		remoteRec := httptest.NewRecorder()
+		b.api(remoteRec, remoteReq)
+		if !strings.Contains(remoteRec.Body.String(), "本机面板") {
+			t.Fatalf("expected remote custom rules write rejection, got %d %s", remoteRec.Code, remoteRec.Body.String())
+		}
 	}
 }

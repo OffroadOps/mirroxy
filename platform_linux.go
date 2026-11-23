@@ -24,6 +24,7 @@ func (a *App) syncProxy()            {}
 func (a *App) recoverProxy()         {}
 func (a *App) runTray()              { close(a.trayDone) }
 func (a *App) closeTray()            {}
+func (a *App) refreshTray()          {}
 func (a *App) setAutostart(bool) error {
 	return errors.New("Linux 开机自启由系统服务管理，请使用 systemctl enable/disable mirroxy")
 }

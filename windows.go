@@ -174,6 +174,7 @@ func (a *App) setProxy(id string) error {
 	}
 	notifyProxy()
 	a.event("系统代理已切换到 " + n.Name)
+	a.refreshTray()
 	return nil
 }
 func (a *App) restoreProxy() {
@@ -195,6 +196,7 @@ func (a *App) restoreProxy() {
 		notifyProxy()
 	}
 	_ = a.deleteState("system-proxy")
+	a.refreshTray()
 }
 func (a *App) syncProxy() {
 	b, e := a.readProxyBackup()
@@ -270,6 +272,7 @@ func (a *App) applySystemProxy(mode, id string) error {
 		}
 		return e
 	}
+	a.refreshTray()
 	return nil
 }
 func (a *App) setAutostart(enabled bool) error {

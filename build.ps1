@@ -8,7 +8,7 @@ if (-not $GoExe) {
 }
 $env:GOTOOLCHAIN = 'auto'
 $env:CGO_ENABLED = '0'
-if (-not (Test-Path -LiteralPath 'resource_windows_amd64.syso')) { throw 'Run python packaging/build-windows-resource.py to create the Windows application icon first' }
+if (-not (Test-Path -LiteralPath 'resource_windows_amd64.syso') -or -not (Test-Path -LiteralPath 'desktop\resource_windows_amd64.syso')) { throw 'Run python packaging/build-windows-resource.py to create the Windows application icons first' }
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 & $GoExe build -trimpath -ldflags '-s -w -H=windowsgui' -o (Join-Path $Destination 'Mirroxy.exe') .
 if ($LASTEXITCODE -ne 0) { throw 'Build failed' }

@@ -22,6 +22,7 @@ func (a *App) syncProxy()            {}
 func (a *App) recoverProxy()         {}
 func (a *App) runTray()              { close(a.trayDone) }
 func (a *App) closeTray()            {}
+func (a *App) refreshTray()          {}
 func (a *App) setAutostart(bool) error {
 	return errors.New("macOS 自动启动由安装器的 LaunchAgent 管理")
 }

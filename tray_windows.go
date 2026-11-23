@@ -68,7 +68,14 @@ const (
 	trayRouteBypassCN  = 100
 	trayRouteBlacklist = 101
 	trayRouteProxy     = 102
+	trayMsgRefresh     = 0x8002
 )
+
+func (a *App) refreshTray() {
+	if hwnd := a.trayHandle.Load(); hwnd != 0 {
+		_, _, _ = trayUser.NewProc("PostMessageW").Call(hwnd, trayMsgRefresh, 0, 0)
+	}
+}
 
 // setAllNodesEnabled is the tray master switch: run or stop every node in one
 // move. Stopping lets syncProxy hand the system proxy back to its backup.
@@ -104,6 +111,7 @@ func (a *App) setAllNodesEnabled(enable bool) {
 		return
 	}
 	a.syncProxy()
+	a.refreshTray()
 	if enable {
 		a.event("托盘：已运行全部节点")
 	} else {
@@ -162,6 +170,7 @@ func (a *App) trayApplyProxy(mode, id string) {
 	if err := a.applySystemProxy(mode, id); err != nil {
 		showTrayActionError("系统代理设置", err)
 	}
+	a.refreshTray()
 }
 func (a *App) traySetRoute(mode string) {
 	a.mu.Lock()
@@ -169,6 +178,7 @@ func (a *App) traySetRoute(mode string) {
 	if err := a.setRoutingMode(mode); err != nil {
 		showTrayActionError("路由模式切换", err)
 	}
+	a.refreshTray()
 }
 
 // traySetProxyNode starts the node when it is not running yet and then hands
@@ -184,6 +194,7 @@ func (a *App) traySetProxyNode(id string) {
 	if err := a.applySystemProxy("auto", id); err != nil {
 		showTrayActionError("系统代理设置", err)
 	}
+	a.refreshTray()
 }
 
 // trayReleaseProxy hands the system proxy back to the pre-Mirroxy settings.
@@ -199,6 +210,7 @@ func (a *App) trayReleaseProxy() {
 		return
 	}
 	a.event("托盘：已撤销系统代理")
+	a.refreshTray()
 }
 
 // restartElevated launches an elevated copy that waits for this process to
@@ -317,22 +329,72 @@ func (a *App) runTray() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	instance, _, _ := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetModuleHandleW").Call(0)
-	// The EXE and notification area use the same multi-resolution brand icon.
+	// The EXE and notification area use the same multi-resolution brand icon,
+	// with runtime state badges composited in memory.
 	size, _, _ := trayUser.NewProc("GetSystemMetrics").Call(49) // SM_CXSMICON
-	icon, _, _ := trayUser.NewProc("LoadImageW").Call(instance, 1, 1, size, size, 0)
-	if icon != 0 {
-		defer trayUser.NewProc("DestroyIcon").Call(icon)
+	baseIcon, _, _ := trayUser.NewProc("LoadImageW").Call(instance, 1, 1, size, size, 0)
+	if baseIcon != 0 {
+		defer trayUser.NewProc("DestroyIcon").Call(baseIcon)
 	} else {
-		icon, _, _ = trayUser.NewProc("LoadIconW").Call(0, 32512)
+		baseIcon, _, _ = trayUser.NewProc("LoadIconW").Call(0, 32512)
+	}
+	icons := map[trayVisualState]uintptr{}
+	for _, st := range []trayVisualState{trayStateIdle, trayStateProxy, trayStatePaused} {
+		h := createBadgedTrayIcon(int(size), st)
+		if h != 0 {
+			defer trayUser.NewProc("DestroyIcon").Call(h)
+			icons[st] = h
+		} else {
+			icons[st] = baseIcon
+		}
 	}
 	taskbar, _, _ := trayUser.NewProc("RegisterWindowMessageW").Call(uintptr(unsafe.Pointer(wide("TaskbarCreated"))))
+	currentTrayVisual := func() (trayVisualState, string) {
+		a.mu.Lock()
+		acceleratorPaused := a.cfg.PausedSystemProxy != nil
+		globalRoute := first(a.cfg.RoutingMode, "bypass-cn")
+		running := []Node{}
+		for _, n := range a.cfg.Nodes {
+			if n.Enabled && a.cores[n.coreKey()].alive() {
+				running = append(running, n)
+			}
+		}
+		a.mu.Unlock()
+		if acceleratorPaused {
+			return trayStatePaused, trayTooltip(trayStatePaused, "", globalRoute, len(running))
+		}
+		enabled, proxyServer := currentProxy()
+		if enabled == 1 && proxyServer != "" {
+			for _, n := range running {
+				if n.Port > 0 && proxyServer == fmt.Sprintf("127.0.0.1:%d", n.Port) {
+					return trayStateProxy, trayTooltip(trayStateProxy, n.Name, first(a.effectiveRoute(n), globalRoute), len(running))
+				}
+			}
+		}
+		return trayStateIdle, trayTooltip(trayStateIdle, "", globalRoute, len(running))
+	}
+	lastState, lastTip := currentTrayVisual()
+	icon := icons[lastState]
 	data := trayNotify{ID: 1, Flags: 7, Callback: 0x8001, Icon: icon}
 	data.Size = uint32(unsafe.Sizeof(data))
-	tip, _ := windows.UTF16FromString("Mirroxy · 单击打开面板")
+	tip, _ := windows.UTF16FromString(lastTip)
 	copy(data.Tip[:], tip)
 	notify := func(action uintptr) uintptr {
 		v, _, _ := trayShell.NewProc("Shell_NotifyIconW").Call(action, uintptr(unsafe.Pointer(&data)))
 		return v
+	}
+	syncTrayVisual := func(force bool) {
+		st, tipText := currentTrayVisual()
+		if !force && st == lastState && tipText == lastTip {
+			return
+		}
+		lastState = st
+		lastTip = tipText
+		data.Icon = icons[st]
+		data.Tip = [128]uint16{}
+		t16, _ := windows.UTF16FromString(tipText)
+		copy(data.Tip[:], t16)
+		notify(1) // NIM_MODIFY
 	}
 	open := func() { a.openPanelDesktop() }
 	openInBrowser := func() {
@@ -508,6 +570,9 @@ func (a *App) runTray() {
 				trayUser.NewProc("PostMessageW").Call(hwnd, 0, 0, 0)
 			}
 			return 0
+		case trayMsgRefresh:
+			syncTrayVisual(false)
+			return 0
 		case 0x0010:
 			trayUser.NewProc("DestroyWindow").Call(hwnd)
 			return 0
@@ -521,6 +586,7 @@ func (a *App) runTray() {
 		}
 		if uintptr(msg) == taskbar {
 			notify(0)
+			syncTrayVisual(true)
 			return 0
 		}
 		result, _, _ := trayUser.NewProc("DefWindowProcW").Call(hwnd, uintptr(msg), wParam, lParam)
@@ -553,12 +619,29 @@ func (a *App) runTray() {
 	}
 	a.mu.Lock()
 	a.trayWindow = hwnd
+	a.trayHandle.Store(hwnd)
 	select {
 	case <-a.shutdown:
 		a.closeTray()
 	default:
 	}
 	a.mu.Unlock()
+	tickerStop := make(chan struct{})
+	defer close(tickerStop)
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-tickerStop:
+				return
+			case <-a.shutdown:
+				return
+			case <-ticker.C:
+				a.refreshTray()
+			}
+		}
+	}()
 	var msg trayMessage
 	for {
 		result, _, _ := trayUser.NewProc("GetMessageW").Call(uintptr(unsafe.Pointer(&msg)), 0, 0, 0)
@@ -568,6 +651,7 @@ func (a *App) runTray() {
 		trayUser.NewProc("TranslateMessage").Call(uintptr(unsafe.Pointer(&msg)))
 		trayUser.NewProc("DispatchMessageW").Call(uintptr(unsafe.Pointer(&msg)))
 	}
+	a.trayHandle.Store(0)
 	a.mu.Lock()
 	a.trayWindow = 0
 	a.mu.Unlock()

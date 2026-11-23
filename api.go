@@ -49,7 +49,7 @@ func (a *App) state() M {
 		subs = append(subs, M{"id": s.ID, "name": s.Name, "host": subscriptionHost(s.URL), "updated": s.Updated, "error": s.Error})
 	}
 	geoFiles := a.geoFilesState()
-	return M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "token": a.token, "nodes": nodes, "cores": cores, "events": a.events, "subscriptions": subs, "settings": M{"startPort": a.cfg.StartPort, "autoUpdate": a.cfg.AutoUpdate, "autoSubscribe": a.cfg.AutoSubscribe, "autostart": a.cfg.Autostart, "openBrowser": a.cfg.OpenBrowser, "resumeNodes": a.cfg.ResumeNodes, "defaultRoute": a.cfg.DefaultRoute, "routingMode": a.cfg.RoutingMode, "logLevel": a.cfg.LogLevel, "subscribeHours": a.cfg.SubscribeHours, "healthMonitor": a.cfg.HealthMonitor, "healthInterval": a.cfg.HealthInterval, "autoDownload": a.cfg.AutoDownload, "autoDeploy": a.cfg.AutoDeploy, "systemProxyMode": first(a.cfg.SystemProxyMode, "unchanged"), "systemProxyNode": a.cfg.SystemProxyNode, "pauseSystemProxyOnAccelerator": a.acceleratorGuardEnabled(), "acceleratorPaused": a.cfg.PausedSystemProxy != nil, "bypassLAN": a.bypassLANEnabled(), "geoAutoUpdate": a.cfg.GeoAutoUpdate, "panelPort": a.configuredPanelPort(), "panelTLS": a.panelTLS}, "updating": a.busyUpdate, "geoFiles": geoFiles, "systemProxy": proxy, "systemProxyEnabled": en == 1, "root": a.root, "remote": a.remoteState(), "traffic": a.trafficState(), "tray": a.trayWindow != 0, "panelPort": a.panelPort}
+	return M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "token": a.token, "nodes": nodes, "cores": cores, "events": a.events, "subscriptions": subs, "customRules": a.cfg.CustomRules.sanitized(), "settings": M{"startPort": a.cfg.StartPort, "autoUpdate": a.cfg.AutoUpdate, "autoSubscribe": a.cfg.AutoSubscribe, "autostart": a.cfg.Autostart, "openBrowser": a.cfg.OpenBrowser, "resumeNodes": a.cfg.ResumeNodes, "defaultRoute": a.cfg.DefaultRoute, "routingMode": a.cfg.RoutingMode, "logLevel": a.cfg.LogLevel, "subscribeHours": a.cfg.SubscribeHours, "healthMonitor": a.cfg.HealthMonitor, "healthInterval": a.cfg.HealthInterval, "autoDownload": a.cfg.AutoDownload, "autoDeploy": a.cfg.AutoDeploy, "systemProxyMode": first(a.cfg.SystemProxyMode, "unchanged"), "systemProxyNode": a.cfg.SystemProxyNode, "pauseSystemProxyOnAccelerator": a.acceleratorGuardEnabled(), "acceleratorPaused": a.cfg.PausedSystemProxy != nil, "bypassLAN": a.bypassLANEnabled(), "geoAutoUpdate": a.cfg.GeoAutoUpdate, "panelPort": a.configuredPanelPort(), "panelTLS": a.panelTLS}, "updating": a.busyUpdate, "geoFiles": geoFiles, "systemProxy": proxy, "systemProxyEnabled": en == 1, "root": a.root, "remote": a.remoteState(), "traffic": a.trafficState(), "tray": a.trayWindow != 0, "panelPort": a.panelPort}
 }
 func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api/downloads") {
@@ -81,6 +81,15 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		}
 		processes, err := listApplicationProcesses()
 		respond(w, M{"processes": processes}, err)
+		return
+	}
+	if r.Method == "GET" && r.URL.Path == "/api/activity" {
+		if !localAccess(r) {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(M{"error": "实时连接记录只能在本机面板查看"})
+			return
+		}
+		respond(w, M{"items": a.snapshotActivity()}, nil)
 		return
 	}
 	if r.Method == "GET" && r.URL.Path == "/api/app-routing/browse" {
@@ -223,12 +232,16 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		ID, Action, Text, Path, Route, Name, URL, Engine, Mode string
 		SettingsPatch
-		Remote     RemoteSettings
-		AppRouting AppRoutingSettings `json:"appRouting"`
-		Password   string
-		Deploy     *bool    `json:"deploy"`
-		Files      []string `json:"files"`
-		Form       M        `json:"form"`
+		Remote      RemoteSettings
+		AppRouting  AppRoutingSettings  `json:"appRouting"`
+		CustomRules *CustomRoutingRules `json:"customRules"`
+		Proxy       []string            `json:"proxy"`
+		Direct      []string            `json:"direct"`
+		Block       []string            `json:"block"`
+		Password    string
+		Deploy      *bool    `json:"deploy"`
+		Files       []string `json:"files"`
+		Form        M        `json:"form"`
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)
 	defer r.Body.Close()
@@ -251,6 +264,15 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		respond(w, M{"ok": true}, a.saveAppRouting(body.AppRouting))
+		return
+	case "/api/activity/clear":
+		if !localAccess(r) {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(M{"error": "实时连接记录只能在本机面板查看"})
+			return
+		}
+		a.clearActivity()
+		respond(w, M{"ok": true}, nil)
 		return
 	case "/api/app-routing/start":
 		if !localAccess(r) {
@@ -392,6 +414,17 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/api/routing":
 		respond(w, M{"ok": true}, a.setRoutingMode(body.Mode))
+	case "/api/routing/rules":
+		if !localAccess(r) && !serverPlatform() {
+			respond(w, nil, errors.New("全局与分流规则设置请在本机面板修改"))
+			return
+		}
+		rules := CustomRoutingRules{Proxy: body.Proxy, Direct: body.Direct, Block: body.Block}
+		if body.CustomRules != nil {
+			rules = *body.CustomRules
+		}
+		err := a.setCustomRoutingRules(rules)
+		respond(w, M{"ok": true, "customRules": a.cfg.CustomRules.sanitized()}, err)
 	case "/api/node/rename":
 		respond(w, M{"ok": true}, a.renameNode(body.ID, body.Name))
 	case "/api/node/spec":
@@ -439,19 +472,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 			respond(w, nil, errors.New("无效核心"))
 			return
 		}
-		key := engine
-		if engine == "sing-box" {
-			if n := a.node(body.ID); n != nil && n.Engine == "sing-box" {
-				key = n.coreKey()
-			} else {
-				for _, n := range a.cfg.Nodes {
-					if n.Engine == "sing-box" {
-						key = n.coreKey()
-						break
-					}
-				}
-			}
-		}
+		key := a.coreLogKeyLocked(engine, body.ID)
 		f, e := os.Open(a.dataPath(filepath.Join("runtime", "Mirroxy_worker_"+runtimeFileID(key)+".log")))
 		if e != nil {
 			respond(w, M{"text": "暂无日志"}, nil)
@@ -470,6 +491,54 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+// coreLogKeyLocked resolves the worker log key while a.mu is already held.
+func (a *App) coreLogKeyLocked(engine, nodeID string) string {
+	if nodeID != "" {
+		for _, n := range a.cfg.Nodes {
+			nodeEngine := n.Engine
+			if nodeEngine == "" {
+				nodeEngine = "xray"
+			}
+			if n.ID == nodeID && nodeEngine == engine {
+				return n.coreKey()
+			}
+		}
+	}
+	genericPath := a.dataPath(filepath.Join("runtime", "Mirroxy_worker_"+runtimeFileID(engine)+".log"))
+	if _, err := os.Stat(genericPath); err == nil {
+		return engine
+	}
+	existingMatch := ""
+	firstMatch := ""
+	for _, n := range a.cfg.Nodes {
+		nodeEngine := n.Engine
+		if nodeEngine == "" {
+			nodeEngine = "xray"
+		}
+		if nodeEngine != engine {
+			continue
+		}
+		k := n.coreKey()
+		if n.Enabled {
+			return k
+		}
+		if firstMatch == "" {
+			firstMatch = k
+		}
+		if existingMatch == "" {
+			if _, err := os.Stat(a.dataPath(filepath.Join("runtime", "Mirroxy_worker_"+runtimeFileID(k)+".log"))); err == nil {
+				existingMatch = k
+			}
+		}
+	}
+	if existingMatch != "" {
+		return existingMatch
+	}
+	if firstMatch != "" {
+		return firstMatch
+	}
+	return engine
 }
 func (a *App) testNode(id string) (M, error) {
 	a.mu.Lock()

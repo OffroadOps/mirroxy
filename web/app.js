@@ -17,7 +17,7 @@ async function api(path,body){const response=await fetch('/api/'+path,{method:'P
 async function apiGet(path){const response=await fetch('/api/'+path,{cache:'no-store'});let result;try{result=await response.json()}catch{throw new Error(t('后台响应异常，请刷新页面'))};if(!response.ok||result.error)throw new Error(t(result.error||'操作未完成'));return result;}
 async function act(button,fn){if(button?.disabled)return;pending++;const original=button?.textContent;if(button){button.disabled=true;button.textContent=t('processing')}try{await fn()}catch(e){toast(e.message,true)}finally{pending--;if(button){button.disabled=false;button.textContent=original}await refresh()}}
 async function refresh(){try{const response=await fetch('/api/state',{cache:'no-store'});if(!response.ok)throw Error();const previousVersion=state?.version;state=await response.json();if(previousVersion&&previousVersion!==state.version){location.reload();return}token=state.token;offline=false;$('backendStatus').innerHTML='<span class="local-dot"></span>'+t('backendOnline');render()}catch{offline=true;$('backendStatus').textContent=t('backendOffline')}}
-function view(name){const settingsView=['settings','geofiles','api','changelog'].includes(name);document.querySelectorAll('.view').forEach(v=>v.classList.toggle('hidden',v.id!=='view-'+name));document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===(settingsView?'settings':name)));$('settingsSubnav').classList.toggle('hidden',!settingsView);document.querySelectorAll('[data-settings-view]').forEach(b=>b.classList.toggle('active',b.dataset.settingsView===name));$('pageName').textContent={nodes:t('pageNodes'),apps:t('游戏 / 应用代理'),subscriptions:t('pageSubscriptions'),settings:t('pageSettings'),geofiles:t('pageSettings')+' / '+t('pageGeoFiles'),api:t('pageSettings')+' / '+t('pageAPI'),changelog:t('pageSettings')+' / '+t('pageChangelog')}[name];if(name==='changelog')renderChangelog();if(name==='settings')autoCheckCores();if(name==='geofiles')autoCheckGeo();try{sessionStorage.setItem('Mirroxy.view',name)}catch{}}
+function view(name){const settingsView=['settings','rules','geofiles','api','changelog'].includes(name);document.querySelectorAll('.view').forEach(v=>v.classList.toggle('hidden',v.id!=='view-'+name));document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===(settingsView?'settings':name)));$('settingsSubnav').classList.toggle('hidden',!settingsView);document.querySelectorAll('[data-settings-view]').forEach(b=>b.classList.toggle('active',b.dataset.settingsView===name));$('pageName').textContent={nodes:t('pageNodes'),apps:t('游戏 / 应用代理'),subscriptions:t('pageSubscriptions'),settings:t('pageSettings'),rules:t('pageSettings')+' / '+t('分流规则'),geofiles:t('pageSettings')+' / '+t('pageGeoFiles'),api:t('pageSettings')+' / '+t('pageAPI'),changelog:t('pageSettings')+' / '+t('pageChangelog')}[name];if(name==='changelog')renderChangelog();if(name==='settings')autoCheckCores();if(name==='geofiles')autoCheckGeo();try{sessionStorage.setItem('Mirroxy.view',name)}catch{}}
 function render(){
  const platform=state.platform||{os:'windows',arch:'amd64',server:false,systemProxy:true};
  document.querySelectorAll('[data-windows-only]').forEach(el=>el.classList.toggle('hidden',platform.os!=='windows'));
@@ -28,7 +28,7 @@ function render(){
  $('linuxServiceNote').classList.toggle('hidden',!platform.server);
  $('importDeployHint').textContent=t(state.settings.autoDeploy?'导入后自动选择核心、分配端口并启动':'导入后自行选择要启动的节点');
  $('version').textContent=state.version;$('navCount').textContent=state.nodes.length;
- renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyRelay?.onState(state);renderCertBanner();
+ renderNodes();renderProxy();renderTraffic(state.traffic);renderAppUpdate();if(appRoutingAvailable)renderAppRouting();window.MirroxyRelay?.onState(state);renderCertBanner();renderCustomRules();
  $('appNavCount').textContent=appRoutingAvailable?((appRoutingDraft?.profiles??state.appRouting?.profiles)??[]).length:0;
  $('subNavCount').textContent=state.subscriptions.length;
  restoreView();
@@ -69,7 +69,7 @@ function renderTraffic(traffic){if(!traffic)return;
  renderHealth(traffic.health);
  $('sumUpload').textContent='↑ '+bytes(traffic.uploadBytesPerSecond)+'/s';$('sumDownload').textContent='↓ '+bytes(traffic.downloadBytesPerSecond)+'/s';
  $('statusConnections').textContent=t('连接')+' '+traffic.connections;
- $('statusConnections').title=t('累计上传')+' '+bytes(traffic.uploadedBytes)+' · '+t('累计下载')+' '+bytes(traffic.downloadedBytes);
+ $('statusConnections').title=t('点击查看实时连接与分流记录')+'\n'+t('累计上传')+' '+bytes(traffic.uploadedBytes)+' · '+t('累计下载')+' '+bytes(traffic.downloadedBytes);
  for(const [id,v] of Object.entries(traffic.nodes)){const row=$('nodes').querySelector('[data-node-id="'+id+'"]');if(!row)continue;const live=nodeByID(id)?.status==='running';
   const total=(Number(v.uploadedBytes)||0)+(Number(v.downloadedBytes)||0);
   const values={connections:!live?'':v.connectionCountAvailable?v.connections:'—',upload:!live?'':v.available?bytes(v.uploadBytesPerSecond)+'/s':'—',download:!live?'':v.available?bytes(v.downloadBytesPerSecond)+'/s':'—',total:total?bytes(total):''};
@@ -474,9 +474,114 @@ $('copyAPI').onclick=()=>act($('copyAPI'),async()=>{const base=$('apiAddress').t
 $('stopAll').onclick=()=>act($('stopAll'),async()=>{await api('stop-all',{});toast(t('所有本地代理已停止'))});
 $('downloadsLink')?.addEventListener('click',e=>{const d=desktopUI();if(!d?.OpenDownloads)return;e.preventDefault();d.OpenDownloads()});
 $('shutdown').onclick=async()=>{if(!confirm(t('退出 Mirroxy 后台？所有由它提供的代理都会停止。')))return;try{await api('shutdown',{});toast(t(state.platform?.os==='darwin'?'后台已退出，使用 launchctl kickstart 可再次启动':state.platform?.server?'后台已退出。控制台运行 sudo Mirroxyctl start 可再次启动':'后台已退出。双击 Mirroxy.exe 可再次启动'));$('backendStatus').textContent=t('后台已退出');offline=true}catch(e){toast(e.message,true)}};
+let rulesDirty=false;
+const ruleFieldMap={rulesProxy:'proxy',rulesDirect:'direct',rulesBlock:'block'};
+function renderCustomRules(){
+ const cr=state?.customRules||{proxy:[],direct:[],block:[]};
+ const editable=!!state?.settingsEditable;
+ for(const [id,key] of Object.entries(ruleFieldMap)){
+  const el=$(id);if(!el)continue;
+  el.disabled=!editable;
+  if(!rulesDirty&&document.activeElement!==el)el.value=(cr[key]||[]).join('\n');
+ }
+ const btn=$('saveCustomRules');if(btn)btn.disabled=!editable;
+}
+for(const id of Object.keys(ruleFieldMap)){
+ $(id)?.addEventListener('input',()=>{rulesDirty=true;$('rulesResult')?.classList.add('hidden')});
+}
+$('saveCustomRules')?.addEventListener('click',()=>act($('saveCustomRules'),async()=>{
+ const parseLines=id=>$(id).value.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+ const resultEl=$('rulesResult');
+ try{
+  const payload={proxy:parseLines('rulesProxy'),direct:parseLines('rulesDirect'),block:parseLines('rulesBlock')};
+  const res=await api('routing/rules',payload);
+  rulesDirty=false;
+  if(state)state.customRules=res.customRules||payload;
+  for(const [id,key] of Object.entries(ruleFieldMap)){const el=$(id);if(el)el.value=(state.customRules?.[key]||[]).join('\n')}
+  if(resultEl)resultEl.className='form-result hidden';
+  toast(t('自定义分流规则已保存'));
+ }catch(e){
+  if(resultEl){resultEl.textContent=e.message;resultEl.className='form-result error'}
+  throw e;
+ }
+}));
+let activityItems=[],activityTimer=null;
+function activityActionLabel(action){
+ if(action==='direct')return t('直连');
+ if(action==='block')return t('拦截');
+ return t('代理');
+}
+function renderActivity(){
+ const tbody=$('activityRows');if(!tbody)return;
+ const query=($('activityFilter')?.value||'').trim().toLowerCase();
+ const actionFilter=$('activityActionFilter')?.value||'';
+ const rows=activityItems.filter(item=>{
+  if(actionFilter&&item.action!==actionFilter)return false;
+  if(!query)return true;
+  return [item.host,item.port,item.nodeName,item.nodeId,item.rule,item.network,item.action].some(v=>String(v||'').toLowerCase().includes(query));
+ });
+ if(!rows.length){
+  tbody.innerHTML=`<tr><td colspan="5" class="no-match">${t('暂无实时连接记录')}</td></tr>`;
+  return;
+ }
+ tbody.innerHTML=rows.map(item=>{
+  const dest=escapeHTML(item.host)+(item.port?':'+escapeHTML(item.port):'')+(item.network?' ('+escapeHTML(item.network.toUpperCase())+')':'');
+  const nodeLabel=escapeHTML(item.nodeName||item.nodeId||(item.engine==='B'?t('coreB'):item.engine==='A'?t('coreA'):'—'));
+  const badge=`<span class="activity-badge ${escapeHTML(item.action||'proxy')}">${escapeHTML(activityActionLabel(item.action))}</span>${item.live?` <span class="activity-live">${t('实时')}</span>`:''}`;
+  const title=item.rule?` title="${escapeHTML(item.rule)}"`:'';
+  const hostAttr=escapeHTML(item.host);
+  return `<tr><td>${escapeHTML(item.time||'')}</td><td class="activity-host" title="${dest}">${dest}</td><td>${nodeLabel}</td><td${title}>${badge}</td><td class="num"><button type="button" class="button small activity-quick" data-rule-add="direct" data-rule-host="${hostAttr}">${t('+ 直连')}</button><button type="button" class="button small activity-quick" data-rule-add="proxy" data-rule-host="${hostAttr}">${t('+ 代理')}</button><button type="button" class="button small activity-quick" data-rule-add="block" data-rule-host="${hostAttr}">${t('+ 拦截')}</button></td></tr>`;
+ }).join('');
+}
+async function loadActivity(){
+ try{
+  const res=await apiGet('activity');
+  activityItems=res.items||[];
+  renderActivity();
+ }catch(e){
+  if($('activityDialog')?.open){
+   $('activityRows').innerHTML=`<tr><td colspan="5" class="no-match">${escapeHTML(e.message)}</td></tr>`;
+  }
+ }
+}
+async function quickAddRule(host,bucket){
+ const target=String(host||'').trim();if(!target)return;
+ const cr=state?.customRules||{proxy:[],direct:[],block:[]};
+ const lower=target.toLowerCase();
+ const next={
+  proxy:(cr.proxy||[]).filter(v=>String(v).toLowerCase()!==lower),
+  direct:(cr.direct||[]).filter(v=>String(v).toLowerCase()!==lower),
+  block:(cr.block||[]).filter(v=>String(v).toLowerCase()!==lower),
+ };
+ next[bucket].push(target);
+ const res=await api('routing/rules',next);
+ rulesDirty=false;
+ if(state)state.customRules=res.customRules||next;
+ renderCustomRules();
+ const bucketText=bucket==='direct'?t('直连规则'):bucket==='block'?t('拦截规则'):t('代理规则');
+ toast(t('已将 {host} 加入{bucket}',{host:target,bucket:bucketText}));
+ await refresh();
+}
+$('statusConnections')?.addEventListener('click',()=>{
+ if(state&&state.localAccess===false){toast(t('实时连接记录仅在本机面板可用'),true);return}
+ $('activityDialog')?.showModal();
+ loadActivity();
+ clearInterval(activityTimer);
+ activityTimer=setInterval(()=>{if($('activityDialog')?.open&&!document.hidden)loadActivity()},1500);
+});
+$('activityDialog')?.addEventListener('close',()=>{if(activityTimer){clearInterval(activityTimer);activityTimer=null}});
+$('activityFilter')?.addEventListener('input',renderActivity);
+$('activityActionFilter')?.addEventListener('change',renderActivity);
+$('refreshActivity')?.addEventListener('click',()=>loadActivity());
+$('clearActivity')?.addEventListener('click',()=>act($('clearActivity'),async()=>{await api('activity/clear',{});activityItems=[];renderActivity();toast(t('已清空内存中的连接记录'))}));
+$('activityRows')?.addEventListener('click',e=>{
+ const btn=e.target.closest('button[data-rule-add]');
+ if(!btn)return;
+ act(btn,()=>quickAddRule(btn.dataset.ruleHost,btn.dataset.ruleAdd));
+});
 let pendingView=null;
 try{pendingView=sessionStorage.getItem('Mirroxy.view')}catch{}
-function restoreView(){if(pendingView==='downloads')pendingView=null;if(!pendingView)return;const base=['settings','geofiles','api','changelog'].includes(pendingView)?'settings':pendingView;const nav=document.querySelector('.nav[data-view="'+base+'"]');if(nav&&!nav.classList.contains('hidden')){const target=pendingView;pendingView=null;view(target)}}
+function restoreView(){if(pendingView==='downloads')pendingView=null;if(!pendingView)return;const base=['settings','rules','geofiles','api','changelog'].includes(pendingView)?'settings':pendingView;const nav=document.querySelector('.nav[data-view="'+base+'"]');if(nav&&!nav.classList.contains('hidden')){const target=pendingView;pendingView=null;view(target)}}
 restoreView();
 setTimeout(loadPanelCertStatus,2000);
 refresh();setInterval(()=>{if(!pending&&!document.hidden&&!document.querySelector('dialog[open]')&&!document.querySelector('.popover:not(.hidden)')&&nodeMenu.classList.contains('hidden')&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))refresh()},5000);setInterval(refreshTraffic,1000);window.addEventListener('scroll',()=>document.querySelectorAll('.popover').forEach(p=>p.classList.add('hidden')),true);

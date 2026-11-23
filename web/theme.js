@@ -7,6 +7,7 @@
  const normalize=value=>value==='dark'?'dark':'light';
  const apply=value=>{
   const theme=normalize(value);document.documentElement.dataset.theme=theme;
+  window.go?.main?.Desktop?.SetTheme?.(theme)?.catch?.(()=>{});
   const button=document.getElementById('themeToggle');
   if(button){const dark=theme==='dark';button.setAttribute('aria-pressed',String(dark));button.title=translate(dark?'切换到亮色模式':'切换到暗色模式');button.setAttribute('aria-label',button.title);}
  };

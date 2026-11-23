@@ -21,6 +21,7 @@ func (a *App) pauseSystemProxyForAcceleratorLocked(product string) bool {
 	a.cfg.PausedSystemProxy = &PausedSystemProxy{Mode: mode, Node: a.cfg.SystemProxyNode}
 	notifyProxy()
 	a.event("检测到加速器：" + product + "，已自动暂停系统代理；退出加速器后自动恢复")
+	a.refreshTray()
 	return true
 }
 

@@ -389,3 +389,90 @@ th[aria-sort=descending] .nx-sort::after { content: "▼"; }
 #browser-relay .buttons { margin: 6px 0 10px; }
 .relay-steps { margin: 4px 0 8px; padding-left: 18px; font-size: 12px; line-height: 1.8; color: var(--muted); }
 a.nav { text-decoration: none; }
+
+/* Custom routing rules */
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .rules-grid { grid-template-columns: 1fr; }
+}
+.rules-textarea {
+  width: 100%;
+  min-height: 220px;
+  font: 12px/1.6 var(--mono);
+  resize: vertical;
+}
+
+/* Live activity monitor */
+.nx-status-btn {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.nx-status-btn:hover {
+  background: var(--surface-2);
+  color: var(--accent);
+}
+#activityDialog {
+  width: min(920px, 94vw);
+  max-width: 94vw;
+}
+.activity-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.activity-toolbar input { flex: 1 1 220px; }
+.activity-table-wrap {
+  max-height: 55vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.activity-table th,
+.activity-table td {
+  height: 34px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.activity-host {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--mono);
+}
+.activity-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.activity-badge.proxy { background: var(--accent-soft); color: var(--accent); }
+.activity-badge.direct { background: rgba(16, 185, 129, .14); color: var(--ok); }
+.activity-badge.block { background: rgba(239, 68, 68, .14); color: var(--bad); }
+.activity-live {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 10px;
+}
+.activity-quick {
+  height: 22px;
+  padding: 0 7px;
+  margin-left: 4px;
+  font-size: 11px;
+}

@@ -228,8 +228,12 @@ func (a *App) accessGuard(next http.Handler, remote bool) http.Handler {
 			http.Error(w, "需要远程账号密码，或尝试次数过多", 401)
 			return
 		}
-		if !local && !serverPlatform() && (r.URL.Path == "/api/remote" || r.URL.Path == "/api/settings") {
+		if !local && !serverPlatform() && (r.URL.Path == "/api/remote" || r.URL.Path == "/api/settings" || r.URL.Path == "/api/routing/rules" || r.URL.Path == "/api/v1/routing/rules") {
 			http.Error(w, "全局与远程访问设置请在本机面板修改", 403)
+			return
+		}
+		if !local && (r.URL.Path == "/api/activity" || r.URL.Path == "/api/activity/clear") {
+			http.Error(w, "实时连接记录只能在本机面板查看", 403)
 			return
 		}
 		if strings.HasPrefix(r.URL.Path, "/api/") && !strings.HasPrefix(r.URL.Path, "/api/v1/") && r.Method != "GET" {

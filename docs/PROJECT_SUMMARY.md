@@ -1,27 +1,27 @@
 # Mirroxy 项目总览
 
-更新时间：2026-10-20  
+更新时间：2026-11-23  
 唯一源码目录：`D:\Mirroxy`  
 旧目录状态：`E:\scrcpyproxy` 已退役，默认跳过，仅保留旧程序、核心与历史数据。
 
 ## 1. 产品定位
 
-Mirroxy 是一个 Go 编写的多节点本地代理管理器。单个后台进程提供本机 Web 面板、托盘、API、节点生命周期、流量统计、路由和在线更新能力。每个运行节点拥有固定的本地混合端口，同一端口同时接受 HTTP 与 SOCKS5；Windows 默认不修改现有系统代理，因此可与 v2rayN 并存。
+Mirroxy 是一个 Go 编写的多节点本地代理管理器。单个后台进程提供本机 HTTPS/HTTP 面板、Wails 原生桌面窗口（Windows）、托盘、AI API、节点生命周期、流量统计、自定义分流规则、内存级连接观察器和在线更新能力。每个运行节点拥有固定的本地混合端口，同一端口同时接受 HTTP 与 SOCKS5；Windows 默认不修改现有系统代理，因此可与 v2rayN 并存。
 
-当前源码版本为 **0.8.0**；最后确认的正式发布版本为 **0.7.4**。0.8.0 尚未制作正式安装包或上传 S3。
+当前源码版本为 **0.9.0**（桌面窗口、单实例锁、自定义分流规则与实时连接观察器均已合入开发主线，尚未正式发布 Release 包）。
 
 ## 2. 技术结构
 
 | 层 | 主要文件 | 职责 |
 |---|---|---|
-| 启动与生命周期 | `main.go`, `bootstrap.go`, `shutdown_existing.go` | 启动、本机单实例、服务端初始化、优雅退出 |
+| 启动与生命周期 | `main.go`, `instance_lock_*.go`, `bootstrap.go`, `shutdown_existing.go` | 启动、每目录单实例文件锁与面板唤醒、服务端初始化、优雅退出 |
 | 配置与数据 | `model.go`, `storage.go`, `storage_key_*.go`, `settings.go` | AES-GCM SQLite 状态、Windows DPAPI 密钥、设置迁移 |
-| 节点与核心 | `import.go`, `core.go`, `core_assets.go`, `deploy.go`, `routing.go` | 节点导入、核心 A/B 配置、固定端口、路由与部署 |
-| 网络状态 | `health.go`, `traffic.go`, `tcp_*.go`, `pac.go` | 可用性、实时/累计流量、连接数、PAC |
-| Web/API | `api.go`, `ai_api.go`, `remote.go`, `web/` | 本机面板、AI API、远程认证、i18n、主题 |
-| Windows 桌面 | `windows.go`, `tray_windows.go`, `app_router_windows.go` | 系统代理、托盘、UAC 应用路由助手 |
+| 节点与核心 | `import.go`, `core.go`, `core_assets.go`, `deploy.go`, `routing.go` | 节点导入、每节点独立核心 A/B 配置、自定义规则编译、固定端口与部署 |
+| 网络状态 | `health.go`, `traffic.go`, `activity.go`, `tcp_*.go` | 可用性、实时/累计流量、连接数、纯内存连接与分流活动记录 |
+| Web/API | `api.go`, `ai_api.go`, `remote.go`, `web/` | 本机面板、AI API、远程认证、分流规则编辑器、i18n、主题 |
+| 桌面与托盘 | `desktop/`, `windows.go`, `tray_windows.go`, `tray_icon_windows.go`, `accelerator_guard_windows.go` | Wails 双视图客户端（主面板 + 下载管理）、系统代理、动态徽标托盘与工具提示、Uac 助手 |
 | 游戏/应用代理 | `app_router.go`, `capability.go`, `server_capability.go` | TUN、按进程路由、节点/服务器 UDP 与 IPv6 探测 |
-| 更新与发布 | `self_update*.go`, `cmd/upgrade/`, `packaging/` | 可选更新、回滚、Inno Setup、四平台发布与 S3 页面 |
+| 更新与发布 | `self_update*.go`, `cmd/upgrade/`, `packaging/` | HTTPS/HTTP 更新探针、回滚、Inno Setup、四平台发布与资源编译 |
 
 ## 3. 已有功能
 
@@ -38,15 +38,15 @@ Mirroxy 是一个 Go 编写的多节点本地代理管理器。单个后台进�
 - 四平台发布目标：Windows AMD64、Linux AMD64、Linux ARM64、macOS ARM64。
 - 可选在线更新，Windows 使用独立更新助手并在失败时回滚程序和数据。
 
-## 4. 0.8.0 日常路径单步化
+## 4. 0.9.0 桌面化与核心增强
 
-- 节点行双击 = 启动并接管系统代理；节点菜单提供「启动并设为系统代理」。
-- 顶部由「代理方式 + 应用」表单改为「接管系统代理」开关，节点与路由模式即时生效。
-- 核心进程从“按引擎共享”改为“每节点一个”，起停一个节点不再连累其它节点的连接。
-- 托盘系统代理子菜单列出全部节点，点选即启动并接管；托盘路径补齐了缺失的 `App.mu` 保护。
-- 面板版本号运行时注入，静态资源缓存键与运行版本一致。
-- 未信任本地根证书时在页首给出明确提示。
-- 可用性检测强制经过节点自身出口，修复绕过局域网时的误判。
+- Windows 主面板与下载管理改为 Wails 轻量原生窗口（`desktop/`），自动适配本机 HTTPS 证书与明暗原生标题栏；单击托盘图标或重复启动自动唤醒已有界面。
+- 按数据目录启用操作系统文件锁（`acquireInstanceLock`），避免并发启动损坏状态库或抢占核心端口。
+- 托盘图标根据状态动态绘制绿点（代理中）/ 琥珀点（加速器暂停）/ 待机徽标，提示信息同步显示代理节点与模式。
+- 新增自定义分流规则编辑器（`拦截 > 直连 > 代理`，支持域名、关键词、正则、IP/CIDR、`geosite:`/`geoip:`），同步编译到核心 A 与核心 B，并开放 `/api/v1/routing/rules`。
+- 新增实时连接与分流记录观察器：点击底部连接数查看核心 A（stdout 访问日志解析，不写入磁盘日志文件）与核心 B（Clash API `/connections`）汇总的最多 200 条内存连接，并支持一键加入自定义规则。
+- 修复核心 A 按节点独立进程运行后 `/api/log` 无法查看单节点日志的问题。
+- 节点行双击 = 启动并接管系统代理；底部状态栏切换系统代理（接管 / 清除 / 不改变）与路由模式，所有节点按独立核心进程隔离运行。
 
 ## 4.1 游戏/应用代理
 

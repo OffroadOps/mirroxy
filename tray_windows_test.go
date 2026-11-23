@@ -5,6 +5,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"unicode/utf16"
 )
 
 func TestTrayVersionAndOptionalUpdateLabels(t *testing.T) {
@@ -46,5 +47,39 @@ func TestTrayByteAndRateFormatting(t *testing.T) {
 	}
 	if trayNumber(uint64(7)) != 7 || trayNumber(int64(8)) != 8 || trayNumber(9) != 9 || trayNumber(10.0) != 10 || trayNumber(nil) != 0 {
 		t.Fatal("trayNumber must accept the numeric shapes stored in traffic state")
+	}
+}
+
+func TestTrayTooltipFormattingAndUTF16Limit(t *testing.T) {
+	idleStopped := trayTooltip(trayStateIdle, "", "bypass-cn", 0)
+	if !strings.Contains(idleStopped, "待机") {
+		t.Fatalf("unexpected stopped tooltip: %q", idleStopped)
+	}
+	idleRunning := trayTooltip(trayStateIdle, "", "bypass-cn", 2)
+	if !strings.Contains(idleRunning, "2 个节点") {
+		t.Fatalf("unexpected idle running tooltip: %q", idleRunning)
+	}
+	proxying := trayTooltip(trayStateProxy, "HK-Relay", "blacklist", 1)
+	if !strings.Contains(proxying, "代理中：HK-Relay") || !strings.Contains(proxying, "黑名单") {
+		t.Fatalf("unexpected proxy tooltip: %q", proxying)
+	}
+	paused := trayTooltip(trayStatePaused, "HK-Relay", "proxy", 1)
+	if !strings.Contains(paused, "加速器接管中") {
+		t.Fatalf("unexpected paused tooltip: %q", paused)
+	}
+
+	veryLong := strings.Repeat("超长emoji节点😀", 25)
+	if utf16Len := len(utf16.Encode([]rune(fitUTF16Tip("Mirroxy · "+veryLong, 127)))); utf16Len > 127 {
+		t.Fatalf("UTF-16 tooltip exceeded 127 units: %d", utf16Len)
+	}
+}
+
+func TestTrayCreateBadgedIcons(t *testing.T) {
+	for _, st := range []trayVisualState{trayStateIdle, trayStateProxy, trayStatePaused} {
+		h := createBadgedTrayIcon(32, st)
+		if h == 0 {
+			t.Fatalf("createBadgedTrayIcon returned 0 for state %d", st)
+		}
+		_, _, _ = trayUser.NewProc("DestroyIcon").Call(h)
 	}
 }

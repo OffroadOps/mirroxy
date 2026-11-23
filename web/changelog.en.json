@@ -3,6 +3,10 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "Added custom split-routing rules under Settings -> Routing rules (Proxy, Direct, and Block buckets supporting domains, wildcards, full:, keyword:, regexp:, IP/CIDR, and geosite:/geoip:) compiled uniformly to Core A and Core B with Block > Direct > Proxy precedence, plus /api/v1/routing/rules.",
+      "Added a live connections and routing inspector: clicking the bottom connection counter opens an auto-refreshing modal merging Core A stdout access streams and Core B active connections with one-click Add Direct / Proxy / Block buttons. Connection hosts stay strictly in RAM (capped at 200 entries), are never written to disk, and are restricted to local access.",
+      "Added dynamic Windows tray icon status badges (green = system proxy active, amber = paused for game accelerator, default = idle) with live node/routing tooltips, plus bundled Wails window icon resources (ID 3) and dark/light native titlebar synchronization.",
+      "Added per-data-directory OS-managed single-instance file locking so duplicate launches wake the existing panel instead of colliding on SQLite or ports, and fixed per-node Core A log lookup in /api/log.",
       "The Windows main dashboard now opens in a lightweight Wails native window (WebView2): clicking the tray icon launches or raises the window without browser tabs or local-CA warnings while the daemon and cores keep running in the background; the tray menu keeps \"Open in browser\" as a fallback.",
       "Fixed the Windows upgrade helper and update readiness check only probing plain HTTP against the HTTPS dashboard, and added the desktop client to the online installer and update allowlists.",
       "Restricted the legacy browser-relay auto-pairing endpoint to extension origins, enforced loopback/forwarded-header checks under plain-HTTP panel mode, and preserved -dir and -no-open when restarting from the Windows tray.",

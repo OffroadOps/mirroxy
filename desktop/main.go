@@ -75,6 +75,18 @@ func (d *Desktop) OpenPanel(relay bool) {
 func (d *Desktop) OpenInBrowser() {
 	runtime.BrowserOpenURL(d.ctx, d.backend.baseURL()+"/")
 }
+func (d *Desktop) SetTheme(theme string) {
+	if d.ctx == nil {
+		return
+	}
+	if theme == "dark" {
+		runtime.WindowSetDarkTheme(d.ctx)
+		runtime.WindowSetBackgroundColour(d.ctx, 17, 19, 24, 255)
+		return
+	}
+	runtime.WindowSetLightTheme(d.ctx)
+	runtime.WindowSetBackgroundColour(d.ctx, 247, 249, 252, 255)
+}
 func (d *Desktop) Close() { runtime.Quit(d.ctx) }
 
 func main() {
@@ -125,6 +137,7 @@ func main() {
 			},
 		},
 		Windows: &windows.Options{
+			Theme:               windows.SystemDefault,
 			WebviewUserDataPath: filepath.Join(base, "Mirroxy", fmt.Sprintf("%s-%d", *view, *port)),
 		},
 	})

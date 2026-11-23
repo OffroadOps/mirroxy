@@ -20,15 +20,17 @@ func (a *App) apiV1(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/markdown; charset=utf-8")
 			w.Write([]byte(aiGuide))
 			return
-		case "status", "nodes", "traffic", "subscriptions":
+		case "status", "nodes", "traffic", "subscriptions", "routing/rules":
 			a.mu.Lock()
 			defer a.mu.Unlock()
 			s := a.state()
 			switch path {
 			case "status":
-				respond(w, M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "remote": s["remote"], "nodes": s["nodes"], "cores": s["cores"], "traffic": s["traffic"], "systemProxy": s["systemProxy"], "systemProxyEnabled": s["systemProxyEnabled"], "systemProxyMode": a.cfg.SystemProxyMode, "routingMode": a.cfg.RoutingMode}, nil)
+				respond(w, M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "remote": s["remote"], "nodes": s["nodes"], "cores": s["cores"], "traffic": s["traffic"], "systemProxy": s["systemProxy"], "systemProxyEnabled": s["systemProxyEnabled"], "systemProxyMode": a.cfg.SystemProxyMode, "routingMode": a.cfg.RoutingMode, "customRules": s["customRules"]}, nil)
 			case "traffic":
 				respond(w, s["traffic"], nil)
+			case "routing/rules":
+				respond(w, s["customRules"], nil)
 			default:
 				respond(w, M{path: s[path]}, nil)
 			}
@@ -122,6 +124,13 @@ func (a *App) apiV1(w http.ResponseWriter, r *http.Request) {
 		case "routing":
 			target = "routing"
 			mapped["mode"] = body["mode"]
+		case "routing/rules":
+			target = "routing/rules"
+			if cr, ok := body["customRules"]; ok {
+				mapped["customRules"] = cr
+			} else {
+				mapped["customRules"] = M{"proxy": body["proxy"], "direct": body["direct"], "block": body["block"]}
+			}
 		case "system-proxy":
 			target = "proxy"
 			mapped["action"] = "mode"
@@ -202,7 +211,8 @@ uploadBytesPerSecond / downloadBytesPerSecond 单位 B/s；uploadedBytes / downl
 统计每秒采样，累计值跨网页刷新和正常重启保存；每 10 秒落盘，异常掉电/核心崩溃可能丢失末次采样。
 available=false 表示尚无有效流量采样，不能把当前速度解释为可靠的零；connectionCountAvailable 单独表示连接数可用性。
 首次启用统计前的历史流量无法补回；since 为本节点统计起点。
-核心 A 的节点配置变化会短暂重启共享核心；核心 B 的节点各自独立运行和统计。
+每个节点使用独立的核心进程，起停或修改单个节点不会重启其他节点的核心，也不会中断其他节点的连接。
+自定义分流规则优先级为 拦截（block）> 直连（direct）> 代理（proxy），并优先于内置规则；通过 GET/POST /api/v1/routing/rules 管理（桌面端远程访问不可修改）。
 `
 
 func openAPI() M {
@@ -235,6 +245,9 @@ func openAPI() M {
 	add("/updates/check", "post", "Check for an application update", M{}, nil)
 	add("/updates/apply", "post", "Download, verify and restart application; preserves user data", M{}, nil)
 	add("/routing", "post", "Set global routing; explicit node overrides are preserved", M{"mode": M{"type": "string", "enum": []string{"bypass-cn", "blacklist", "proxy"}}}, []string{"mode"})
+	strList := M{"type": "array", "items": str}
+	add("/routing/rules", "get", "Read custom split-routing rules (proxy, direct, block)", nil, nil)
+	add("/routing/rules", "post", "Save custom split-routing rules; priority is block > direct > proxy", M{"proxy": strList, "direct": strList, "block": strList}, nil)
 	add("/nodes/{id}/rename", "post", "Rename node without restarting; preserve custom name on subscription refresh", M{"name": M{"type": "string", "minLength": 1, "maxLength": 128}}, []string{"name"})
 	add("/nodes/{id}/share", "post", "Export node share URL including credentials; only on explicit request", M{}, nil)
 	paths["/nodes/{id}/share"].(M)["post"].(M)["responses"] = M{"200": M{"description": "Node share link containing credentials", "content": M{"application/json": M{"schema": M{"type": "object", "properties": M{"name": str, "protocol": str, "url": str}}}}}, "400": M{"description": "Node missing or connection options cannot be preserved"}, "401": M{"description": "Remote credentials required"}, "403": M{"description": "Cross-site request rejected"}}

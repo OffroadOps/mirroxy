@@ -111,22 +111,23 @@ func (a *App) coreConfig(key string) (M, []int) {
 		out["tag"] = tag
 		outs = append(outs, out)
 		mode := a.effectiveRoute(n)
-		if mode != "proxy" {
+		if mode != "proxy" || a.cfg.CustomRules.hasIP() {
 			splitRoutes = true
 		}
 		bypassLAN := a.bypassLANEnabled()
+		customRules := a.cfg.CustomRules
 		if engine == "xray" {
 			ins = append(ins, M{"tag": in, "listen": "127.0.0.1", "port": n.Port, "protocol": "mixed", "settings": M{"auth": "noauth", "udp": true}})
 			if n.AppPort > 0 {
 				appIn := "app-in-" + n.ID
 				ports = append(ports, n.AppPort)
 				ins = append(ins, M{"tag": appIn, "listen": "127.0.0.1", "port": n.AppPort, "protocol": "mixed", "settings": M{"auth": "password", "accounts": []any{M{"user": "mirroxy-app", "pass": a.cfg.AppRouting.Secret}}, "udp": true}})
-				globalRules = append(globalRules, xrayNodeRules(appIn, tag, mode, bypassLAN)...)
+				globalRules = append(globalRules, xrayNodeRulesWithCustom(appIn, tag, mode, bypassLAN, customRules)...)
 			}
 			if mode == "proxy" {
-				globalRules = append(globalRules, xrayNodeRules(in, tag, mode, bypassLAN)...)
+				globalRules = append(globalRules, xrayNodeRulesWithCustom(in, tag, mode, bypassLAN, customRules)...)
 			} else {
-				rules = append(rules, xrayNodeRules(in, tag, mode, bypassLAN)...)
+				rules = append(rules, xrayNodeRulesWithCustom(in, tag, mode, bypassLAN, customRules)...)
 			}
 		} else {
 			ins = append(ins, M{"type": "mixed", "tag": in, "listen": "127.0.0.1", "listen_port": n.Port})
@@ -134,9 +135,9 @@ func (a *App) coreConfig(key string) (M, []int) {
 				appIn := "app-in-" + n.ID
 				ports = append(ports, n.AppPort)
 				ins = append(ins, M{"type": "mixed", "tag": appIn, "listen": "127.0.0.1", "listen_port": n.AppPort, "users": []any{M{"username": "mirroxy-app", "password": a.cfg.AppRouting.Secret}}})
-				rules = append(rules, singNodeRules(appIn, tag, mode, ruleSets, bypassLAN)...)
+				rules = append(rules, singNodeRulesWithCustom(appIn, tag, mode, ruleSets, bypassLAN, customRules)...)
 			}
-			rules = append(rules, singNodeRules(in, tag, mode, ruleSets, bypassLAN)...)
+			rules = append(rules, singNodeRulesWithCustom(in, tag, mode, ruleSets, bypassLAN, customRules)...)
 		}
 	}
 	if engine == "xray" {
@@ -144,7 +145,7 @@ func (a *App) coreConfig(key string) (M, []int) {
 		if splitRoutes {
 			strategy = "IPOnDemand"
 		}
-		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning"), "access": "none"}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": append(globalRules, rules...)}}
+		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning")}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": append(globalRules, rules...)}}
 		if p := a.metricsPorts[key]; p > 0 {
 			cfg["metrics"] = M{"listen": fmt.Sprintf("127.0.0.1:%d", p)}
 			cfg["stats"] = M{}
@@ -217,7 +218,21 @@ func (a *App) launch(key, path, hash string, ports []int) (*Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	cmd.Stdout = f
+	var logWriter *coreLogWriter
+	if engine == "xray" {
+		nodeID, nodeName := "", ""
+		for _, n := range a.cfg.Nodes {
+			if n.coreKey() == key {
+				nodeID = n.ID
+				nodeName = n.Name
+				break
+			}
+		}
+		logWriter = newCoreLogWriter(a, f, nodeID, nodeName)
+		cmd.Stdout = logWriter
+	} else {
+		cmd.Stdout = f
+	}
 	cmd.Stderr = f
 	if err = cmd.Start(); err != nil {
 		f.Close()
@@ -225,7 +240,14 @@ func (a *App) launch(key, path, hash string, ports []int) (*Core, error) {
 	}
 	assignJob(a.job, cmd.Process.Pid)
 	c := &Core{cmd: cmd, done: make(chan struct{}), hash: hash, log: f}
-	go func() { c.err = cmd.Wait(); f.Close(); close(c.done) }()
+	go func() {
+		c.err = cmd.Wait()
+		if logWriter != nil {
+			logWriter.Flush()
+		}
+		f.Close()
+		close(c.done)
+	}()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		if !c.alive() {

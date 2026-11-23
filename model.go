@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -55,6 +56,11 @@ type Subscription struct {
 	Updated string `json:"updated"`
 	Error   string `json:"error"`
 }
+type CustomRoutingRules struct {
+	Proxy  []string `json:"proxy"`
+	Direct []string `json:"direct"`
+	Block  []string `json:"block"`
+}
 type Settings struct {
 	Nodes                         []Node             `json:"nodes"`
 	Subscriptions                 []Subscription     `json:"subscriptions"`
@@ -67,6 +73,7 @@ type Settings struct {
 	ResumeNodes                   bool               `json:"resumeNodes"`
 	DefaultRoute                  string             `json:"defaultRoute"`
 	RoutingMode                   string             `json:"routingMode"`
+	CustomRules                   CustomRoutingRules `json:"customRules"`
 	LogLevel                      string             `json:"logLevel"`
 	SubscribeHours                int                `json:"subscribeHours"`
 	HealthMonitor                 bool               `json:"healthMonitor"`
@@ -128,6 +135,9 @@ type App struct {
 	downloadInitMu   sync.Mutex
 	downloadManager  *DownloadManager
 	browserSeen      time.Time
+	activityMu       sync.Mutex
+	activity         []ActivityEntry
+	trayHandle       atomic.Uintptr
 }
 
 func newID() string                        { b := make([]byte, 12); _, _ = rand.Read(b); return hex.EncodeToString(b) }
@@ -182,6 +192,7 @@ func (a *App) load() error {
 	if a.cfg.DefaultRoute == "" {
 		a.cfg.DefaultRoute = "inherit"
 	}
+	a.cfg.CustomRules = a.cfg.CustomRules.sanitized()
 	if a.cfg.RoutingMode == "" {
 		// Adopt the requested global default for legacy default/proxy entries.
 		// Existing bypass overrides, identity, names and ports stay intact.

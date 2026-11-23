@@ -41,6 +41,17 @@ func TestPublicStateUsesGenericCoreIdentifiersAndReadsGenericLog(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "generic log proof") {
 		t.Fatalf("generic log not returned: %d %s", rec.Code, rec.Body.String())
 	}
+
+	nodeLogPath := a.dataPath(filepath.Join("runtime", "Mirroxy_worker_"+runtimeFileID("xray-a")+".log"))
+	if err = os.WriteFile(nodeLogPath, []byte("per-node xray log proof"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	reqNode := httptest.NewRequest("POST", "/api/log", strings.NewReader(`{"engine":"A","id":"a"}`))
+	recNode := httptest.NewRecorder()
+	a.api(recNode, reqNode)
+	if recNode.Code != 200 || !strings.Contains(recNode.Body.String(), "per-node xray log proof") {
+		t.Fatalf("per-node xray log not returned: %d %s", recNode.Code, recNode.Body.String())
+	}
 }
 
 func TestRemoteAPIHidesAndCannotControlApplicationRouting(t *testing.T) {

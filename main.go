@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -125,6 +126,32 @@ func main() {
 		}
 		return
 	}
+	releaseLock, err := acquireInstanceLock(*root)
+	if err != nil {
+		if errors.Is(err, errAlreadyRunning) {
+			if !*noOpen && !serverPlatform() {
+				existingPort := *port
+				if existingPort == legacyPanelPort {
+					existingPort = defaultPanelPort
+					if cfg, ok, _ := installerConfiguration(*root); ok && cfg.PanelPort > 0 {
+						existingPort = cfg.PanelPort
+					}
+				}
+				(&App{root: *root, panelPort: existingPort, panelHTTP: *panelHTTP}).openPanel()
+			}
+			if *afterUpdate != "" {
+				_ = rollbackAndExec(*afterUpdate)
+				os.Exit(1)
+			}
+			if serverPlatform() {
+				os.Exit(1)
+			}
+			return
+		}
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	defer releaseLock()
 	logfile, err := os.OpenFile(filepath.Join(*root, "data", "Mirroxy.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
