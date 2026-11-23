@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func configTestApp(t *testing.T) *App {
@@ -212,6 +213,64 @@ func TestSingDNSNoDetourForDirectOutbound(t *testing.T) {
 		if _, hasDetour := server["detour"]; hasDetour {
 			t.Fatalf("direct outbound must not be used as a DNS detour: %+v", server)
 		}
+	}
+}
+
+// TestSingBoxProtocolsStartWithDNS proves the DoH transport no longer kills
+// Core B on startup for the three sing-box-only protocols.
+func TestSingBoxProtocolsStartWithDNS(t *testing.T) {
+	core := os.Getenv("MIRROXY_TEST_SINGBOX")
+	rules := os.Getenv("MIRROXY_TEST_RULES")
+	if core == "" || rules == "" {
+		t.Skip("set MIRROXY_TEST_SINGBOX and MIRROXY_TEST_RULES")
+	}
+	for _, tc := range []struct{ name, link string }{
+		{"hysteria2", "hysteria2://password@example.invalid:443?sni=example.invalid#hy2"},
+		{"tuic", "tuic://11111111-2222-3333-4444-555555555555:tuic-password@example.invalid:443?sni=example.invalid#tuic"},
+		{"anytls", "anytls://password@example.invalid:443?sni=example.invalid#anytls"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := &App{root: t.TempDir(), panelPort: 19950, cores: map[string]*Core{}, shutdown: make(chan struct{})}
+			if err := a.load(); err != nil {
+				t.Fatal(err)
+			}
+			a.cfg.AutoDownload, a.cfg.LogLevel = false, "error"
+			b, err := os.ReadFile(core)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = os.MkdirAll(filepath.Dir(a.corePath("sing-box")), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(a.corePath("sing-box"), b, 0700); err != nil {
+				t.Fatal(err)
+			}
+			installTestRules(t, a)
+			n, err := parseLink(tc.link)
+			if err != nil {
+				t.Fatal(err)
+			}
+			n.ID, n.Route, n.Enabled = tc.name, "inherit", true
+			port, err := a.allocatePort()
+			if err != nil {
+				t.Fatal(err)
+			}
+			n.Port = port
+			a.cfg.Nodes = []Node{n}
+			defer a.stopEngine("sing-box")
+			if err = a.reconcile(); err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(500 * time.Millisecond)
+			entry := a.cores[n.coreKey()]
+			if entry == nil || !entry.alive() {
+				logs, _ := filepath.Glob(a.dataPath(filepath.Join("runtime", "Mirroxy_worker_*.log")))
+				for _, path := range logs {
+					t.Log(string(mustReadFile(path)))
+				}
+				t.Fatalf("%s core exited after startup", tc.name)
+			}
+		})
 	}
 }
 
