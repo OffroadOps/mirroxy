@@ -45,6 +45,11 @@ connections of the others.
   dashboard, with a "Separate window" button and the tray menu for a standalone window: create,
   pause, resume, batch operations and resume broken transfers. Every task picks direct access,
   a running Mirroxy node or a custom HTTP proxy.
+- **Subscription compatibility & anti-poisoning DNS** — providers that filter by User-Agent are
+  retried with a v2rayN identity, Clash YAML subscriptions are parsed, and remaining traffic/expiry
+  are shown when the provider supplies them. Core A sniffs http/tls/quic with routeOnly; mainland
+  and private domains use direct AliDNS DoH while everything else uses Cloudflare DoH through the
+  active node. Core B gets the same split with a system bootstrap resolver that avoids DNS loops.
 - **Privacy first** — nodes, subscriptions, remote credentials and traffic counters live in an
   AES-GCM encrypted SQLite database; the Windows master key is protected with DPAPI. Regular
   status endpoints never return node passwords, outbound configuration, subscription URLs or

@@ -220,6 +220,9 @@ func TestApplicationIngressFollowsNodeExitPolicy(t *testing.T) {
 	for _, raw := range rules {
 		rule := raw.(M)
 		if inbound, ok := rule["inbound"].([]string); ok && len(inbound) == 1 && inbound[0] == "app-in-s" {
+			if rule["action"] == "sniff" {
+				continue
+			}
 			count++
 			if rule["outbound"] == "node-s" && rule["rule_set"] == nil {
 				forced = true
@@ -240,6 +243,9 @@ func TestApplicationIngressFollowsNodeExitPolicy(t *testing.T) {
 	for _, raw := range rules {
 		rule := raw.(M)
 		if inbound, ok := rule["inbound"].([]string); ok && len(inbound) == 1 && inbound[0] == "app-in-s" {
+			if rule["action"] == "sniff" {
+				continue
+			}
 			count++
 			if rule["outbound"] == "node-s" && rule["rule_set"] == nil {
 				forced = true

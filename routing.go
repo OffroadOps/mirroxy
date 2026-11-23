@@ -488,7 +488,7 @@ func singNodeRules(in, tag, mode string, sets map[string]bool, bypassLAN bool) [
 }
 
 func singNodeRulesWithCustom(in, tag, mode string, sets map[string]bool, bypassLAN bool, custom CustomRoutingRules) []any {
-	rules := []any{}
+	rules := []any{M{"inbound": []string{in}, "action": "sniff"}}
 	add := func(fields M, target string) {
 		fields["inbound"] = []string{in}
 		if target == "reject" {
@@ -554,7 +554,13 @@ func singNodeRulesWithCustom(in, tag, mode string, sets map[string]bool, bypassL
 	}
 	if mode != "proxy" || bypassLAN || hasCustomIP {
 		// Only unmatched domains reach DNS resolution, then IP-based routing.
-		rules = append(rules, M{"inbound": []string{in}, "action": "resolve", "server": "local"})
+		// Bypass-mainland and global traffic resolves through the node's
+		// remote DoH; blacklisted destinations already match by domain.
+		resolveServer := "remote"
+		if mode == "blacklist" {
+			resolveServer = "local"
+		}
+		rules = append(rules, M{"inbound": []string{in}, "action": "resolve", "server": resolveServer})
 	}
 	for _, entry := range customEntries {
 		if entry.bucket.singPrivate {

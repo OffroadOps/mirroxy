@@ -231,8 +231,8 @@ func TestGlobalModeBypassLANDirect(t *testing.T) {
 
 	sets = map[string]bool{}
 	rules = singNodeRules("in-1", "node-x", "proxy", sets, false)
-	if len(rules) != 1 || rules[0].(M)["outbound"] != "node-x" {
-		t.Fatalf("global mode without LAN bypass must be a single rule: %+v", rules)
+	if len(rules) != 2 || rules[0].(M)["action"] != "sniff" || rules[1].(M)["outbound"] != "node-x" {
+		t.Fatalf("global mode without LAN bypass must sniff then force the node: %+v", rules)
 	}
 
 	xrules := xrayNodeRules("in-1", "node-x", "proxy", true)

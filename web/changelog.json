@@ -3,6 +3,8 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "订阅兼容增强：机场按 User-Agent 过滤节点时自动以 v2rayN 身份重试，支持解析 Clash YAML 的 proxies 列表，并读取 Subscription-Userinfo 在订阅表、机场分组提示中显示剩余流量与到期时间",
+      "新增防污染 DNS 分流与入站嗅探：核心 A 启用 http/tls/quic 嗅探（routeOnly），大陆与私有域名使用直连 AliDNS DoH、其余域名经当前节点使用 Cloudflare DoH；核心 B 通过 sniff 路由动作、remote/local DoH 与 system 引导解析器实现同样分流并避免 DNS 循环",
       "侧栏新增折叠开关：可折叠为仅图标的窄栏（保留品牌图标、导航图标与主题切换），折叠状态保存在本机并在加载前应用以避免闪烁；移动端仍保持横向导航",
       "下载管理默认嵌入主面板侧栏打开（同一 /downloads 页面，同源 iframe 按需加载），下载工具栏新增「独立窗口」按钮可随时弹出原生下载窗口；仅为本地面板放宽 X-Frame-Options 为 SAMEORIGIN / frame-ancestors 'self'，远程管理页继续完全禁止被嵌入",
       "新增自定义分流规则：在全局设置「分流规则」子页管理代理、直连、拦截三类规则（支持域名后缀、full:、keyword:、regexp:、IP/CIDR、geosite:/geoip:），按 拦截 > 直连 > 代理 优先级统一编译到核心 A 与核心 B，并提供本机 /api/v1/routing/rules 接口",

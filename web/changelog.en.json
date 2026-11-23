@@ -3,6 +3,8 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "Subscription compatibility: providers that filter by User-Agent are retried with a v2rayN identity, Clash YAML `proxies` lists are parsed, and `Subscription-Userinfo` is imported to show remaining traffic and expiry in the subscription table and provider tab tooltip.",
+      "Anti-poisoning DNS and inbound sniffing: Core A now sniffs http/tls/quic with routeOnly, resolves mainland/private domains through direct AliDNS DoH and everything else through Cloudflare DoH via the active node; Core B gets the same split through the sniff route action, remote/local DoH servers and a system bootstrap resolver that avoids DNS loops.",
       "The sidebar can now collapse to an icon-only rail (brand mark, navigation icons and theme toggle). The state is stored locally and applied before first paint to avoid a flash; mobile keeps the horizontal navigation bar.",
       "The download manager now opens embedded in the dashboard sidebar by default (the same /downloads page in a same-origin iframe, loaded on demand), and its toolbar adds a \"Separate window\" button for popping out the native download window. Only the local panel relaxes X-Frame-Options to SAMEORIGIN / frame-ancestors 'self'; remote management pages remain unframeable.",
       "Added custom split-routing rules under Settings -> Routing rules (Proxy, Direct, and Block buckets supporting domains, wildcards, full:, keyword:, regexp:, IP/CIDR, and geosite:/geoip:) compiled uniformly to Core A and Core B with Block > Direct > Proxy precedence, plus /api/v1/routing/rules.",

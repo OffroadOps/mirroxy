@@ -89,6 +89,8 @@ func (a *App) coreConfig(key string) (M, []int) {
 	globalRules := []any{}
 	ruleSets := map[string]bool{}
 	splitRoutes := false
+	firstXrayTag := ""
+	var singDNS M
 	ports := []int{}
 	if engine == "xray" {
 		outs = append(outs, M{"tag": "block", "protocol": "blackhole"}, M{"tag": "direct", "protocol": "freedom"})
@@ -117,11 +119,15 @@ func (a *App) coreConfig(key string) (M, []int) {
 		bypassLAN := a.bypassLANEnabled()
 		customRules := a.cfg.CustomRules
 		if engine == "xray" {
-			ins = append(ins, M{"tag": in, "listen": "127.0.0.1", "port": n.Port, "protocol": "mixed", "settings": M{"auth": "noauth", "udp": true}})
+			if firstXrayTag == "" {
+				firstXrayTag = tag
+			}
+			sniffing := M{"enabled": true, "destOverride": []string{"http", "tls", "quic"}, "routeOnly": true}
+			ins = append(ins, M{"tag": in, "listen": "127.0.0.1", "port": n.Port, "protocol": "mixed", "settings": M{"auth": "noauth", "udp": true}, "sniffing": sniffing})
 			if n.AppPort > 0 {
 				appIn := "app-in-" + n.ID
 				ports = append(ports, n.AppPort)
-				ins = append(ins, M{"tag": appIn, "listen": "127.0.0.1", "port": n.AppPort, "protocol": "mixed", "settings": M{"auth": "password", "accounts": []any{M{"user": "mirroxy-app", "pass": a.cfg.AppRouting.Secret}}, "udp": true}})
+				ins = append(ins, M{"tag": appIn, "listen": "127.0.0.1", "port": n.AppPort, "protocol": "mixed", "settings": M{"auth": "password", "accounts": []any{M{"user": "mirroxy-app", "pass": a.cfg.AppRouting.Secret}}, "udp": true}, "sniffing": M{"enabled": true, "destOverride": []string{"http", "tls", "quic"}, "routeOnly": true}})
 				globalRules = append(globalRules, xrayNodeRulesWithCustom(appIn, tag, mode, bypassLAN, customRules)...)
 			}
 			if mode == "proxy" {
@@ -130,6 +136,9 @@ func (a *App) coreConfig(key string) (M, []int) {
 				rules = append(rules, xrayNodeRulesWithCustom(in, tag, mode, bypassLAN, customRules)...)
 			}
 		} else {
+			if singDNS == nil {
+				singDNS = a.singDNSConfig(tag, mode, ruleSets)
+			}
 			ins = append(ins, M{"type": "mixed", "tag": in, "listen": "127.0.0.1", "listen_port": n.Port})
 			if n.AppPort > 0 {
 				appIn := "app-in-" + n.ID
@@ -145,7 +154,16 @@ func (a *App) coreConfig(key string) (M, []int) {
 		if splitRoutes {
 			strategy = "IPOnDemand"
 		}
-		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning")}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": append(globalRules, rules...)}}
+		allRules := append([]any{}, globalRules...)
+		allRules = append(allRules, rules...)
+		if firstXrayTag != "" {
+			dnsRules := []any{
+				M{"type": "field", "inboundTag": []string{"dns-in"}, "ip": []string{"223.5.5.5", "223.6.6.6", "2400:3200::1"}, "outboundTag": "direct"},
+				M{"type": "field", "inboundTag": []string{"dns-in"}, "outboundTag": firstXrayTag},
+			}
+			allRules = append(dnsRules, allRules...)
+		}
+		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning")}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": allRules}, "dns": xrayDNSConfig()}
 		if p := a.metricsPorts[key]; p > 0 {
 			cfg["metrics"] = M{"listen": fmt.Sprintf("127.0.0.1:%d", p)}
 			cfg["stats"] = M{}
@@ -154,7 +172,7 @@ func (a *App) coreConfig(key string) (M, []int) {
 		return cfg, ports
 	}
 	rules = append(rules, M{"action": "reject"})
-	route := M{"rules": rules, "default_domain_resolver": "local"}
+	route := M{"rules": rules, "default_domain_resolver": "system"}
 	if len(ruleSets) > 0 {
 		route["rule_set"] = a.singRuleSets(ruleSets)
 	}
@@ -162,7 +180,11 @@ func (a *App) coreConfig(key string) (M, []int) {
 	if level == "warning" {
 		level = "warn"
 	}
-	cfg := M{"log": M{"level": level}, "inbounds": ins, "outbounds": outs, "dns": M{"servers": []any{M{"type": "local", "tag": "local"}}}, "route": route}
+	dns := M{"servers": []any{M{"type": "local", "tag": "system"}}}
+	if singDNS != nil {
+		dns = singDNS
+	}
+	cfg := M{"log": M{"level": level}, "inbounds": ins, "outbounds": outs, "dns": dns, "route": route}
 	if p := a.metricsPorts[key]; p > 0 {
 		cfg["experimental"] = M{"clash_api": M{"external_controller": fmt.Sprintf("127.0.0.1:%d", p), "secret": a.metricsSecret}}
 	}
