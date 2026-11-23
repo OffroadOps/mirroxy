@@ -17,7 +17,10 @@
 
   function toast(message, error = false) { clearTimeout(toastTimer); const el = $('dmToast'); el.textContent = message; el.className = 'dm-toast' + (error ? ' error' : ''); toastTimer = setTimeout(() => el.classList.add('hidden'), error ? 8000 : 3500); }
   const desktop = window.go?.main?.Desktop;
-  function openPanel(relay = false) { if (desktop) desktop.OpenPanel(relay); else window.open(relay ? '/#browser-relay' : '/', '_blank'); }
+  const embedded = new URLSearchParams(location.search).get('embed') === '1';
+  const postToPanel = action => { try { parent.postMessage({ source: 'mirroxy-downloads', action }, location.origin); } catch {} };
+  function openPopout() { if (desktop?.OpenDownloads) desktop.OpenDownloads(); else window.open('/downloads', '_blank', 'noopener'); }
+  function openPanel(relay = false) { if (embedded) { postToPanel(relay ? 'relay' : 'panel'); return; } if (desktop) desktop.OpenPanel(relay); else window.open(relay ? '/#browser-relay' : '/', '_blank'); }
   async function request(path, body) {
     if (desktop) {
       try { return JSON.parse(await desktop.Request(path, body === undefined ? '' : JSON.stringify(body))); }
@@ -198,7 +201,7 @@
       { label: '全部暂停', enabled: !$('dmPauseAll').disabled, run: pauseAll },
       { label: '删除已完成', enabled: !$('dmClean').disabled, run: cleanFinished },
       '-',
-      { label: '关闭窗口', run: () => desktop ? desktop.Close() : window.close() },
+      { label: '关闭窗口', run: () => embedded ? postToPanel('close') : desktop ? desktop.Close() : window.close() },
     ],
     download: () => [...taskMenu(), '-', { label: '下载设置', run: openSettings }],
     view: () => {
@@ -214,6 +217,7 @@
       ];
     },
     help: () => [
+      ...(embedded ? [{ label: '在独立窗口中打开', run: openPopout }, '-'] : []),
       { label: '打开 Mirroxy 主面板', run: () => openPanel() },
       { label: '安装浏览器接力扩展', run: () => openPanel(true) },
     ],
@@ -310,6 +314,12 @@
   $('dmClean').onclick = cleanFinished;
   $('dmFolder').onclick = () => { const task = selectedTasks()[0]; if (task) openFolder(task.id); };
   $('dmPanel').onclick = () => openPanel();
+  if (embedded) {
+    $('dmPanel').classList.add('hidden');
+    const popout = $('dmPopout');
+    popout.classList.remove('hidden');
+    popout.onclick = openPopout;
+  }
   document.querySelectorAll('[data-bulk]').forEach(b => b.onclick = () => action([...selected], b.dataset.bulk));
   $('dmInstall').onclick = async () => { const b = $('dmInstall'); b.disabled = true; b.textContent = t('正在下载并校验引擎…'); try { await request('downloads/install', {}); await loadTasks(); } catch (error) { toast(error.message, true); } finally { b.disabled = false; b.textContent = t('安装 aria2 引擎'); } };
   document.querySelectorAll('.dm-node').forEach(b => b.onclick = () => { node = b.dataset.node; save(); render(); });

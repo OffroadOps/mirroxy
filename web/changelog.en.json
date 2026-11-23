@@ -3,6 +3,7 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "The download manager now opens embedded in the dashboard sidebar by default (the same /downloads page in a same-origin iframe, loaded on demand), and its toolbar adds a \"Separate window\" button for popping out the native download window. Only the local panel relaxes X-Frame-Options to SAMEORIGIN / frame-ancestors 'self'; remote management pages remain unframeable.",
       "Added custom split-routing rules under Settings -> Routing rules (Proxy, Direct, and Block buckets supporting domains, wildcards, full:, keyword:, regexp:, IP/CIDR, and geosite:/geoip:) compiled uniformly to Core A and Core B with Block > Direct > Proxy precedence, plus /api/v1/routing/rules.",
       "Added a live connections and routing inspector: clicking the bottom connection counter opens an auto-refreshing modal merging Core A stdout access streams and Core B active connections with one-click Add Direct / Proxy / Block buttons. Connection hosts stay strictly in RAM (capped at 200 entries), are never written to disk, and are restricted to local access.",
       "Added dynamic Windows tray icon status badges (green = system proxy active, amber = paused for game accelerator, default = idle) with live node/routing tooltips, plus bundled Wails window icon resources (ID 3) and dark/light native titlebar synchronization.",

@@ -189,9 +189,15 @@ func (a *App) browserConnectorAuthorized(r *http.Request) bool {
 func (a *App) accessGuard(next http.Handler, remote bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Header().Set("X-Frame-Options", "DENY")
+		// The local dashboard embeds the download manager in a same-origin
+		// iframe. Remote management pages must never be framed at all.
+		frameOptions, frameAncestors := "DENY", "'none'"
+		if !remote {
+			frameOptions, frameAncestors = "SAMEORIGIN", "'self'"
+		}
+		w.Header().Set("X-Frame-Options", frameOptions)
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors "+frameAncestors+"; base-uri 'none'")
 		w.Header().Set("Cache-Control", "no-store")
 		if !remote && a.allowBrowserConnector(w, r) {
 			return

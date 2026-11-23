@@ -2,6 +2,8 @@
   .nx-table-wrap { max-height: none; }
   .nx-table { min-width: 760px; }
   main { padding: 18px 20px 14px; }
+  #view-downloads { margin: -18px -20px -14px; }
+  #caBanner:not(.hidden) ~ #view-downloads { margin-top: 0; }
   .topbar { padding: 0 20px; }
 }
 
@@ -37,6 +39,8 @@
   .shell { margin-left: 0; }
   .topbar { min-height: 48px; height: auto; padding: 10px 16px; }
   main { padding: 14px 16px; }
+  #view-downloads { margin: -14px -16px; }
+  #caBanner:not(.hidden) ~ #view-downloads { margin-top: 0; }
 
   .page-heading { flex-wrap: wrap; }
   .page-heading .buttons { width: 100%; }

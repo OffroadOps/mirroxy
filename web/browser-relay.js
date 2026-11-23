@@ -30,7 +30,7 @@
   window.MirroxyRelay = {
     onState(next) {
       $('browser-relay').classList.toggle('hidden', !next.localAccess);
-      $('downloadsLink').classList.toggle('hidden', !next.localAccess || (!window.go?.main?.Desktop && !!next.tray));
+      $('downloadsLink').classList.toggle('hidden', !next.localAccess);
       if (next.localAccess && !checked) { checked = true; refreshRelay(); }
       showRelayFromHash();
     },

@@ -41,9 +41,10 @@ connections of the others.
 - **Windows game / application proxy** — pick programs by `.exe` name or full path; their
   TCP/UDP traffic follows the bound node while everything else keeps the current network path.
   TUN only, no system route changes.
-- **Built-in download manager** — a separate aria2 download window opened from the tray menu:
-  create, pause, resume, batch operations and resume broken transfers. Every task picks direct
-  access, a running Mirroxy node or a custom HTTP proxy.
+- **Built-in download manager** — the sidebar opens an aria2 download manager embedded in the
+  dashboard, with a "Separate window" button and the tray menu for a standalone window: create,
+  pause, resume, batch operations and resume broken transfers. Every task picks direct access,
+  a running Mirroxy node or a custom HTTP proxy.
 - **Privacy first** — nodes, subscriptions, remote credentials and traffic counters live in an
   AES-GCM encrypted SQLite database; the Windows master key is protected with DPAPI. Regular
   status endpoints never return node passwords, outbound configuration, subscription URLs or
@@ -124,9 +125,9 @@ mode rebuilds all node cores and reconnects briefly.
 
 ### Downloads (aria2)
 
-On Windows, "Downloads" in the tray menu opens an IDM-style download window as an Edge app window
-(no address bar or tabs); platforms without a tray open the same page (`/downloads`) from the
-dashboard sidebar. The window has a menu bar, a large-icon toolbar, a category tree by file type
+"Downloads" in the dashboard sidebar opens the same page (`/downloads`) embedded in the main panel;
+use "Separate window" in the download toolbar (or "Downloads" in the tray menu) for a standalone
+Wails / IDM-style window. The window has a menu bar, a large-icon toolbar, a category tree by file type
 (compressed, documents, music, programs, video, other) plus unfinished / finished groups, and a
 sortable task list. It supports creating, searching, pausing, resuming, reconnecting, deleting
 completed tasks, a properties window, a context menu, multi-selection and shortcuts (Ctrl+N new,

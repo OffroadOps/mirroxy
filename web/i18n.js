@@ -3,7 +3,7 @@
   const storageKey = 'Mirroxy.language';
   const zh = {
     processing: '处理中…', backendOnline: '后台运行中', backendOffline: '后台已断开',
-    pageNodes: '节点面板', pageSubscriptions: '订阅管理', pageSettings: '全局设置', pageAPI: 'AI API / 远程访问', pageChangelog: '更新日志', pageGeoFiles: 'Geo 文件',
+    pageNodes: '节点面板', pageDownloads: '下载管理', pageSubscriptions: '订阅管理', pageSettings: '全局设置', pageAPI: 'AI API / 远程访问', pageChangelog: '更新日志', pageGeoFiles: 'Geo 文件',
     available: '可用', unavailable: '不可用', pendingCheck: '待检测', checking: '检测中',
     running: '运行中', startError: '启动异常', stopped: '未启动', coreA: '网络核心 A', coreB: '网络核心 B',
     start: '启动', stop: '停止', currentVersion: '当前版本', noRecords: '暂无记录',
@@ -13,7 +13,7 @@
     '已置于列表末尾': 'Moved to the bottom of the list', '已恢复自动排序': 'Automatic order restored',
     '手动置底，启动后仍保持在列表末尾': 'Manually moved to the bottom; stays there when started',
     processing: 'Working…', backendOnline: 'Backend running', backendOffline: 'Backend disconnected',
-    pageNodes: 'Node Dashboard', pageSubscriptions: 'Subscriptions', pageSettings: 'Settings', pageAPI: 'AI API / Remote Access', pageChangelog: 'Changelog', pageGeoFiles: 'Geo files',
+    pageNodes: 'Node Dashboard', pageDownloads: 'Downloads', pageSubscriptions: 'Subscriptions', pageSettings: 'Settings', pageAPI: 'AI API / Remote Access', pageChangelog: 'Changelog', pageGeoFiles: 'Geo files',
     available: 'Available', unavailable: 'Unavailable', pendingCheck: 'Not checked', checking: 'Checking',
     running: 'Running', startError: 'Failed to start', stopped: 'Stopped', coreA: 'Network Core A', coreB: 'Network Core B',
     start: 'Start', stop: 'Stop', currentVersion: 'Current version', noRecords: 'No records yet',
@@ -510,7 +510,11 @@
     "+ 拦截": "+ Block",
     "实时连接记录仅在本机面板可用": "Live connection activity is only available from the local dashboard",
     "已清空内存中的连接记录": "In-memory connection log cleared",
-    "已将 {host} 加入{bucket}": "Added {host} to {bucket}"
+    "已将 {host} 加入{bucket}": "Added {host} to {bucket}",
+    "独立窗口": "Separate window",
+    "在独立窗口中打开": "Open in a separate window",
+    "在独立窗口中打开下载管理": "Open the download manager in a separate window",
+    "下载管理默认在主面板内打开，也可以点其中的「独立窗口」弹出独立窗口。": "Downloads open inside the main dashboard by default. Use \"Separate window\" in the download toolbar to pop them out."
   });
   function browserLocale() {
     const values = navigator.languages?.length ? navigator.languages : [navigator.language || 'en'];
