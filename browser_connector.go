@@ -75,6 +75,10 @@ func (a *App) legacyBrowserConnector(w http.ResponseWriter, r *http.Request) boo
 		http.Error(w, "浏览器接力仅允许本机访问", 403)
 		return true
 	}
+	if !extension {
+		http.Error(w, "跨站请求被拒绝", 403)
+		return true
+	}
 	if r.URL.Path == "/api/downloads/connector/auto" && r.Method == "GET" {
 		a.mu.Lock()
 		token := a.cfg.BrowserDownloadToken
@@ -87,10 +91,6 @@ func (a *App) legacyBrowserConnector(w http.ResponseWriter, r *http.Request) boo
 			"token":     token,
 			"port":      panelPort,
 		}, nil)
-		return true
-	}
-	if !extension {
-		http.Error(w, "跨站请求被拒绝", 403)
 		return true
 	}
 	if r.Method != "POST" {

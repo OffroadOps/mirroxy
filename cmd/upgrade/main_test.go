@@ -4,9 +4,13 @@ package main
 
 import (
 	"encoding/json"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestReadPlanRequiresExactFilesAndHashes(t *testing.T) {
@@ -40,5 +44,42 @@ func TestReadPlanRequiresExactFilesAndHashes(t *testing.T) {
 	}
 	if _, err := readPlan(planPath); err == nil {
 		t.Fatal("tampered candidate was accepted")
+	}
+}
+
+func TestReadySupportsHTTPSAndHTTP(t *testing.T) {
+	for _, useTLS := range []bool{true, false} {
+		name := "http"
+		if useTLS {
+			name = "https"
+		}
+		t.Run(name, func(t *testing.T) {
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/api/v1/status" {
+					http.NotFound(w, r)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"version": "0.9.0",
+					"nodes": []map[string]any{
+						{"enabled": true, "status": "running"},
+						{"enabled": false, "status": "stopped"},
+					},
+				})
+			})
+			var srv *httptest.Server
+			if useTLS {
+				srv = httptest.NewTLSServer(handler)
+			} else {
+				srv = httptest.NewServer(handler)
+			}
+			defer srv.Close()
+			port := srv.Listener.Addr().(*net.TCPAddr).Port
+			p := &plan{Version: "0.9.0", Port: port}
+			if !ready(p, os.Getpid(), 5*time.Second) {
+				t.Fatalf("ready() failed on %s panel (url=%s)", name, srv.URL)
+			}
+		})
 	}
 }

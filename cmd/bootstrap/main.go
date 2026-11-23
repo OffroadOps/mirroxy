@@ -186,7 +186,7 @@ func (f *fetcher) download(item offer, work string) (string, error) {
 }
 func allowed(name string) bool {
 	switch name {
-	case "Mirroxy.exe", "upgrade.exe", "README.txt", "PLATFORM", "manifest.json", "SHA256SUMS", "bin/runtime/Mirroxy_core_A.exe", "bin/runtime/Mirroxy_core_B.exe", "bin/runtime/Mirroxy_downloader.exe", "bin/resources/Mirroxy_route_ip.bin", "bin/resources/Mirroxy_route_domain.bin", "bin/resources/Mirroxy_trust.pem":
+	case "Mirroxy.exe", "Mirroxy-downloads.exe", "upgrade.exe", "README.txt", "PLATFORM", "manifest.json", "SHA256SUMS", "bin/runtime/Mirroxy_core_A.exe", "bin/runtime/Mirroxy_core_B.exe", "bin/runtime/Mirroxy_downloader.exe", "bin/resources/Mirroxy_route_ip.bin", "bin/resources/Mirroxy_route_domain.bin", "bin/resources/Mirroxy_trust.pem":
 		return true
 	}
 	for i := 1; i <= 12; i++ {
@@ -255,6 +255,9 @@ func extract(path, work, version string) (string, error) {
 		if !amd64PE(files[name]) {
 			return "", errors.New("Windows AMD64 程序或引擎缺失/平台错误")
 		}
+	}
+	if data, ok := files["Mirroxy-downloads.exe"]; ok && !amd64PE(data) {
+		return "", errors.New("Windows AMD64 下载管理客户端平台错误")
 	}
 	for _, name := range []string{"README.txt", "PLATFORM", "SHA256SUMS", "bin/resources/Mirroxy_route_ip.bin", "bin/resources/Mirroxy_route_domain.bin", "bin/resources/Mirroxy_trust.pem"} {
 		if len(files[name]) == 0 {

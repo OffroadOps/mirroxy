@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -25,10 +26,31 @@ func openBrowser(url string) {
 	}
 }
 
-// The Wails window runs separately; closing it never stops downloads or cores.
-func (a *App) openDownloadDesktop() {
+func (a *App) openPanel() { a.openPanelDesktop() }
+
+// The Wails window runs separately; closing it never stops proxy cores or downloads.
+func (a *App) openPanelDesktop() {
+	a.mu.Lock()
+	port := a.panelPort
+	url := a.panelURL()
+	a.mu.Unlock()
 	binary := filepath.Join(a.root, "Mirroxy-downloads.exe")
-	cmd := exec.Command(binary, "-panel", fmt.Sprint(a.panelPort))
+	if info, err := os.Stat(binary); err == nil && !info.IsDir() {
+		cmd := exec.Command(binary, "-view", "panel", "-panel", fmt.Sprint(port))
+		if err := cmd.Start(); err == nil {
+			_ = cmd.Process.Release()
+			return
+		}
+	}
+	openBrowser(url)
+}
+
+func (a *App) openDownloadDesktop() {
+	a.mu.Lock()
+	port := a.panelPort
+	a.mu.Unlock()
+	binary := filepath.Join(a.root, "Mirroxy-downloads.exe")
+	cmd := exec.Command(binary, "-view", "downloads", "-panel", fmt.Sprint(port))
 	if err := cmd.Start(); err != nil {
 		showTrayActionError("打开下载管理（请安装含桌面客户端的完整程序包）", err)
 		return

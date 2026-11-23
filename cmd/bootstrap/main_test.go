@@ -23,7 +23,7 @@ func fixtureZIP(t *testing.T, version string, mutate func(map[string][]byte)) []
 	copy(pe[64:], "PE\x00\x00")
 	binary.LittleEndian.PutUint16(pe[68:], 0x8664)
 	files := map[string][]byte{}
-	for _, name := range []string{"Mirroxy.exe", "upgrade.exe", "bin/runtime/Mirroxy_core_A.exe", "bin/runtime/Mirroxy_core_B.exe", "bin/runtime/Mirroxy_downloader.exe"} {
+	for _, name := range []string{"Mirroxy.exe", "Mirroxy-downloads.exe", "upgrade.exe", "bin/runtime/Mirroxy_core_A.exe", "bin/runtime/Mirroxy_core_B.exe", "bin/runtime/Mirroxy_downloader.exe"} {
 		files[name] = pe
 	}
 	for _, name := range []string{"README.txt", "PLATFORM", "bin/resources/Mirroxy_route_ip.bin", "bin/resources/Mirroxy_route_domain.bin", "bin/resources/Mirroxy_trust.pem", "licenses/NOTICE.txt"} {

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -172,7 +173,7 @@ func (a *App) startAppUpdate() error {
 	return nil
 }
 func allowedUpdateFile(name string) bool {
-	if name == executableName("Mirroxy") || name == executableName("upgrade") || name == "manifest.json" {
+	if name == executableName("Mirroxy") || name == executableName("upgrade") || name == executableName("Mirroxy-downloads") || name == "manifest.json" {
 		return true
 	}
 	if strings.HasPrefix(name, "bin/resources/Mirroxy_set_") && strings.HasSuffix(name, ".bin") && strings.Count(name, "/") == 2 {
@@ -473,10 +474,27 @@ func (a *App) loadAppUpdate() {
 
 // Used only by the Windows helper, after the old application has exited.
 func waitUpdatedReady(p *appUpdatePlan, timeout time.Duration) bool {
-	client := http.Client{Timeout: time.Second, Transport: &http.Transport{Proxy: nil}}
+	client := http.Client{
+		Timeout: time.Second,
+		Transport: &http.Transport{
+			Proxy:           nil,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"},
+		},
+	}
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		res, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/api/v1/status", p.Port))
+		var res *http.Response
+		var err error
+		for _, scheme := range []string{"https", "http"} {
+			res, err = client.Get(fmt.Sprintf("%s://127.0.0.1:%d/api/v1/status", scheme, p.Port))
+			if err == nil {
+				if res.StatusCode == http.StatusOK {
+					break
+				}
+				res.Body.Close()
+				err = fmt.Errorf("HTTP %d", res.StatusCode)
+			}
+		}
 		if err == nil {
 			var state struct {
 				Version string

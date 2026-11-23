@@ -208,8 +208,26 @@ func TestFreshInstallBrowserTokenPersists(t *testing.T) {
 func TestLegacyConnectorAutoPairing(t *testing.T) {
 	a := connectorTestApp(t)
 	a.panelPort = 10086
+	for _, tc := range []struct {
+		name   string
+		origin string
+	}{
+		{"no origin rejected", ""},
+		{"web origin rejected", "https://evil.invalid"},
+	} {
+		r := httptest.NewRequest("GET", "http://127.0.0.1:15060/api/downloads/connector/auto", nil)
+		r.RemoteAddr = "127.0.0.1:41000"
+		if tc.origin != "" {
+			r.Header.Set("Origin", tc.origin)
+		}
+		rec := httptest.NewRecorder()
+		if !a.legacyBrowserConnector(rec, r) || rec.Code != 403 {
+			t.Fatalf("%s: got %d, want 403 (%s)", tc.name, rec.Code, rec.Body.String())
+		}
+	}
 	r := httptest.NewRequest("GET", "http://127.0.0.1:15060/api/downloads/connector/auto", nil)
 	r.RemoteAddr = "127.0.0.1:41000"
+	r.Header.Set("Origin", "chrome-extension://abcdefghijklmnop")
 	rec := httptest.NewRecorder()
 	if !a.legacyBrowserConnector(rec, r) || rec.Code != 200 {
 		t.Fatalf("auto pairing failed: %d %s", rec.Code, rec.Body.String())

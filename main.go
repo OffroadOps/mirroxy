@@ -281,7 +281,7 @@ func main() {
 		go a.runTray()
 	}
 	if !*noOpen && openAtStart {
-		openBrowser(a.panelURL())
+		a.openPanel()
 	}
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, os.Interrupt, syscall.SIGTERM)

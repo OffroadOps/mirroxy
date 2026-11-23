@@ -53,13 +53,14 @@ type trayMessage struct {
 }
 
 const (
-	trayMenuOpen      = 1
-	trayMenuUpdate    = 2
-	trayMenuExit      = 3
-	trayMenuReload    = 4
-	trayMenuElevate   = 5
-	trayMenuToggleAll = 6
-	trayMenuDownloads = 7
+	trayMenuOpen        = 1
+	trayMenuUpdate      = 2
+	trayMenuExit        = 3
+	trayMenuReload      = 4
+	trayMenuElevate     = 5
+	trayMenuToggleAll   = 6
+	trayMenuDownloads   = 7
+	trayMenuOpenBrowser = 8
 
 	trayProxyNodeBase  = 20 // + index into the running-node snapshot
 	proxyNodeSlotLimit = 40
@@ -232,7 +233,7 @@ func (a *App) restartApplication() error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command(exe, "-panel", strconv.Itoa(a.panelPort), "-relaunch-wait", strconv.Itoa(os.Getpid()))
+	cmd := exec.Command(exe, "-dir", a.root, "-panel", strconv.Itoa(a.panelPort), "-relaunch-wait", strconv.Itoa(os.Getpid()), "-no-open")
 	cmd.Dir = filepath.Dir(exe)
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x00000008} // DETACHED_PROCESS
 	if err = cmd.Start(); err != nil {
@@ -327,18 +328,28 @@ func (a *App) runTray() {
 	taskbar, _, _ := trayUser.NewProc("RegisterWindowMessageW").Call(uintptr(unsafe.Pointer(wide("TaskbarCreated"))))
 	data := trayNotify{ID: 1, Flags: 7, Callback: 0x8001, Icon: icon}
 	data.Size = uint32(unsafe.Sizeof(data))
-	tip, _ := windows.UTF16FromString("Mirroxy · 双击打开面板")
+	tip, _ := windows.UTF16FromString("Mirroxy · 单击打开面板")
 	copy(data.Tip[:], tip)
 	notify := func(action uintptr) uintptr {
 		v, _, _ := trayShell.NewProc("Shell_NotifyIconW").Call(action, uintptr(unsafe.Pointer(&data)))
 		return v
 	}
-	open := func() { openBrowser(a.panelURL()) }
+	open := func() { a.openPanelDesktop() }
+	openInBrowser := func() {
+		a.mu.Lock()
+		u := a.panelURL()
+		a.mu.Unlock()
+		openBrowser(u)
+	}
+	var lastOpen time.Time
 	callback := windows.NewCallback(func(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		switch msg {
 		case 0x8001:
-			if lParam == 0x0203 {
-				go open()
+			if lParam == 0x0202 {
+				if time.Since(lastOpen) > 400*time.Millisecond {
+					lastOpen = time.Now()
+					go open()
+				}
 			}
 			if lParam == 0x0205 {
 				menu, _, _ := trayUser.NewProc("CreatePopupMenu").Call()
@@ -415,6 +426,7 @@ func (a *App) runTray() {
 				AppendMenu(menu, 0x3, 0, routeInfo)
 				AppendMenu(menu, 0x800, 0, "")
 				AppendMenu(menu, 0, trayMenuOpen, "打开面板")
+				AppendMenu(menu, 0, trayMenuOpenBrowser, "在浏览器中打开")
 				AppendMenu(menu, 0, trayMenuDownloads, "下载管理")
 				AppendMenu(menu, 0, trayMenuReload, "重启面板")
 				AppendMenu(menu, 0, trayMenuElevate, "UAC运行")
@@ -447,6 +459,8 @@ func (a *App) runTray() {
 				switch {
 				case selected == trayMenuOpen:
 					go open()
+				case selected == trayMenuOpenBrowser:
+					go openInBrowser()
 				case selected == trayMenuDownloads:
 					go a.openDownloadDesktop()
 				case selected == trayMenuReload:

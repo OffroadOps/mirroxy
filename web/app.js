@@ -3,6 +3,7 @@ const $=id=>document.getElementById(id);
 const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const t=(key,params)=>window.MirroxyI18n?.t(key,params)||key;
 let state=null,token='',importMode='v2rayn',pending=0,remoteDirty=false,appRoutingDirty=false,appRoutingDraft=null,offline=false,toastTimer;
+const desktopUI=()=>window.go?.main?.Desktop;
 const latest=new Map();
 function translateEvent(value){const match=String(value).match(/^(\d{2}:\d{2}:\d{2}\s+)(.*)$/);return match?match[1]+t(match[2]):t(value)}
 function toast(message,error=false,action=null){clearTimeout(toastTimer);const el=$('toast');el.textContent=message;el.className='toast'+(error?' error':'');el.querySelector('.toast-action')?.remove();if(action){const btn=document.createElement('button');btn.className='toast-action';btn.textContent=action.label;btn.onclick=()=>{el.classList.add('hidden');action.onClick()};el.append(btn)}toastTimer=setTimeout(()=>el.classList.add('hidden'),error?9500:action?9000:4500);}
@@ -38,7 +39,7 @@ function render(){
  if(!remoteDirty){$('remoteEnabled').checked=state.remote.enabled;$('remoteScheme').value=state.remote.scheme;$('remotePort').value=state.remote.port;$('remoteUser').value=state.remote.username;$('remoteCert').value=state.remote.certFile;$('remoteKey').value=state.remote.keyFile;}
  $('remoteStatus').textContent=t(state.remote.error)|| (state.remote.running?t('远程 {scheme} 已开启，端口 {port}；需要账号密码。',{scheme:state.remote.scheme.toUpperCase(),port:state.remote.port}):t('远程访问已关闭。本机仍可免登录使用面板和 API。'));
  $('accessNote').textContent=t(state.remote.running?'本机免登录 · 远程需认证':'本机免登录');
-$('apiAddress').textContent=location.origin+'/api/v1/';
+$('apiAddress').textContent=(desktopUI()&&state.panelPort?(state.settings?.panelTLS?'https':'http')+'://127.0.0.1:'+state.panelPort:location.origin)+'/api/v1/';
  $('settingsNote').textContent=t(state.settingsEditable?'修改后自动保存':'远程访问时只能查看全局设置');$('saveRemote').disabled=!state.settingsEditable;
  $('events').textContent=state.events?.map(translateEvent).join('\n')||t('noRecords');$('rootPath').textContent=t('运行目录：')+state.root;
 }
@@ -451,26 +452,27 @@ function saveSetting(el){
  savingSettings.add(el.id);markSetting(el,'saving',t('保存中…'));
  settingsQueue=settingsQueue.then(async()=>{
   try{await api('settings',{[key]:value});state.settings[key]=value;markSetting(el,'saved',t('已保存'));
-   if(key==='panelPort'){toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+value+'/'},1800)}}
+   if(key==='panelPort'){if(desktopUI()?.SetPanelPort){desktopUI().SetPanelPort(value);toast(t('面板端口已变更'));setTimeout(refresh,1800)}else{toast(t('面板端口已变更，正在跳转到新地址…'));setTimeout(()=>{location.href=location.protocol+'//127.0.0.1:'+value+'/'},1800)}}}
   catch(e){markSetting(el,'error',e.message);resetSetting(el);toast(e.message,true)}
   finally{savingSettings.delete(el.id)}
  });
  settingsQueue.then(refresh);
 }
 for(const id of Object.keys(settingFields)){const el=$(id);el.addEventListener('change',()=>saveSetting(el));if(el.type==='number')el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}else if(e.key==='Escape'){resetSetting(el);el.blur()}})}
-$('trustPanelCA').onclick=()=>act($('trustPanelCA'),async()=>{await api('panel/trust-ca',{});toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
+$('trustPanelCA').onclick=()=>act($('trustPanelCA'),async()=>{await api('panel/trust-ca',{});if(desktopUI()){toast(t('根证书已安装并通过 HTTPS 校验'));loadPanelCertStatus();return}toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
 async function loadPanelCertStatus(){try{const s=await apiGet('panel/cert-status');const el=$('panelCertStatus');if(!el)return;if(s.tls){el.textContent=(s.trusted?t('证书已受信任，浏览器显示安全锁'):t('证书已生成，点击「信任根证书」完成安装'))+' · '+escapeHTML(s.fingerprint||'')+' · '+t('有效期至')+' '+escapeHTML(s.notAfter||'')}else{el.textContent=t('面板当前为 HTTP：证书未就绪')}}catch{}}
 // The panel uses a local self-signed certificate. Without the root CA in the
 // trust store every visit raises a browser warning, so say it on the page
 // instead of letting the browser do it.
 let certBannerChecked=false;
-async function renderCertBanner(){const banner=$('caBanner');if(!banner)return;if(!state.settings.panelTLS){banner.classList.add('hidden');const status=$('panelCertStatus'),row=status?.closest('.setting-row');row?.classList.add('hidden');row?.nextElementSibling?.classList.add('hidden');return}if(certBannerChecked)return;certBannerChecked=true;try{const s=await apiGet('panel/cert-status');if(s.tls&&!s.trusted){banner.classList.remove('hidden');$('caBannerText').textContent=t('面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。')}else banner.classList.add('hidden')}catch{banner.classList.add('hidden')}}
+async function renderCertBanner(){const banner=$('caBanner');if(!banner)return;if(desktopUI()){banner.classList.add('hidden');return}if(!state.settings.panelTLS){banner.classList.add('hidden');const status=$('panelCertStatus'),row=status?.closest('.setting-row');row?.classList.add('hidden');row?.nextElementSibling?.classList.add('hidden');return}if(certBannerChecked)return;certBannerChecked=true;try{const s=await apiGet('panel/cert-status');if(s.tls&&!s.trusted){banner.classList.remove('hidden');$('caBannerText').textContent=t('面板使用本地自签证书，浏览器会一直提示连接不安全。信任根证书后地址栏才会显示安全锁。')}else banner.classList.add('hidden')}catch{banner.classList.add('hidden')}}
 $('caBannerTrust').onclick=()=>act($('caBannerTrust'),async()=>{await api('panel/trust-ca',{});certBannerChecked=false;toast(t('根证书已安装并通过 HTTPS 校验，正在重新建立安全连接…'));setTimeout(()=>{const next=new URL(location.origin+'/');next.searchParams.set('ca-trusted',Date.now());location.replace(next)},700)});
 $('caBannerDismiss').onclick=()=>{$('caBanner').classList.add('hidden')};
 ['remoteScheme','remoteEnabled','remotePort','remoteUser','remotePassword','remoteCert','remoteKey'].forEach(id=>$(id).addEventListener('input',()=>remoteDirty=true));
 $('saveRemote').onclick=()=>act($('saveRemote'),async()=>{await api('remote',{remote:{enabled:$('remoteEnabled').checked,scheme:$('remoteScheme').value,port:Number($('remotePort').value),username:$('remoteUser').value.trim(),certFile:$('remoteCert').value.trim(),keyFile:$('remoteKey').value.trim()},password:$('remotePassword').value});$('remotePassword').value='';remoteDirty=false;toast(t('远程设置已保存'))});
 $('copyAPI').onclick=()=>act($('copyAPI'),async()=>{const base=$('apiAddress').textContent;await copyText(t('请使用 Mirroxy API 管理本机代理。基础地址：')+base+t(state.localAccess?'。本机无需认证。':'。使用面板账号密码（HTTP Basic）认证。')+t('先读取 ')+base+'guide '+t('和 ')+base+'openapi.json'+t('，再 GET nodes 获取节点 id。默认不要修改系统代理。'));toast(t('已复制，可直接发给 AI'))});
 $('stopAll').onclick=()=>act($('stopAll'),async()=>{await api('stop-all',{});toast(t('所有本地代理已停止'))});
+$('downloadsLink')?.addEventListener('click',e=>{const d=desktopUI();if(!d?.OpenDownloads)return;e.preventDefault();d.OpenDownloads()});
 $('shutdown').onclick=async()=>{if(!confirm(t('退出 Mirroxy 后台？所有由它提供的代理都会停止。')))return;try{await api('shutdown',{});toast(t(state.platform?.os==='darwin'?'后台已退出，使用 launchctl kickstart 可再次启动':state.platform?.server?'后台已退出。控制台运行 sudo Mirroxyctl start 可再次启动':'后台已退出。双击 Mirroxy.exe 可再次启动'));$('backendStatus').textContent=t('后台已退出');offline=true}catch(e){toast(e.message,true)}};
 let pendingView=null;
 try{pendingView=sessionStorage.getItem('Mirroxy.view')}catch{}

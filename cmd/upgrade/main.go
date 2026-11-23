@@ -4,6 +4,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -112,7 +113,13 @@ func start(p *plan) (*exec.Cmd, error) {
 	return cmd, e
 }
 func ready(p *plan, pid int, timeout time.Duration) bool {
-	client := http.Client{Timeout: time.Second, Transport: &http.Transport{Proxy: nil}}
+	client := http.Client{
+		Timeout: time.Second,
+		Transport: &http.Transport{
+			Proxy:           nil,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"},
+		},
+	}
 	process, err := windows.OpenProcess(windows.SYNCHRONIZE, false, uint32(pid))
 	if err != nil {
 		return false
@@ -123,7 +130,18 @@ func ready(p *plan, pid int, timeout time.Duration) bool {
 		if status, _ := windows.WaitForSingleObject(process, 0); status == windows.WAIT_OBJECT_0 {
 			return false
 		}
-		res, e := client.Get(fmt.Sprintf("http://127.0.0.1:%d/api/v1/status", p.Port))
+		var res *http.Response
+		var e error
+		for _, scheme := range []string{"https", "http"} {
+			res, e = client.Get(fmt.Sprintf("%s://127.0.0.1:%d/api/v1/status", scheme, p.Port))
+			if e == nil {
+				if res.StatusCode == http.StatusOK {
+					break
+				}
+				res.Body.Close()
+				e = fmt.Errorf("HTTP %d", res.StatusCode)
+			}
+		}
 		if e == nil {
 			var v struct {
 				Version string
