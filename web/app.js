@@ -76,7 +76,7 @@ function bytes(n){n=Number(n)||0;const units=['B','KiB','MiB','GiB','TiB'];let i
 function subTrafficInfo(sub){
  const u=sub?.userinfo||{},total=Number(u.total)||0,used=(Number(u.upload)||0)+(Number(u.download)||0),parts=[];
  let expired=false;
- if(total>0)parts.push(t('剩余 {size}',{size:bytes(Math.max(0,total-used))}));
+ if(total>0)parts.push(t('剩余 {size}',{size:bytes(Math.max(0,total-used))}));else if(used>0)parts.push(t('已用 {size}',{size:bytes(used)}));
  if(Number(u.expire)>0){const date=new Date(Number(u.expire)*1000);if(!Number.isNaN(date.getTime())){if(date.getTime()<=Date.now()){parts.push(t('已过期'));expired=true}else parts.push(t('{date} 到期',{date:date.toLocaleDateString()}))}}
  return {text:parts.join(' · ')||'—',detail:total>0?t('已用 {used} / 共 {total}',{used:bytes(used),total:bytes(total)}):'',expired};
 }

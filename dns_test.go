@@ -114,7 +114,10 @@ func TestSingBoxSniffingAndDNSConfig(t *testing.T) {
 		server, _ := item.(M)
 		tags[stringVal(server["tag"])] = server
 	}
-	if tags["local"]["detour"] != "direct" || tags["remote"]["detour"] != "node-b" || tags["system"]["type"] != "local" {
+	if _, hasDetour := tags["local"]["detour"]; hasDetour {
+		t.Fatalf("domestic DoH must use the default direct dialer, not a detour: %+v", tags["local"])
+	}
+	if tags["remote"]["detour"] != "node-b" || tags["system"]["type"] != "local" {
 		t.Fatalf("sing-box DNS servers wrong: %+v", servers)
 	}
 	dnsRules, _ := dns["rules"].([]any)
@@ -133,6 +136,85 @@ func TestSingBoxSniffingAndDNSConfig(t *testing.T) {
 	}
 }
 
+func stringIndex(items []string, want string) int {
+	for i, item := range items {
+		if item == want {
+			return i
+		}
+	}
+	return -1
+}
+
+func TestCustomRulesDNSMapping(t *testing.T) {
+	a := configTestApp(t)
+	a.cfg.CustomRules = CustomRoutingRules{Block: []string{"ads.example"}, Direct: []string{"internal.example"}, Proxy: []string{"blocked.example"}}
+
+	xcfg, _ := a.coreConfig("xray-x")
+	xdns, _ := xcfg["dns"].(M)
+	hosts, _ := xdns["hosts"].(M)
+	if hosts["domain:ads.example"] != "#3" {
+		t.Fatalf("blocked domain not rejected in xray DNS: %+v", xdns["hosts"])
+	}
+	xservers, _ := xdns["servers"].([]any)
+	directIdx, proxyIdx, builtinIdx := -1, -1, -1
+	for i, item := range xservers {
+		server, _ := item.(M)
+		domains, _ := server["domains"].([]string)
+		switch {
+		case stringIndex(domains, "domain:internal.example") >= 0:
+			directIdx = i
+		case stringIndex(domains, "domain:blocked.example") >= 0:
+			proxyIdx = i
+		case stringIndex(domains, xDomain("cn")) >= 0:
+			builtinIdx = i
+		}
+	}
+	if directIdx < 0 || proxyIdx < 0 || builtinIdx < 0 || !(directIdx < proxyIdx && proxyIdx < builtinIdx) {
+		t.Fatalf("xray custom DNS priority wrong: direct=%d proxy=%d builtin=%d %+v", directIdx, proxyIdx, builtinIdx, xservers)
+	}
+
+	scfg, _ := a.coreConfig("sing-box-b")
+	sdns, _ := scfg["dns"].(M)
+	srules, _ := sdns["rules"].([]any)
+	rejectIdx, directRuleIdx, proxyRuleIdx, builtinRuleIdx := -1, -1, -1, -1
+	for i, item := range srules {
+		rule, _ := item.(M)
+		suffix, _ := rule["domain_suffix"].([]string)
+		switch {
+		case rule["action"] == "reject" && stringIndex(suffix, "ads.example") >= 0:
+			if _, hasServer := rule["server"]; hasServer {
+				t.Fatalf("DNS reject rule must not select a server: %+v", rule)
+			}
+			rejectIdx = i
+		case rule["action"] == "route" && rule["server"] == "local" && stringIndex(suffix, "internal.example") >= 0:
+			directRuleIdx = i
+		case rule["action"] == "route" && rule["server"] == "remote" && stringIndex(suffix, "blocked.example") >= 0:
+			proxyRuleIdx = i
+		case rule["action"] == "route" && rule["rule_set"] != nil:
+			if builtinRuleIdx < 0 {
+				builtinRuleIdx = i
+			}
+		}
+	}
+	if rejectIdx < 0 || directRuleIdx < 0 || proxyRuleIdx < 0 || builtinRuleIdx < 0 || !(rejectIdx < directRuleIdx && directRuleIdx < proxyRuleIdx && proxyRuleIdx < builtinRuleIdx) {
+		t.Fatalf("sing-box custom DNS priority wrong: reject=%d direct=%d proxy=%d builtin=%d %+v", rejectIdx, directRuleIdx, proxyRuleIdx, builtinRuleIdx, srules)
+	}
+}
+
+func TestSingDNSNoDetourForDirectOutbound(t *testing.T) {
+	a := configTestApp(t)
+	a.cfg.Nodes[1].Outbound = M{"type": "direct"}
+	cfg, _ := a.coreConfig("sing-box-b")
+	dns, _ := cfg["dns"].(M)
+	servers, _ := dns["servers"].([]any)
+	for _, item := range servers {
+		server, _ := item.(M)
+		if _, hasDetour := server["detour"]; hasDetour {
+			t.Fatalf("direct outbound must not be used as a DNS detour: %+v", server)
+		}
+	}
+}
+
 // TestGeneratedCoreConfigsValidate is opt-in: set MIRROXY_TEST_CORE_A,
 // MIRROXY_TEST_CORE_B and MIRROXY_TEST_RESOURCES to the bundled cores and the
 // bin/resources directory to run the real core config checkers.
@@ -143,6 +225,7 @@ func TestGeneratedCoreConfigsValidate(t *testing.T) {
 		t.Skip("real core paths not configured")
 	}
 	a := configTestApp(t)
+	a.cfg.CustomRules = CustomRoutingRules{Block: []string{"ads.example"}, Direct: []string{"internal.example"}, Proxy: []string{"blocked.example"}}
 	target := filepath.Join(a.root, "bin", "resources")
 	if err := os.MkdirAll(target, 0700); err != nil {
 		t.Fatal(err)

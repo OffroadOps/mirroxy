@@ -369,6 +369,7 @@
     "最后更新": "Last updated",
     "流量 / 到期": "Traffic / expiry",
     "剩余 {size}": "Left {size}",
+    "已用 {size}": "Used {size}",
     "{date} 到期": "Expires {date}",
     "已过期": "Expired",
     "已用 {used} / 共 {total}": "Used {used} of {total}",

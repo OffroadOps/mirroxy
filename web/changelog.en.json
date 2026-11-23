@@ -3,6 +3,8 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "Fixed Core B (sing-box) exiting with FATAL on real startup because a DoH server pointed at an empty direct outbound: domestic DoH now uses the default dialer, and synthetic direct nodes are no longer used as a DNS detour. Verified with real Hysteria2/TUIC/AnyTLS startup and split-routing tests.",
+      "Custom routing rules now feed DNS: blocked domains are rejected, direct rules use the domestic DoH, proxy rules use the node DoH. Xray's internal dns-in DoH connections no longer appear in the live activity view, and unlimited plans still show used traffic.",
       "Subscription compatibility: providers that filter by User-Agent are retried with a v2rayN identity, Clash YAML `proxies` lists are parsed, and `Subscription-Userinfo` is imported to show remaining traffic and expiry in the subscription table and provider tab tooltip.",
       "Anti-poisoning DNS and inbound sniffing: Core A now sniffs http/tls/quic with routeOnly, resolves mainland/private domains through direct AliDNS DoH and everything else through Cloudflare DoH via the active node; Core B gets the same split through the sniff route action, remote/local DoH servers and a system bootstrap resolver that avoids DNS loops.",
       "The sidebar can now collapse to an icon-only rail (brand mark, navigation icons and theme toggle). The state is stored locally and applied before first paint to avoid a flash; mobile keeps the horizontal navigation bar.",

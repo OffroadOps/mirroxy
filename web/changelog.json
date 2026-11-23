@@ -3,6 +3,8 @@
     "version": "0.9.0",
     "date": "2026-10-30",
     "changes": [
+      "修复 core B（sing-box）在真实启动时因 DoH 服务器指向空 direct 出站而 FATAL 退出的问题：直连 DoH 改用默认拨号器，合成 direct 节点也不再作为 DNS detour；已用真实 Hysteria2/TUIC/AnyTLS 启动与分流测试验证",
+      "自定义分流规则联动 DNS：拦截域名直接拒绝解析，直连规则走本地 DoH、代理规则走节点 DoH；Xray 内部 dns-in DoH 连接不再混入实时连接面板；不限总量套餐也会显示已用流量",
       "订阅兼容增强：机场按 User-Agent 过滤节点时自动以 v2rayN 身份重试，支持解析 Clash YAML 的 proxies 列表，并读取 Subscription-Userinfo 在订阅表、机场分组提示中显示剩余流量与到期时间",
       "新增防污染 DNS 分流与入站嗅探：核心 A 启用 http/tls/quic 嗅探（routeOnly），大陆与私有域名使用直连 AliDNS DoH、其余域名经当前节点使用 Cloudflare DoH；核心 B 通过 sniff 路由动作、remote/local DoH 与 system 引导解析器实现同样分流并避免 DNS 循环",
       "侧栏新增折叠开关：可折叠为仅图标的窄栏（保留品牌图标、导航图标与主题切换），折叠状态保存在本机并在加载前应用以避免闪烁；移动端仍保持横向导航",

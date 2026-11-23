@@ -62,6 +62,11 @@ func TestActivityParseXrayAccessLines(t *testing.T) {
 			line:   "2026/11/23 18:10:03 [Warning] core: Xray started",
 			wantOK: false,
 		},
+		{
+			name:   "internal dns doh connection ignored",
+			line:   "2026/11/23 18:10:04.123456 from 127.0.0.1:50000 accepted tcp:1.1.1.1:443 [dns-in -> node-n1]",
+			wantOK: false,
+		},
 	}
 
 	for _, tc := range cases {

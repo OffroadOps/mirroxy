@@ -137,7 +137,11 @@ func (a *App) coreConfig(key string) (M, []int) {
 			}
 		} else {
 			if singDNS == nil {
-				singDNS = a.singDNSConfig(tag, mode, ruleSets)
+				remoteDetour := true
+				if kind, _ := n.Outbound["type"].(string); kind == "direct" {
+					remoteDetour = false
+				}
+				singDNS = a.singDNSConfig(tag, mode, ruleSets, customRules, remoteDetour)
 			}
 			ins = append(ins, M{"type": "mixed", "tag": in, "listen": "127.0.0.1", "listen_port": n.Port})
 			if n.AppPort > 0 {
@@ -163,7 +167,7 @@ func (a *App) coreConfig(key string) (M, []int) {
 			}
 			allRules = append(dnsRules, allRules...)
 		}
-		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning")}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": allRules}, "dns": xrayDNSConfig()}
+		cfg := M{"log": M{"loglevel": first(a.cfg.LogLevel, "warning")}, "inbounds": ins, "outbounds": outs, "routing": M{"domainStrategy": strategy, "rules": allRules}, "dns": xrayDNSConfig(a.cfg.CustomRules)}
 		if p := a.metricsPorts[key]; p > 0 {
 			cfg["metrics"] = M{"listen": fmt.Sprintf("127.0.0.1:%d", p)}
 			cfg["stats"] = M{}

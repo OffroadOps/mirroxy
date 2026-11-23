@@ -7,16 +7,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// looksLikeClash detects a Clash-compatible YAML feed by its top-level
-// `proxies:` key. The key must not be indented so entries inside a proxy
-// object cannot trigger the detection.
+// looksLikeClash detects a Clash-compatible YAML or JSON feed by its
+// `proxies` key. Nested matches are harmless: parseClashSubscription only
+// accepts a top-level proxies list.
 func looksLikeClash(text string) bool {
+	trimmed := strings.TrimSpace(text)
+	if strings.HasPrefix(trimmed, "{") && strings.Contains(trimmed, `"proxies"`) {
+		return true
+	}
 	for _, line := range strings.Split(strings.ReplaceAll(text, "\r", ""), "\n") {
-		if line == "" || strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") || strings.HasPrefix(line, "#") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, "proxies:") {
-			return true
+		line = strings.ToLower(line)
+		for _, prefix := range []string{"proxies:", `"proxies":`, `'proxies':`, "proxies :", `"proxies" :`, `'proxies' :`} {
+			if strings.HasPrefix(line, prefix) {
+				return true
+			}
 		}
 	}
 	return false
@@ -118,6 +126,23 @@ func clashNode(proxy map[string]any) (Node, error) {
 	}
 	if grpc := yamlMap(proxy["grpc-opts"]); grpc != nil {
 		s.ServiceName = first(stringVal(grpc["grpc-service-name"]), stringVal(grpc["serviceName"]))
+	}
+	for _, key := range []string{"http-opts", "h2-opts", "xhttp-opts"} {
+		opts := yamlMap(proxy[key])
+		if opts == nil {
+			continue
+		}
+		if s.Path == "" {
+			if paths := yamlStrings(opts["path"]); len(paths) > 0 {
+				s.Path = paths[0]
+			}
+		}
+		if s.Host == "" {
+			hosts := append(yamlStrings(opts["host"]), yamlStrings(opts["Host"])...)
+			if len(hosts) > 0 {
+				s.Host = hosts[0]
+			}
+		}
 	}
 	if reality := yamlMap(proxy["reality-opts"]); reality != nil {
 		s.Security = "reality"

@@ -71,6 +71,12 @@ func parseXrayAccessLine(line string) (ActivityEntry, bool) {
 	}
 	inTag := strings.TrimSpace(tagExpr[:sepIdx])
 	outTag := strings.TrimSpace(tagExpr[sepIdx+len(sep):])
+	// Xray routes its own DoH transport through this internal tag; those
+	// connections are not user traffic and would otherwise be attributed to
+	// the current node in the live activity view.
+	if inTag == "dns-in" {
+		return ActivityEntry{}, false
+	}
 
 	network := ""
 	if strings.HasPrefix(destToken, "tcp:") {
