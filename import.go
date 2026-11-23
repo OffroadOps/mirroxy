@@ -71,8 +71,18 @@ func b64(s string) (string, error) {
 }
 func parseLinks(text string) ([]Node, []string) {
 	text = strings.TrimSpace(strings.TrimPrefix(text, "\ufeff"))
+	if looksLikeClash(text) {
+		if nodes, warnings, ok := parseClashSubscription(text); ok {
+			return nodes, warnings
+		}
+	}
 	if !strings.Contains(text, "://") && !strings.HasPrefix(text, "{") {
 		if s, e := b64(text); e == nil {
+			if looksLikeClash(s) {
+				if nodes, warnings, ok := parseClashSubscription(s); ok {
+					return nodes, warnings
+				}
+			}
 			text = s
 		}
 	}

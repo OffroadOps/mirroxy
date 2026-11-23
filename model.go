@@ -50,11 +50,15 @@ type AppRoutingSettings struct {
 	Profiles    []AppRouteProfile `json:"profiles"`
 }
 type Subscription struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	URL     string `json:"url"`
-	Updated string `json:"updated"`
-	Error   string `json:"error"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Updated  string `json:"updated"`
+	Error    string `json:"error"`
+	Upload   int64  `json:"upload,omitempty"`
+	Download int64  `json:"download,omitempty"`
+	Total    int64  `json:"total,omitempty"`
+	Expire   int64  `json:"expire,omitempty"`
 }
 type CustomRoutingRules struct {
 	Proxy  []string `json:"proxy"`

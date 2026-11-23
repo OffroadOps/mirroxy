@@ -73,7 +73,14 @@ func newerVersion(candidate, installed string) bool {
 	return false
 }
 
+const v2rayNUserAgent = "v2rayN/7.10.5"
+
 func (a *App) fetch(address string, limit int64, timeout time.Duration) ([]byte, error) {
+	body, _, err := a.fetchResponse(address, limit, timeout, "Mirroxy/"+version, "application/vnd.github+json, */*")
+	return body, err
+}
+
+func (a *App) fetchResponse(address string, limit int64, timeout time.Duration, userAgent, accept string) ([]byte, http.Header, error) {
 	a.mu.Lock()
 	proxies := []string{}
 	for _, n := range a.cfg.Nodes {
@@ -100,10 +107,14 @@ func (a *App) fetch(address string, limit int64, timeout time.Duration) ([]byte,
 		client := &http.Client{Transport: transport, Timeout: timeout}
 		req, e := http.NewRequest("GET", address, nil)
 		if e != nil {
-			return nil, errors.New("无效下载地址")
+			return nil, nil, errors.New("无效下载地址")
 		}
-		req.Header.Set("User-Agent", "Mirroxy/"+version)
-		req.Header.Set("Accept", "application/vnd.github+json, */*")
+		if userAgent != "" {
+			req.Header.Set("User-Agent", userAgent)
+		}
+		if accept != "" {
+			req.Header.Set("Accept", accept)
+		}
 		res, e := client.Do(req)
 		if e != nil {
 			transport.CloseIdleConnections()
@@ -115,17 +126,61 @@ func (a *App) fetch(address string, limit int64, timeout time.Duration) ([]byte,
 			continue
 		}
 		b, e := io.ReadAll(io.LimitReader(res.Body, limit+1))
+		header := res.Header.Clone()
 		res.Body.Close()
 		transport.CloseIdleConnections()
 		if e != nil {
 			continue
 		}
 		if int64(len(b)) > limit {
-			return nil, errors.New("下载内容超过大小限制")
+			return nil, nil, errors.New("下载内容超过大小限制")
 		}
-		return b, nil
+		return b, header, nil
 	}
-	return nil, errors.New("下载失败，请检查代理连通性或稍后重试")
+	return nil, nil, errors.New("下载失败，请检查代理连通性或稍后重试")
+}
+
+// fetchSubscription fetches a provider feed with the given User-Agent and
+// returns the response headers so Subscription-Userinfo can be imported.
+func (a *App) fetchSubscription(address, userAgent string) ([]byte, http.Header, error) {
+	return a.fetchResponse(address, 8<<20, 25*time.Second, userAgent, "*/*")
+}
+
+// parseSubscriptionUserinfo reads the de-facto Subscription-Userinfo header
+// sent by V2Board / Xboard / SSPanel providers.
+func parseSubscriptionUserinfo(header http.Header) (upload, download, total, expire int64) {
+	for _, part := range strings.Split(header.Get("Subscription-Userinfo"), ";") {
+		key, value, ok := strings.Cut(strings.TrimSpace(part), "=")
+		if !ok {
+			continue
+		}
+		n, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		if err != nil {
+			f, ferr := strconv.ParseFloat(strings.TrimSpace(value), 64)
+			if ferr != nil {
+				continue
+			}
+			n = int64(f)
+		}
+		if n < 0 {
+			n = 0
+		}
+		switch strings.ToLower(strings.TrimSpace(key)) {
+		case "upload":
+			upload = n
+		case "download":
+			download = n
+		case "total":
+			total = n
+		case "expire":
+			// A few panels emit milliseconds instead of Unix seconds.
+			if n > 1e12 {
+				n /= 1000
+			}
+			expire = n
+		}
+	}
+	return
 }
 func (a *App) latestRelease(engine string) (*Release, error) {
 	repo := ""

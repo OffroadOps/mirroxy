@@ -73,6 +73,13 @@ function renderHealth(health){if(!health)return;
  }
 }
 function bytes(n){n=Number(n)||0;const units=['B','KiB','MiB','GiB','TiB'];let i=0;while(n>=1024&&i<units.length-1){n/=1024;i++}return (i?n.toFixed(n>=100?0:1):Math.round(n))+' '+units[i];}
+function subTrafficInfo(sub){
+ const u=sub?.userinfo||{},total=Number(u.total)||0,used=(Number(u.upload)||0)+(Number(u.download)||0),parts=[];
+ let expired=false;
+ if(total>0)parts.push(t('剩余 {size}',{size:bytes(Math.max(0,total-used))}));
+ if(Number(u.expire)>0){const date=new Date(Number(u.expire)*1000);if(!Number.isNaN(date.getTime())){if(date.getTime()<=Date.now()){parts.push(t('已过期'));expired=true}else parts.push(t('{date} 到期',{date:date.toLocaleDateString()}))}}
+ return {text:parts.join(' · ')||'—',detail:total>0?t('已用 {used} / 共 {total}',{used:bytes(used),total:bytes(total)}):'',expired};
+}
 function renderTraffic(traffic){if(!traffic)return;
  renderHealth(traffic.health);
  $('sumUpload').textContent='↑ '+bytes(traffic.uploadBytesPerSecond)+'/s';$('sumDownload').textContent='↓ '+bytes(traffic.downloadBytesPerSecond)+'/s';
@@ -89,7 +96,7 @@ let trafficBusy=false;
 async function refreshTraffic(){if(trafficBusy||document.hidden)return;trafficBusy=true;try{const res=await fetch('/api/traffic',{cache:'no-store'});if(res.ok){const traffic=await res.json();if(state){state.traffic=traffic;renderTraffic(traffic)}}}catch{}finally{trafficBusy=false}}
 function groupLabel(g){return g.id==='all'?t('全部'):g.id==='running'?t('running'):g.id==='manual'?t('手动添加'):g.name}
 function renderGroups(){const list=NT.groups(state.nodes,state.subscriptions);if(!list.some(g=>g.id===nodeGroup))nodeGroup='all';
- $('nodeGroups').innerHTML=list.map(g=>{const sub=g.id.startsWith('sub:')?subByID(g.id.slice(4)):null;const title=sub?[sub.host,sub.error?t(sub.error):sub.updated?t('最后更新：')+sub.updated:t('尚未更新'),t('右键：更新 / 编辑 / 删除')].filter(Boolean).join('\n'):'';return `<button type="button" role="tab" class="nx-group${g.id===nodeGroup?' active':''}${sub?.error?' error':''}" aria-selected="${g.id===nodeGroup}" data-node-group="${escapeHTML(g.id)}"${title?` title="${escapeHTML(title)}"`:''}>${escapeHTML(groupLabel(g))}<span>${g.count}</span></button>`}).join('')+`<button type="button" class="nx-group nx-group-add" id="addSubscriptionTab" title="${t('添加订阅')}" aria-label="${t('添加订阅')}">＋</button>`}
+ $('nodeGroups').innerHTML=list.map(g=>{const sub=g.id.startsWith('sub:')?subByID(g.id.slice(4)):null;const traffic=sub?subTrafficInfo(sub).text:'';const title=sub?[sub.host,traffic!=='—'?traffic:'',sub.error?t(sub.error):sub.updated?t('最后更新：')+sub.updated:t('尚未更新'),t('右键：更新 / 编辑 / 删除')].filter(Boolean).join('\n'):'';return `<button type="button" role="tab" class="nx-group${g.id===nodeGroup?' active':''}${sub?.error?' error':''}" aria-selected="${g.id===nodeGroup}" data-node-group="${escapeHTML(g.id)}"${title?` title="${escapeHTML(title)}"`:''}>${escapeHTML(groupLabel(g))}<span>${g.count}</span></button>`}).join('')+`<button type="button" class="nx-group nx-group-add" id="addSubscriptionTab" title="${t('添加订阅')}" aria-label="${t('添加订阅')}">＋</button>`}
 function nodeRow(n){
  const running=n.status==='running',dot=n.status==='error'?'error':running?'running':n.enabled?'starting':'stopped';
  const tags=(n.route&&n.route!=='inherit'?`<span class="nx-tag" title="${t('出口策略')}">${routeLabel(n.route)}</span>`:'')+(n.listBottom?`<span class="nx-tag" title="${t('手动置底，启动后仍保持在列表末尾')}">${t('已置底')}</span>`:'');
@@ -260,7 +267,7 @@ function runSubVerb(verb){const [action,id]=verb.split(':');const s=subByID(id);
 function renderSubscriptions(){
  const subs=state.subscriptions;$('subTableWrap').classList.toggle('hidden',!subs.length);$('subEmpty').classList.toggle('hidden',!!subs.length);$('refreshAllSubs').classList.toggle('hidden',!subs.length);
  $('subAutoNote').textContent=state.settings.autoSubscribe?t('每 {hours} 小时自动更新',{hours:state.settings.subscribeHours}):t('自动更新已关闭，可在全局设置中开启');
- $('subscriptions').innerHTML=subs.map(s=>{const count=subNodeCount(s.id);return `<tr data-sub-id="${s.id}"><td class="nx-name"><button type="button" class="nx-link" data-open-sub="${s.id}" title="${t('在节点面板中查看')}">${escapeHTML(s.name)}</button></td><td class="nx-host">${escapeHTML(s.host||'—')}</td><td class="numeric">${count}</td><td>${escapeHTML(s.updated||t('尚未更新'))}</td><td>${s.error?`<span class="nx-sub-error" title="${escapeHTML(t(s.error))}">${escapeHTML(t(s.error))}</span>`:s.updated?`<span class="nx-sub-ok">${t('正常')}</span>`:'—'}</td><td class="nx-row-actions"><button type="button" class="button small" data-refresh-sub="${s.id}">${t('更新')}</button><button type="button" class="button small ghost" data-edit-sub="${s.id}">${t('编辑')}</button><button type="button" class="button small ghost danger" data-delete-sub="${s.id}">${t('删除')}</button></td></tr>`}).join('');
+ $('subscriptions').innerHTML=subs.map(s=>{const count=subNodeCount(s.id),info=subTrafficInfo(s);return `<tr data-sub-id="${s.id}"><td class="nx-name"><button type="button" class="nx-link" data-open-sub="${s.id}" title="${t('在节点面板中查看')}">${escapeHTML(s.name)}</button></td><td class="nx-host">${escapeHTML(s.host||'—')}</td><td class="numeric">${count}</td><td>${escapeHTML(s.updated||t('尚未更新'))}</td><td class="nx-sub-traffic${info.expired?' expired':''}"${info.detail?` title="${escapeHTML(info.detail)}"`:''}>${escapeHTML(info.text)}</td><td>${s.error?`<span class="nx-sub-error" title="${escapeHTML(t(s.error))}">${escapeHTML(t(s.error))}</span>`:s.updated?`<span class="nx-sub-ok">${t('正常')}</span>`:'—'}</td><td class="nx-row-actions"><button type="button" class="button small" data-refresh-sub="${s.id}">${t('更新')}</button><button type="button" class="button small ghost" data-edit-sub="${s.id}">${t('编辑')}</button><button type="button" class="button small ghost danger" data-delete-sub="${s.id}">${t('删除')}</button></td></tr>`}).join('');
 }
 $('refreshSubs').onclick=()=>refreshSubscriptions(nodeGroup.startsWith('sub:')?state.subscriptions.filter(s=>'sub:'+s.id===nodeGroup):state.subscriptions,$('refreshSubs'));
 $('refreshAllSubs').onclick=()=>refreshSubscriptions(state.subscriptions,$('refreshAllSubs'));

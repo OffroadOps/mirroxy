@@ -394,13 +394,16 @@ th[aria-sort=descending] .nx-sort::after { content: "▼"; }
 .nx-page-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .nx-page-title h2 { margin: 0; font-size: 16px; }
 .nx-page-note { font-size: 11.5px; color: var(--faint); }
-.nx-sub-table { min-width: 640px; }
-.nx-col-subname { width: 24%; }
-.nx-col-host { width: 20%; }
-.nx-col-count { width: 8%; }
-.nx-col-updated { width: 15%; }
-.nx-col-substatus { width: 11%; }
-.nx-col-subactions { width: 22%; }
+.nx-sub-table { min-width: 760px; }
+.nx-col-subname { width: 20%; }
+.nx-col-host { width: 18%; }
+.nx-col-count { width: 7%; }
+.nx-col-updated { width: 14%; }
+.nx-col-subtraffic { width: 18%; }
+.nx-col-substatus { width: 10%; }
+.nx-col-subactions { width: 21%; }
+.nx-sub-traffic { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.nx-sub-traffic.expired { color: var(--bad); }
 .nx-sub-table td { height: 48px; }
 .nx-sub-table tbody tr:hover td { background: var(--surface-hover); }
 .nx-link {

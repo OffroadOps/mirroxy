@@ -46,7 +46,7 @@ func (a *App) state() M {
 	}
 	subs := []any{}
 	for _, s := range a.cfg.Subscriptions {
-		subs = append(subs, M{"id": s.ID, "name": s.Name, "host": subscriptionHost(s.URL), "updated": s.Updated, "error": s.Error})
+		subs = append(subs, M{"id": s.ID, "name": s.Name, "host": subscriptionHost(s.URL), "updated": s.Updated, "error": s.Error, "userinfo": M{"upload": s.Upload, "download": s.Download, "total": s.Total, "expire": s.Expire}})
 	}
 	geoFiles := a.geoFilesState()
 	return M{"version": version, "appUpdate": a.appUpdate, "platform": platformState(), "token": a.token, "nodes": nodes, "cores": cores, "events": a.events, "subscriptions": subs, "customRules": a.cfg.CustomRules.sanitized(), "settings": M{"startPort": a.cfg.StartPort, "autoUpdate": a.cfg.AutoUpdate, "autoSubscribe": a.cfg.AutoSubscribe, "autostart": a.cfg.Autostart, "openBrowser": a.cfg.OpenBrowser, "resumeNodes": a.cfg.ResumeNodes, "defaultRoute": a.cfg.DefaultRoute, "routingMode": a.cfg.RoutingMode, "logLevel": a.cfg.LogLevel, "subscribeHours": a.cfg.SubscribeHours, "healthMonitor": a.cfg.HealthMonitor, "healthInterval": a.cfg.HealthInterval, "autoDownload": a.cfg.AutoDownload, "autoDeploy": a.cfg.AutoDeploy, "systemProxyMode": first(a.cfg.SystemProxyMode, "unchanged"), "systemProxyNode": a.cfg.SystemProxyNode, "pauseSystemProxyOnAccelerator": a.acceleratorGuardEnabled(), "acceleratorPaused": a.cfg.PausedSystemProxy != nil, "bypassLAN": a.bypassLANEnabled(), "geoAutoUpdate": a.cfg.GeoAutoUpdate, "panelPort": a.configuredPanelPort(), "panelTLS": a.panelTLS}, "updating": a.busyUpdate, "geoFiles": geoFiles, "systemProxy": proxy, "systemProxyEnabled": en == 1, "root": a.root, "remote": a.remoteState(), "traffic": a.trafficState(), "tray": a.trayWindow != 0, "panelPort": a.panelPort}
@@ -492,6 +492,7 @@ func (a *App) api(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}
 }
+
 // coreLogKeyLocked resolves the worker log key while a.mu is already held.
 func (a *App) coreLogKeyLocked(engine, nodeID string) string {
 	if nodeID != "" {
@@ -563,14 +564,30 @@ func (a *App) refreshSubscriptionStored(id string) (int, error) {
 	if sub.ID == "" {
 		return 0, errors.New("订阅不存在")
 	}
-	content, e := a.fetch(sub.URL, 8<<20, 25*time.Second)
+	content, header, e := a.fetchSubscription(sub.URL, v2rayNUserAgent)
 	var nodes []Node
 	var warnings []string
 	if e == nil {
 		nodes, warnings = parseLinks(string(content))
-		if len(nodes) == 0 {
-			e = fmt.Errorf("订阅没有支持的节点：%s", strings.Join(warnings, "；"))
+	}
+	if len(nodes) == 0 {
+		// v2rayN is the common identity for a full node list; some feeds
+		// reject it, so fall back to our own identity before giving up.
+		fallback, fallbackHeader, fallbackErr := a.fetchSubscription(sub.URL, "Mirroxy/"+version)
+		if fallbackErr == nil {
+			if fallbackNodes, fallbackWarnings := parseLinks(string(fallback)); len(fallbackNodes) > 0 {
+				nodes, warnings, header, e = fallbackNodes, fallbackWarnings, fallbackHeader, nil
+			} else if e == nil {
+				warnings = fallbackWarnings
+			}
 		}
+	}
+	if len(nodes) == 0 && e == nil {
+		e = fmt.Errorf("订阅没有支持的节点：%s", strings.Join(warnings, "；"))
+	}
+	var upload, download, total, expire int64
+	if e == nil {
+		upload, download, total, expire = parseSubscriptionUserinfo(header)
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -674,6 +691,10 @@ func (a *App) refreshSubscriptionStored(id string) (int, error) {
 		if a.cfg.Subscriptions[i].ID == id {
 			a.cfg.Subscriptions[i].Updated = time.Now().Format("2006-01-02 15:04")
 			a.cfg.Subscriptions[i].Error = ""
+			a.cfg.Subscriptions[i].Upload = upload
+			a.cfg.Subscriptions[i].Download = download
+			a.cfg.Subscriptions[i].Total = total
+			a.cfg.Subscriptions[i].Expire = expire
 		}
 	}
 	if e = a.reconcile(); e == nil {
